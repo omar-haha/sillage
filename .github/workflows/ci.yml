@@ -1,0 +1,33 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Format & lint
+        run: |
+          uv run ruff format --check src tests
+          uv run ruff check src tests
+
+      - name: Type check
+        run: uv run mypy
+
+      # Deselect anything touching a live API so CI never depends on a
+      # third-party service being up.
+      - name: Tests
+        run: uv run pytest -m "not network" --cov=sillage --cov-report=term-missing
