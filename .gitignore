@@ -12,9 +12,11 @@ build/
 *.egg-info/
 .ipynb_checkpoints/
 
-# data & run artifacts — never commit market data or live state
-data/
-reports/
+# data & run artifacts — never commit market data or live state.
+# Anchored with a leading slash. Unanchored, `data/` matches a directory of that name
+# at *any* depth, which silently excluded the entire `src/sillage/data/` package.
+/data/
+/reports/
 *.parquet
 *.duckdb
 *.sqlite
