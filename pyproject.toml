@@ -73,5 +73,8 @@ strict = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# So that `tests.support` -- the synthetic-data builders -- is importable from test
+# modules regardless of which directory pytest was invoked from.
+pythonpath = ["."]
 addopts = "-q --strict-markers"
 markers = ["network: hits a live external API (deselect with -m 'not network')"]

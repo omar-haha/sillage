@@ -177,5 +177,101 @@ def data_check(
         raise typer.Exit(1)
 
 
+@app.command()
+def backtest(
+    strategy: Annotated[
+        str, typer.Option("--strategy", "-s", help="Which strategy to run.")
+    ] = "60-40",
+    universe: UniverseOpt = "core",
+    root: RootOpt = Path("data"),
+    start: Annotated[str, typer.Option(help="First session, YYYY-MM-DD.")] = "2005-01-03",
+    end: Annotated[str, typer.Option(help="Last session, YYYY-MM-DD.")] = "",
+    cash: Annotated[float, typer.Option(help="Starting capital.")] = 100_000,
+    band: Annotated[
+        float, typer.Option(help="No-trade band: relative drift tolerated before trading.")
+    ] = 0.20,
+    cost_scale: Annotated[
+        float, typer.Option(help="Multiply every cost assumption. 0 disables costs.")
+    ] = 1.0,
+) -> None:
+    """Replay a strategy over stored history."""
+    from datetime import UTC, datetime
+
+    from sillage.backtest.runner import BacktestConfig, run_backtest
+    from sillage.core.money import dec
+    from sillage.data.universe import get_universe
+    from sillage.execution.costs import CostModel
+    from sillage.portfolio.rebalance import Rebalancer
+    from sillage.strategy.registry import build, names
+
+    uni = get_universe(universe)
+    try:
+        chosen = build(strategy, uni)
+    except KeyError:
+        console.print(f"[red]unknown strategy {strategy!r}[/]; known: {', '.join(names())}")
+        raise typer.Exit(1) from None
+
+    config = BacktestConfig(
+        strategy=chosen,
+        universe=uni,
+        start=date.fromisoformat(start),
+        end=date.fromisoformat(end) if end else datetime.now(UTC).date(),
+        initial_cash=dec(cash),
+        costs=CostModel().scaled(cost_scale),
+        rebalancer=Rebalancer(band=dec(band)),
+        data_root=root,
+    )
+
+    with console.status(f"replaying {chosen.name}..."):
+        try:
+            result = run_backtest(config)
+        except FileNotFoundError as exc:
+            console.print(f"[red]{exc}[/]")
+            raise typer.Exit(1) from None
+
+    if not result.nav_points:
+        console.print("[red]no sessions in range.[/]")
+        raise typer.Exit(1)
+
+    table = Table(box=None, pad_edge=False, show_header=False)
+    table.add_column("", style="dim")
+    table.add_column("", justify="right")
+    first, last = result.nav_points[0], result.nav_points[-1]
+    years = (last.session - first.session).days / 365.25
+    from sillage.backtest.runner import annualised
+
+    for label, value in (
+        ("strategy", chosen.name),
+        (
+            "period",
+            f"{first.session} to {last.session}  ({years:.1f}y, {result.sessions} sessions)",
+        ),
+        ("starting NAV", f"{float(result.initial_nav):,.2f}"),
+        ("final NAV", f"{float(result.final_nav):,.2f}"),
+        ("total return", f"{float(result.total_return):+.2%}"),
+        ("annualised", f"{float(annualised(result.total_return, years)):+.2%}"),
+        ("fills", f"{len(result.fills):,}"),
+        ("traded notional", f"{float(result.traded_notional):,.0f}"),
+        ("commission", f"{float(result.total_commission):,.2f}"),
+        ("slippage", f"{float(result.total_slippage):,.2f}"),
+        ("rejections", f"{len(result.rejections):,}"),
+        ("final cash", f"{float(last.cash):,.2f}"),
+        ("final exposure", f"{float(last.gross_exposure):.1%}"),
+    ):
+        table.add_row(label, str(value))
+    console.print(table)
+
+    if result.rejections:
+        console.print("\n[yellow]rejected orders[/]")
+        for rejection in result.rejections[:10]:
+            console.print(f"  {rejection}")
+        if len(result.rejections) > 10:
+            console.print(f"  ... and {len(result.rejections) - 10} more")
+
+    console.print(
+        "\n[dim]Risk and performance metrics arrive in Phase 2. This is the raw record.[/]"
+    )
+
+
 if __name__ == "__main__":
     app()

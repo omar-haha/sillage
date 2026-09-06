@@ -46,3 +46,106 @@ stable across days).
 happens to exclude the history you care about — would have been nearly invisible if the
 library had returned an empty result instead of raising. The gap check in
 `data/quality.py` is the backstop for the version of this that does not raise.
+
+## 2026-09-05 — Adjusted prices violate the bar invariant by one part in 10^16
+
+The first backtest run failed immediately on SPY, 2007-10-26:
+
+```
+close 108.84169006347656 outside [107.62304766194698, 108.84169006347655]
+```
+
+SPY closed at its high that day. Adjusted prices are the raw prices multiplied by a
+dividend factor in float64, and that multiplication does not distribute exactly, so the
+adjusted close came out one unit in the last place *above* the adjusted high. The
+domain model's `Bar` validation caught it, correctly: a close above the high is
+impossible.
+
+**The fix is at the boundary, not in the invariant.** Prices are now quantized to eight
+decimal places as they leave the store and become `Bar` objects. Loosening the
+validation to a tolerance was the alternative and was rejected — the invariant is real
+and worth enforcing exactly; what needed fixing was that the domain was being handed
+seventeen significant digits of float noise in the first place.
+
+Worth noticing what this says about the data. The discrepancy is 10^-14 dollars, so
+nothing about any result changes. But it is direct evidence that adjusted prices are
+computed rather than observed, which is the same fact that makes them get restated
+every time a dividend is paid.
+
+## 2026-09-05 — A daily bar is stamped before the day it describes
+
+`Bar.ts` is documented as the instant the bar closed. It was not. Daily bars arrive
+from every data source dated to the calendar day, which the store localises to midnight
+UTC — thirteen and a half hours *before* the NYSE opens that morning.
+
+Nothing was broken by it. The engine only reads prices at session closes, where a bar
+stamped 00:00 and one stamped 21:00 are both legitimately visible. But the guarantee
+the whole design rests on was holding by accident: had anything asked the feed for a
+price at a session *open*, it would have been handed that day's closing price, and the
+backtest would have been reading the future with no test failing.
+
+Bars are now re-stamped to their session close as they are loaded into the engine's
+feed. The live loop in Phase 5 has decision points the backtest does not, and this was
+a trap sitting directly in its path.
+
+**The general lesson**, which is the reason this is written down: a safety property
+that holds because of what the code happens not to do yet is not a safety property. It
+is a coincidence with a good reputation.
+
+## 2026-09-05 — A per-position no-trade band orders things it cannot pay for
+
+The first 60/40 backtest reported sixteen fills and **fifty-five rejected orders**,
+every one of them "insufficient cash". The rejections were the system working; the
+orders were the bug.
+
+A no-trade band applied per position asks, for each holding independently, whether it
+has drifted far enough to be worth trading. That looks obviously right and is wrong in
+a fully invested portfolio, where a purchase is funded by a sale. On 2010-04-01 the
+book was 12% off target in SPY — inside the band — and 21% off in IEF, outside it. So
+the rebalancer ordered bonds and ordered no equities to pay for them.
+
+**The band now decides whether to rebalance, not which legs to trade.** If any position
+breaches it, every position is restored to target. Turnover is unchanged, because
+rebalances are exactly as rare as before, but each trade set is self-funding by
+construction.
+
+**The part worth dwelling on: the bug flattered the results.** 60/40 over 2007–2026
+returned 8.81% annualised with the bug and 8.39% without it. The failure mode was
+systematically declining to buy bonds while continuing to sell them, which over a
+period ending in a long equity bull market left the portfolio quietly overweight the
+thing that went up. Forty-two basis points a year, in the right direction, from a bug
+whose only visible symptom was a rejection count in a table nobody had to look at.
+
+This is the second time in two days that the useful signal came from a diagnostic that
+was easy to ignore — the first was `data check`'s flatline warning on BIL. Both suggest
+the same thing: counts of anomalies are worth reading even when the headline number
+looks reasonable, and probably especially then.
+
+## 2026-09-05 — The repository did not contain the data package
+
+`git status` showed `src/sillage/data/store.py` as unmodified after an edit that was
+plainly there in the file. It was not tracked. Nothing under `src/sillage/data/` ever
+had been.
+
+`.gitignore` carried `data/` to keep market data and run artifacts out of the
+repository. A gitignore pattern with no leading slash matches a directory of that name
+at *any* depth, so it also matched the `data` **package** — the store, the providers,
+the universe, the quality checks. Phase 0's two commits describe a data layer they do
+not contain, and a fresh clone would fail on `import sillage.data` before reaching a
+test.
+
+Anchored to `/data/` and `/reports/`, which is what was meant.
+
+**Why it went unnoticed for two days:** every check that could have caught it runs
+against the working tree, and the working tree was complete. CI would have caught it on
+the first push, but there had been no push. There is a general shape here — a class of
+error invisible to every local check, waiting on an action nobody had taken yet — and
+the cheap defence is to push early rather than to add another local check.
+
+**And a second-order effect worth the note.** Ruff honours `.gitignore` by default, so
+for two days it had not linted the data package either — the moment those files became
+tracked, `make lint` found two things in them it had never looked at. Mypy has no such
+behaviour and had been checking them all along, which is why this surfaced as a
+formatting complaint rather than anything worse. One ignored directory quietly
+disabling a tool on a quarter of the source tree is a good argument for verifying
+against a fresh clone rather than the directory you have been working in.

@@ -1,4 +1,4 @@
-# Fund Manager — Design & Roadmap
+# sillage — Design & Roadmap
 
 > A systematic, rules-based multi-asset fund. Research it, backtest it honestly,
 > trade it on paper, watch it on a dashboard. Same strategy code in every mode.
@@ -84,7 +84,8 @@ fund is built on.
 - *Relative (cross-sectional)*: rank assets, own the strongest ones.
 - *Absolute (time-series/trend)*: only own something if it's above its own long-term
   average; otherwise hold cash/bonds. This is what cuts drawdowns.
-Doing both is "dual momentum" and it's the phase-1 strategy.
+Doing both is "dual momentum", and it is the strategy this project starts with — built
+in Phase 3, once there is an engine honest enough to judge it.
 
 **Volatility targeting.** Instead of fixed weights, size positions inversely to how
 volatile they've recently been, and scale the whole book so portfolio vol ≈ target. This
@@ -104,7 +105,7 @@ list to pick stocks in the past (survivorship bias), and using restated fundamen
 The engine enforces this structurally: `DataSource.get(as_of)` never returns future rows,
 and signals computed on close of day T can only trade at the open of T+1.
 
-## 4. The phase-1 strategy, concretely
+## 4. The first strategy, concretely
 
 **Universe** (~12 liquid US ETFs, long history, tight spreads):
 `SPY QQQ IWM EFA EEM TLT IEF LQD HYG GLD DBC VNQ` + `BIL` (T-bills) as the cash asset.
@@ -134,7 +135,7 @@ If it doesn't beat 60/40 on risk-adjusted terms after costs, the report says so.
 ## 5. Repository layout
 
 ```
-fund-manager/
+sillage/
 ├── README.md                  # the portfolio piece: what, why, screenshots, results
 ├── pyproject.toml             # uv-managed
 ├── Makefile                   # make test / lint / backtest / dev
@@ -145,20 +146,20 @@ fund-manager/
 │   ├── architecture.md        # diagrams + design decisions & tradeoffs
 │   ├── strategy.md            # the strategy, its theory, its known weaknesses
 │   └── research-log.md        # dated experiments, INCLUDING failures
-├── src/fundmgr/
+├── src/sillage/
 │   ├── core/        types.py calendar.py money.py     # domain model
 │   ├── data/        providers/ store.py universe.py   # ingest → parquet/duckdb
 │   ├── strategy/    base.py momentum.py benchmarks.py # signal → target weights
 │   ├── portfolio/   sizing.py constraints.py rebalance.py
 │   ├── risk/        limits.py killswitch.py
 │   ├── execution/   broker.py simulated.py ibkr.py ccxt_broker.py
-│   ├── engine/      clock.py loop.py events.py        # the shared loop
+│   ├── engine/      clock.py loop.py events.py feed.py journal.py  # the shared loop
 │   ├── backtest/    runner.py metrics.py walkforward.py report.py
 │   ├── live/        runner.py scheduler.py reconcile.py
 │   ├── state/       models.py journal.py              # sqlalchemy
 │   ├── api/         app.py routes/                    # fastapi
 │   └── cli.py                                         # typer
-├── tests/           unit/ integration/ golden/
+├── tests/           unit/ integration/ golden/  # golden holds committed fixtures
 ├── notebooks/       exploratory research only, never imported by src
 └── web/             React + Vite + TS dashboard
 ```
@@ -174,7 +175,7 @@ fund-manager/
 | Market data | yfinance/Stooq (research), `ib_async` (live equities), ccxt→Kraken (crypto) | free tiers, behind one provider interface |
 | Calendars | `exchange_calendars` | 24/7 crypto vs. NYSE sessions is a real problem; don't hand-roll |
 | Config | pydantic-settings + YAML strategy configs | every backtest reproducible from one file |
-| CLI | typer | `fundmgr backtest --config configs/dual_momentum.yaml` |
+| CLI | typer | `sillage backtest --config configs/dual_momentum.yaml` |
 | Charts (reports) | plotly → static HTML tearsheet | self-contained, no server needed |
 | API | FastAPI + SQLModel | typed, auto OpenAPI docs |
 | Frontend | React + Vite + TS + TanStack Query + Recharts | fast, standard, hireable |
@@ -232,23 +233,41 @@ Each phase ends with a **demoable milestone** and a commit worth showing.
 - Domain types: `Instrument`, `Bar`, `Order`, `Fill`, `Position`, `Portfolio`, `NAV`.
   Use `Decimal` for money, never float.
 - Trading calendar abstraction covering NYSE sessions *and* 24/7 crypto.
-- Data providers + Parquet store + `fundmgr data sync`.
-- ✅ **Milestone**: `fundmgr data sync --universe core` pulls 20y of daily bars for 13
-  ETFs; `fundmgr data check` reports gaps/splits; CI green.
+- Data providers + Parquet store + `sillage data sync`.
+- ✅ **Milestone**: `sillage data sync --universe core` pulls 20y of daily bars for 13
+  ETFs; `sillage data check` reports gaps/splits; CI green.
 
-### Phase 1 — Backtest engine (Weeks 2–3)
+### Phase 1 — Backtest engine (Weeks 2–3) — **done, 2026-09-05**
 - `Clock`, event loop, `SimulatedBroker` with commission/spread/slippage.
 - Portfolio accounting: cash, positions, mark-to-market, dividends, NAV series.
 - ✅ **Milestone**: a buy-and-hold SPY backtest reproduces the actual total return of SPY
   over 20 years to within a few basis points. **Do not skip this calibration test** — it is
   what proves the accounting is right, and it's the first thing a knowledgeable reader checks.
 
+**How the milestone was actually met**, since the wording above turned out to hide a
+subtlety. A hundred thousand dollars does not divide evenly into whole SPY shares, so a
+buy-and-hold fund leaves a little in cash and *cannot* match the index exactly. The
+calibration test therefore asserts the identity the accounting must satisfy — total
+return equals the invested fraction of capital times the price return of what was
+bought — which holds to within one basis point over 5,453 sessions, and separately
+measures the cash drag rather than pretending it away. `tests/golden/` runs it against
+a committed fixture, so it gives the same answer in CI and next year.
+
+**Dividends need no code.** The stored series is adjusted for splits and distributions,
+which makes `close` a total-return price and folds dividends into the price path. An
+explicit dividend ledger only becomes necessary alongside a provider that reports
+prices as first published — noted in `data/providers/yahoo.py`, not built speculatively.
+
+**A live clock is deliberately not here.** The `Clock` protocol is written so that one
+drops in, but writing it now would mean writing scheduling and blocking behaviour with
+nothing to test it against. It lands in Phase 5a where it has a job.
+
 ### Phase 2 — Metrics & tearsheets (Week 3)
 - CAGR, ann. vol, Sharpe, Sortino, max drawdown, Calmar, turnover, exposure, hit rate,
   best/worst month, rolling 12m return, underwater curve, monthly returns heatmap,
   per-asset attribution.
 - Plotly HTML tearsheet, committed as an artifact per run.
-- ✅ **Milestone**: `fundmgr backtest --config configs/60_40.yaml --report` produces a
+- ✅ **Milestone**: `sillage backtest --config configs/60_40.yaml --report` produces a
   tearsheet whose Sharpe/maxDD match `quantstats` to 3 decimals.
 
 ### Phase 3 — The strategy (Weeks 4–5)
@@ -279,7 +298,7 @@ completely different failure modes.
 - **Reconciliation**: on every start, compare held positions against the journal and
   refuse to trade on mismatch. This is where real systems break.
 - Risk limits + drawdown kill-switch + alerting (email/Discord webhook).
-- Scheduler (APScheduler in-process, or cron + `fundmgr live run-once`).
+- Scheduler (APScheduler in-process, or cron + `sillage live run-once`).
 - ✅ **Milestone**: runs unattended for two weeks, rebalances on schedule, survives a
   kill -9 mid-session with no double-submitted or orphaned orders.
 

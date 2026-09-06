@@ -19,7 +19,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time
 from functools import lru_cache
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Final, Protocol, runtime_checkable
 
 import exchange_calendars as xcals
 
@@ -72,6 +72,30 @@ class Session:
     def __post_init__(self) -> None:
         if self.close <= self.open:
             raise ValueError(f"{self.day}: session close must be after open")
+
+
+@runtime_checkable
+class Calendar(Protocol):
+    """What the engine needs from a calendar, whichever market it describes.
+
+    Stated as a protocol rather than a base class so the two implementations below stay
+    independent: one wraps a third-party library and the other is six lines of date
+    arithmetic, and forcing them to share machinery would only make both worse.
+    """
+
+    name: str
+
+    def is_session(self, day: date) -> bool: ...
+
+    def sessions(self, start: date, end: date) -> list[Session]: ...
+
+    def next_session(self, after: date) -> date: ...
+
+    def previous_session(self, before: date) -> date: ...
+
+    def is_month_end_session(self, day: date) -> bool: ...
+
+    def month_end_sessions(self, start: date, end: date) -> list[date]: ...
 
 
 class TradingCalendar:

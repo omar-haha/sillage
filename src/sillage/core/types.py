@@ -22,6 +22,7 @@ replayed without anyone having quietly changed it in between.
 from __future__ import annotations
 
 import uuid
+from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
 from datetime import datetime
 from decimal import Decimal
@@ -354,7 +355,7 @@ class Portfolio:
             positions=positions,
         )
 
-    def market_value(self, prices: dict[str, Decimal]) -> Decimal:
+    def market_value(self, prices: Mapping[str, Decimal]) -> Decimal:
         """Total value of holdings, excluding cash.
 
         Raises on a missing price rather than treating the position as worthless. A
@@ -369,14 +370,14 @@ class Portfolio:
             total += pos.market_value(prices[symbol])
         return total
 
-    def nav(self, prices: dict[str, Decimal]) -> Decimal:
+    def nav(self, prices: Mapping[str, Decimal]) -> Decimal:
         """Net asset value: what the whole fund is worth right now.
 
         Full precision. Use `quantize_cash` when presenting it to a human.
         """
         return self.cash + self.market_value(prices)
 
-    def weights(self, prices: dict[str, Decimal]) -> dict[str, Decimal]:
+    def weights(self, prices: Mapping[str, Decimal]) -> dict[str, Decimal]:
         """Each position's share of NAV. Signed, and does not include cash.
 
         These are the numbers the strategy layer speaks in: a strategy returns target
@@ -391,7 +392,7 @@ class Portfolio:
             if not pos.is_flat
         }
 
-    def gross_exposure(self, prices: dict[str, Decimal]) -> Decimal:
+    def gross_exposure(self, prices: Mapping[str, Decimal]) -> Decimal:
         """Sum of absolute position values over NAV -- 1.0 means fully invested, no leverage."""
         nav = self.nav(prices)
         gross = sum(
