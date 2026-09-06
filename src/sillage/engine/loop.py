@@ -139,6 +139,7 @@ class Engine:
                 cash=self.portfolio.cash,
                 gross_exposure=self.portfolio.gross_exposure(prices),
                 holdings=sum(1 for p in self.portfolio.positions.values() if not p.is_flat),
+                weights=self.portfolio.weights(prices),
             )
         )
 

@@ -7,7 +7,7 @@ arguments recorded -- rather than a notebook cell someone ran once and cannot re
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from datetime import date
 from pathlib import Path
 from typing import TYPE_CHECKING, Annotated
@@ -21,6 +21,9 @@ from sillage import __version__
 if TYPE_CHECKING:
     # Type-only. Every command imports what it needs inside its own body so that
     # `sillage --help` does not pay for pandas.
+    import pandas as pd
+
+    from sillage.backtest.attribution import Contribution
     from sillage.backtest.metrics import Performance
     from sillage.backtest.runner import BacktestConfig, BacktestResult
 
@@ -249,7 +252,7 @@ def _slug(text: str) -> str:
 def backtest(
     strategy: Annotated[
         str, typer.Option("--strategy", "-s", help="Which strategy to run.")
-    ] = "60-40",
+    ] = "momentum",
     universe: UniverseOpt = "core",
     root: RootOpt = Path("data"),
     start: Annotated[str, typer.Option(help="First session, YYYY-MM-DD.")] = "2005-01-03",
@@ -270,25 +273,69 @@ def backtest(
     report: Annotated[
         bool, typer.Option("--report", help="Write an HTML tearsheet to reports/.")
     ] = False,
+    attribution: Annotated[
+        bool, typer.Option("--attribution", help="Show which holdings made the money.")
+    ] = False,
     reports_dir: Annotated[Path, typer.Option(help="Where tearsheets are written.")] = Path(
         "reports"
     ),
 ) -> None:
     """Replay a strategy over stored history and report how it did."""
+    from sillage.backtest.attribution import attribute
     from sillage.backtest.metrics import analyse
 
     options = (universe, root, start, end, cash, band, cost_scale)
-    runs = [analyse(_run(_build_config(strategy, *options)))]
+    subject = _run(_build_config(strategy, *options))
+    runs = [analyse(subject)]
     for name in benchmark or []:
         runs.append(analyse(_run(_build_config(name, *options))))
 
     _print_performance(runs)
+    contributions = attribute(subject.final_portfolio, subject.final_prices, subject.nav_points)
+    if attribution:
+        _print_attribution(contributions)
 
     if report:
         from sillage.backtest.report import write
 
-        path = write(runs, reports_dir / f"{_slug(runs[0].label)}.html")
+        path = write(
+            runs,
+            reports_dir / f"{_slug(runs[0].label)}.html",
+            weights=_weights_frame(subject),
+            contributions=contributions,
+        )
         console.print(f"\n[green]tearsheet[/] {path}")
+
+
+def _weights_frame(result: BacktestResult) -> pd.DataFrame:
+    """Per-session holding weights, as a frame the allocation chart can stack."""
+    import pandas as pd
+
+    rows = [{s: float(w) for s, w in p.weights.items()} for p in result.nav_points]
+    index = pd.DatetimeIndex([p.session for p in result.nav_points], name="session")
+    return pd.DataFrame(rows, index=index).fillna(0.0)
+
+
+def _print_attribution(contributions: Sequence[Contribution]) -> None:
+    from sillage.backtest.attribution import concentration
+
+    table = Table(box=None, pad_edge=False)
+    table.add_column("symbol", style="bold")
+    for column in ("net P&L", "avg weight", "time held", "commission"):
+        table.add_column(column, justify="right")
+    for c in contributions:
+        table.add_row(
+            c.symbol,
+            f"{float(c.net):+,.0f}",
+            f"{c.average_weight:.1%}",
+            f"{c.time_held:.0%}",
+            f"{float(c.commission):,.0f}",
+        )
+    console.print()
+    console.print(table)
+    console.print(
+        f"\n[dim]best single holding is {concentration(contributions):.0%} of all profit.[/]"
+    )
 
 
 def _print_performance(runs: list[Performance]) -> None:

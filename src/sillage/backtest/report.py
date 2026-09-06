@@ -33,6 +33,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from sillage.backtest.attribution import Contribution, concentration
 from sillage.backtest.metrics import Performance, monthly_table
 
 if TYPE_CHECKING:
@@ -265,6 +266,55 @@ def _heatmap(run: Performance) -> go.Figure | None:
     return fig
 
 
+def _allocation(run: Performance, weights: pd.DataFrame) -> go.Figure | None:
+    """What the fund was holding, as a share of itself, over time.
+
+    An equity curve cannot answer "what was it actually in during March 2020", which is
+    usually the first question anyone asks. Bands are ordered by average weight and
+    everything past the seventh folds into "other": the palette has eight slots that
+    stay distinguishable to a colour-blind reader, and a ninth would be a colour nobody
+    can name against its neighbour.
+    """
+    import plotly.graph_objects as go
+
+    if weights.empty:
+        return None
+
+    ranked = weights.mean().sort_values(ascending=False)
+    leading = list(ranked.index[:7])
+    frame = weights[leading].copy()
+    if len(ranked) > len(leading):
+        frame["other"] = weights[list(ranked.index[7:])].sum(axis=1)
+
+    fig = go.Figure()
+    for index, column in enumerate(frame.columns):
+        colour = SERIES[index % len(SERIES)] if column != "other" else INK_MUTED
+        fig.add_trace(
+            go.Scatter(
+                x=frame.index,
+                y=frame[column] * 100,
+                name=str(column),
+                mode="lines",
+                stackgroup="holdings",
+                # A hairline in the surface colour separates the bands, so adjacent
+                # fills read as distinct without a heavy outline around each one.
+                line={"color": SURFACE, "width": 1},
+                fillcolor=_translucent(colour, 0.85),
+                hovertemplate="%{y:.1f}%<extra></extra>",
+            )
+        )
+
+    layout = _layout(
+        f"Allocation — {run.label}",
+        "Share of the fund in each holding at every close. The gap to 100% is cash.",
+        height=380,
+    )
+    layout["yaxis"]["ticksuffix"] = "%"
+    layout["yaxis"]["range"] = [0, 100]
+    fig.update_layout(**layout)
+    return fig
+
+
 def _exposure(run: Performance) -> go.Figure:
     import plotly.graph_objects as go
 
@@ -371,11 +421,35 @@ def _years_table(runs: Sequence[Performance]) -> str:
     )
 
 
-def _year_cell(value: float | None) -> str:
-    """A year's return, coloured by sign -- and stated as a number, never only coloured."""
+def _attribution_table(contributions: Sequence[Contribution]) -> str:
+    """Which holdings made the money, and what share of the fund they used doing it.
+
+    Read the two numeric columns together: a large profit on a small average weight was
+    luck that would not survive being sized properly, and a small profit on a large
+    average weight was an expensive way to hold cash.
+    """
+    rows = []
+    for c in contributions:
+        rows.append(
+            f"<tr><th scope='row'>{c.symbol}</th>"
+            f"{_year_cell(float(c.net), percent=False)}"
+            f"<td>{c.average_weight:.1%}</td>"
+            f"<td>{c.time_held:.0%}</td>"
+            f"<td>{float(c.commission):,.0f}</td></tr>"
+        )
+    return (
+        "<table class='stats'><thead><tr><th></th><th>net P&amp;L</th>"
+        "<th>avg weight</th><th>time held</th><th>commission</th></tr></thead>"
+        f"<tbody>{''.join(rows)}</tbody></table>"
+    )
+
+
+def _year_cell(value: float | None, *, percent: bool = True) -> str:
+    """A signed figure, coloured by sign -- and stated as a number, never only coloured."""
     if value is None:
         return "<td>—</td>"
-    return f"<td class='{'up' if value > 0 else 'down'}'>{value:+.1%}</td>"
+    rendered = f"{value:+.1%}" if percent else f"{value:+,.0f}"
+    return f"<td class='{'up' if value > 0 else 'down'}'>{rendered}</td>"
 
 
 # ------------------------------------------------------------------ assembly
@@ -400,7 +474,14 @@ footer {{ margin-top: 40px; color: {INK_MUTED}; font-size: 12px; line-height: 1.
 """
 
 
-def render(runs: Sequence[Performance], *, title: str = "", subtitle: str = "") -> str:
+def render(
+    runs: Sequence[Performance],
+    *,
+    title: str = "",
+    subtitle: str = "",
+    weights: pd.DataFrame | None = None,
+    contributions: Sequence[Contribution] = (),
+) -> str:
     """Assemble the whole page. The first run is the subject; the rest are benchmarks."""
     if not runs:
         raise ValueError("a tearsheet needs at least one run")
@@ -414,6 +495,10 @@ def render(runs: Sequence[Performance], *, title: str = "", subtitle: str = "") 
     heatmap = _heatmap(subject)
     if heatmap is not None:
         figures.append(heatmap)
+    if weights is not None:
+        allocation = _allocation(subject, weights)
+        if allocation is not None:
+            figures.append(allocation)
     figures.append(_exposure(subject))
 
     blocks = []
@@ -445,10 +530,26 @@ filled at the following open.</p>
 {"".join(blocks)}
 <h2>Calendar years</h2>
 <div class="card">{_years_table(runs)}</div>
+{_attribution_section(contributions)}
 <footer>Generated by sillage on {generated}. A backtest is a hypothesis about the past,
 not a forecast. Costs are modelled estimates and have not been measured against a live
 broker.</footer>
 </div></body></html>"""
+
+
+def _attribution_section(contributions: Sequence[Contribution]) -> str:
+    if not contributions:
+        return ""
+    share = concentration(contributions)
+    note = (
+        f"The best single holding produced {share:.0%} of all profit. A strategy whose "
+        "result comes overwhelmingly from one asset is a bet on that asset wearing a "
+        "diversified costume."
+    )
+    return (
+        f"<h2>Attribution</h2><p class='lede'>{note}</p>"
+        f"<div class='card'>{_attribution_table(contributions)}</div>"
+    )
 
 
 def write(
@@ -457,9 +558,20 @@ def write(
     *,
     title: str = "",
     subtitle: str = "",
+    weights: pd.DataFrame | None = None,
+    contributions: Sequence[Contribution] = (),
 ) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(render(runs, title=title, subtitle=subtitle), encoding="utf-8")
+    path.write_text(
+        render(
+            runs,
+            title=title,
+            subtitle=subtitle,
+            weights=weights,
+            contributions=contributions,
+        ),
+        encoding="utf-8",
+    )
     return path
 
 

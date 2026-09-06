@@ -26,7 +26,7 @@ from pathlib import Path
 
 from sillage.core.calendar import Calendar, TradingCalendar
 from sillage.core.money import ZERO, dec, safe_div
-from sillage.core.types import Fill, Order
+from sillage.core.types import Fill, Order, Portfolio
 from sillage.data.store import BarStore
 from sillage.data.universe import Universe
 from sillage.engine.clock import BacktestClock
@@ -71,6 +71,11 @@ class BacktestResult:
     orders: list[Order]
     rejections: list[Rejection]
     first_rebalance: date | None
+    #: The book as it stood at the end, and the prices it was valued at. Kept so
+    #: attribution can ask what each holding actually earned without re-reading the
+    #: store and risking a different answer from a later data refresh.
+    final_portfolio: Portfolio = field(default_factory=lambda: Portfolio(cash=ZERO))
+    final_prices: dict[str, Decimal] = field(default_factory=dict)
 
     @property
     def name(self) -> str:
@@ -155,7 +160,9 @@ def run_backtest(config: BacktestConfig) -> BacktestResult:
         journal=journal,
         initial_cash=config.initial_cash,
     )
-    engine.run()
+    final = engine.run()
+    last = journal.nav_points[-1].ts if journal.nav_points else None
+    prices = HistoricalFeed(bars).closes(instruments, as_of=last) if last else {}
 
     return BacktestResult(
         config=config,
@@ -164,6 +171,8 @@ def run_backtest(config: BacktestConfig) -> BacktestResult:
         orders=journal.orders,
         rejections=journal.rejections,
         first_rebalance=engine.first_rebalance,
+        final_portfolio=final,
+        final_prices=prices,
     )
 
 

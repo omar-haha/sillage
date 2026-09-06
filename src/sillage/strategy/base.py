@@ -24,6 +24,7 @@ its first day while it waited for enough history.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
@@ -194,6 +195,29 @@ class Once:
 
     def reset(self) -> None:
         self._fired = False
+
+
+class AnyOf:
+    """Fires on any session where at least one of several schedules fires.
+
+    Exists for tranching: a portfolio split across four staggered monthly schedules
+    needs the engine to wake it on the union of their rebalance dates, and to leave it
+    alone the rest of the time.
+    """
+
+    name = "any-of"
+
+    def __init__(self, schedules: Sequence[Schedule]) -> None:
+        if not schedules:
+            raise ValueError("AnyOf needs at least one schedule")
+        self.schedules = tuple(schedules)
+
+    def is_rebalance_session(self, session: date, calendar: Calendar) -> bool:
+        return any(s.is_rebalance_session(session, calendar) for s in self.schedules)
+
+    def reset(self) -> None:
+        for schedule in self.schedules:
+            schedule.reset()
 
 
 @runtime_checkable

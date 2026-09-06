@@ -44,6 +44,10 @@ class NavPoint:
     cash: Decimal
     gross_exposure: Decimal
     holdings: int = 0
+    #: Each holding's share of NAV at this close. Carried because an equity curve
+    #: cannot answer "what was it actually holding in March 2020", and that is usually
+    #: the first question anyone asks of a result.
+    weights: dict[str, Decimal] = field(default_factory=dict)
 
     @property
     def invested(self) -> Decimal:

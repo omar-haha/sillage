@@ -214,3 +214,76 @@ Drawdown turns out to be more date-sensitive than return even for the fixed-weig
 book: 60/40's maximum drawdown ranges from −29.2% to −31.0% across the four dates,
 a 1.8-point spread against a 0.11% spread in return. If a strategy is going to be sold
 on its drawdown, the drawdown deserves the same treatment as the headline.
+
+## 2026-09-06 — The strategy exists, and its headline drawdown was a lucky draw
+
+Phase 3 built the dual-momentum strategy from §4 of the roadmap. Full results and the
+argument about whether it is worth owning are in [strategy.md](strategy.md); this entry
+records the findings that changed how the thing was built.
+
+**Timing luck is real, and it is large.** Phase 2 measured it on fixed-weight benchmarks
+and found 0.08–0.11% of annualised spread across four rebalance dates — near zero, which
+was the expected answer, since a 60/40 wants the same 60/40 whichever day it looks. The
+same measurement on the momentum strategy:
+
+| Rebalance date | Annualised | Sharpe | Max drawdown |
+|---|---|---|---|
+| Month end | +7.16% | 0.83 | −16.0% |
+| 5 sessions earlier | +7.22% | 0.76 | −28.3% |
+| 10 sessions earlier | +6.25% | 0.69 | −25.2% |
+| 15 sessions earlier | +8.34% | 0.94 | −18.1% |
+
+**A 2.09-point spread in return and a drawdown ranging from −16% to −28%**, from a choice
+with no meaning — nineteen times the benchmarks' spread. The prediction made in Phase 2,
+that timing luck is a property of selection rather than of rebalancing, held exactly.
+
+The consequence is uncomfortable and worth stating plainly: **had the strategy been
+built and reported before the measurement existed, its headline maximum drawdown would
+have been −16.0%, and that would have been the luckiest of four arbitrary dates.** The
+tranched figure is −21.8%. Nothing was fitted, nothing was p-hacked, and the number
+would still have been wrong by six points because of a choice nobody thinks of as a
+choice.
+
+Tranching costs nothing measurable: turnover went from 7.08x/yr to 7.13x, because the
+four tranches' trades partly cancel before an order is produced. `momentum` is tranched
+by default and `momentum-single` exists to reproduce the problem on demand.
+
+**The edge survives its costs, and that was not obvious.** The strategy turns over about
+3.5x a year in each direction — high, driven by the volatility target moving the whole
+book monthly even when selection is unchanged. At five times the modelled costs it still
+returns 6.64% at a Sharpe of 0.76, against 7.43% and 0.85 with free execution. Most
+retail backtests die here; this one does not. The honest caveat is that all those rows
+scale one model, so a cost model wrong in *shape* rather than level would pass this test
+unnoticed — which is what Phase 5b is for.
+
+**No single asset carries it.** All thirteen instruments made money and the largest
+contributor is 17% of total profit. The attribution reconciles exactly to NAV growth,
+which is also a decent end-to-end check on the accounting.
+
+**A fixture bug worth recording, because it made a test meaningless without failing it.**
+The first synthetic price paths for the momentum tests compounded at an exactly constant
+rate. A constant compounding rate means a constant daily return, which means *zero*
+measured volatility — so the inverse-volatility sizing under test was dividing by
+floating-point rounding error, and the weights it produced were noise. Every assertion
+still passed, because they were all about which assets got selected rather than how much
+of them was held. Test data has to exercise the property under test, and "it passed" is
+not evidence that it did.
+
+## 2026-09-06 — What the strategy is actually worth, stated once
+
+The result, after twenty-one years, honest costs and the timing luck removed: **Sharpe
+0.83 against 0.79 for a 60/40 and 0.64 for the index, a maximum drawdown of −21.8%
+against −31.2% and −55.1%, and the second-lowest return of the four.**
+
+Two things about that are worth carrying forward rather than leaving in a table.
+
+**The risk-adjusted edge over 60/40 does not survive the removal of 2008.** Post-2010 a
+plain 60/40 returned 10.03% at a Sharpe of 1.00 against the strategy's 7.04% and 0.80 —
+better on every measure including drawdown. The roadmap predicted this in §9 before any
+code existed, which is mildly reassuring about the process and says nothing at all about
+the strategy.
+
+**Its worst drawdown is not in the crisis it was built for.** −21.8%, and it happened
+after 2010. The trend filter did its job in 2008 and then cost money for a decade. A
+strategy's worst moment being in the regime it handles *well* is a useful thing to know
+about, because it is not what anyone expects when they buy it.

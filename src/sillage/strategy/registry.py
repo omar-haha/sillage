@@ -13,10 +13,18 @@ from collections.abc import Callable
 from sillage.data.universe import Universe
 from sillage.strategy.base import Strategy
 from sillage.strategy.benchmarks import buy_and_hold, equal_weight, sixty_forty
+from sillage.strategy.momentum import build as build_momentum
+from sillage.strategy.tranche import Tranched
 
 Builder = Callable[[Universe], Strategy]
 
 BUILDERS: dict[str, Builder] = {
+    # The strategy. Tranched by default: a single rebalance date is one draw from a
+    # distribution two percentage points wide, and reporting that draw as the answer
+    # is the thing this project exists not to do.
+    "momentum": lambda u: Tranched(build_momentum(u)),
+    "momentum-single": build_momentum,
+    # Benchmarks. Not decoration -- a result is meaningless without them.
     "buy-and-hold": lambda _: buy_and_hold("SPY"),
     "spy": lambda _: buy_and_hold("SPY"),
     "60-40": lambda _: sixty_forty(),

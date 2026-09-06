@@ -180,7 +180,7 @@ sillage/
 │   ├── core/        types.py calendar.py money.py     # domain model
 │   ├── data/        providers/ store.py universe.py   # ingest → parquet/duckdb
 │   ├── strategy/    base.py momentum.py benchmarks.py # signal → target weights
-│   ├── portfolio/   sizing.py constraints.py rebalance.py
+│   ├── portfolio/   sizing.py rebalance.py
 │   ├── risk/        limits.py killswitch.py
 │   ├── execution/   broker.py simulated.py ibkr.py ccxt_broker.py
 │   ├── engine/      clock.py loop.py events.py feed.py journal.py  # the shared loop
@@ -315,14 +315,20 @@ Added beyond the plan, and why:
 Per-asset attribution is deferred to Phase 3, where there is a strategy whose asset
 selection is worth attributing.
 
-### Phase 3 — The strategy (Weeks 4–5)
+### Phase 3 — The strategy (Weeks 4–5) — **done, 2026-09-06**
 - Dual-momentum implementation on the spec in §4 (`Strategy` protocol, benchmarks and
   the no-trade-band rebalancer landed in Phase 1).
-- Inverse-vol sizing, covariance-based portfolio vol targeting, position constraints.
+- Inverse-vol sizing, covariance-based portfolio vol targeting with shrinkage.
 - **Tranching** — see §7.5. Built here rather than earlier because it can only be
-  validated against a strategy that actually has timing luck to remove.
+  validated against a strategy that actually has timing luck to remove, and it turned
+  out to have a great deal: the untranched strategy's annualised return spans **2.09
+  percentage points** across four rebalance dates, against 0.11 for a 60/40. The
+  single-date backtest's headline drawdown of −16% was the luckiest of the four; the
+  unluckiest was −28%. `momentum` is therefore tranched by default and
+  `momentum-single` exists to reproduce the problem.
 - Per-asset attribution: which sleeves earned the return, and which ones the strategy
-  was holding when it lost.
+  was holding when it lost. It reconciles exactly to NAV growth, and no single holding
+  accounts for more than 17% of profit — the result is not one asset in costume.
 - ✅ **Milestone**: full 2006–2026 backtest of the strategy vs SPY / 60-40 / XEQT, with a
   written interpretation in `docs/strategy.md` — including where it loses, and including
   a separate reading of 2010 onward on its own. Dual momentum's reputation is built

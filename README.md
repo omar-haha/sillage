@@ -16,9 +16,10 @@ Clock ──▶ Data(as_of) ──▶ Strategy ──▶ Sizing ──▶ Rebala
   └ LiveClock      (wall time)                       IBKRBroker / CcxtBroker           ┘
 ```
 
-Status: **Phase 2 complete** — a point-in-time data layer holding 21 years of history
-for 13 ETFs, an event-driven backtest engine with a cost-aware simulated broker, and
-risk metrics validated against an independent implementation. Next: the strategy.
+Status: **Phase 3 complete** — a point-in-time data layer, an event-driven backtest
+engine with a cost-aware simulated broker, risk metrics validated against an independent
+implementation, and the strategy itself. Next: honest validation — held-out data,
+walk-forward, parameter sensitivity.
 See [docs/ROADMAP.md](docs/ROADMAP.md) for the full plan and
 [docs/research-log.md](docs/research-log.md) for findings along the way, including the
 ones that went nowhere.
@@ -27,8 +28,8 @@ ones that went nowhere.
 uv sync
 uv run sillage data sync                    # ~21y of daily bars for the core universe
 uv run sillage data check                   # gaps, unadjusted splits, stale feeds
-uv run sillage backtest -s 60-40 -b spy --report   # replay it, write a tearsheet
-uv run sillage timing-luck -s 60-40               # how much did the rebalance date matter?
+uv run sillage backtest -b spy -b 60-40 --report --attribution
+uv run sillage timing-luck -s momentum-single     # how much did the rebalance date matter?
 ```
 
 ## What the engine does, once per session
@@ -46,29 +47,49 @@ The data layer enforces the same rule from the other side: every read takes an `
 and cannot return a bar that closed after it. A strategy that wants tomorrow's price
 does not get a "no" — there is no code path that hands it over.
 
-## Results so far
+## The strategy
 
-Twenty years of benchmarks, run through the real engine with commission, spread and a
-volume-scaled impact model. These are not the strategy; they are what the strategy will
-have to beat.
+Once a month: rank twelve ETFs by blended 3/6/12-month momentum, take the top five, drop
+any trading below its 200-day average and put that money in Treasury bills, then size the
+survivors inversely to their volatility and scale the whole book — using the covariance
+matrix, not a sum of individual volatilities — to a 10% volatility target. Run four
+staggered copies a week apart and average them.
 
-| 2007-01-03 → 2026-09-04 | SPY | 60/40 | Equal weight |
-|---|---|---|---|
-| Annualised | 11.00% | 8.39% | 7.21% |
-| Volatility | 19.6% | 10.9% | 12.1% |
-| Sharpe | 0.63 | **0.80** | 0.64 |
-| Max drawdown | −55.1% | −31.0% | −36.8% |
-| Longest drawdown | 4.9 years | 3.0 years | 2.6 years |
-| Cost drag | 0.000%/yr | 0.001%/yr | 0.005%/yr |
+| 2006-01 → 2026-09 | Momentum | 60/40 | SPY | Equal weight |
+|---|---|---|---|---|
+| Annualised | 7.27% | 8.35% | **10.93%** | 6.52% |
+| Volatility | **9.0%** | 10.9% | 18.9% | 11.6% |
+| Sharpe | **0.83** | 0.79 | 0.64 | 0.61 |
+| Max drawdown | **−21.8%** | −31.2% | −55.1% | −36.8% |
+| Longest drawdown | **697d** | 1,092d | 1,773d | 967d |
 
-The point of the risk columns is the one the return column hides: SPY made the most
-money and was the worst investment to actually hold. It spent **four years and ten
-months** below its 2007 high — peak 2007-10-09, trough 2009-03-09 at −55.1%, back to
-even 2012-08-16. Those are the real dates, which is a decent check that the engine is
-wired correctly.
+Best risk-adjusted return, a third of the index's drawdown, recovers in two years where
+the index took five — and the second-lowest return of the four. That is the trade, and
+it is the whole trade.
+
+**Where it comes from, and where it does not.** It beat the index in all three of the
+sample's down years, but the margin is almost entirely 2008 (+10.6% against −36.2%).
+Post-2010 a plain 60/40 beat it on every measure: 10.03% at a Sharpe of 1.00 against
+7.04% and 0.80. You are buying crash insurance, and the last fifteen years are what the
+premium looks like.
+
+**It survives its own costs.** At five times the modelled commission, spread and impact
+it still returns 6.64% at a Sharpe of 0.76. Most retail backtests die here.
+
+The full argument, including the years it loses badly and why, is in
+[docs/strategy.md](docs/strategy.md).
+
+## Benchmarks
+
+Run through the same engine, with the same costs. They are not decoration — a result
+without them is meaningless. SPY made the most money and was the worst thing to hold: it
+spent **four years and ten months** below its 2007 high, peaking 2007-10-09, bottoming
+2009-03-09 at −55.1%, and recovering 2012-08-16. Those are the real dates, which is a
+decent check that the engine is wired correctly.
 
 `--report` writes a self-contained HTML tearsheet: equity curve, underwater chart,
-rolling 12-month return, monthly heatmap, exposure, and a per-calendar-year table.
+rolling 12-month return, monthly heatmap, allocation over time, and per-holding
+attribution.
 
 ## How much of a backtest is luck?
 
@@ -79,16 +100,20 @@ the same configuration across four dates a week apart and reports the spread:
 
 ```
 rebalance date       annualised  Sharpe  max DD
-month end                +8.39%    0.80  -31.0%
-5 sessions earlier       +8.49%    0.79  -29.2%
-10 sessions earlier      +8.38%    0.78  -30.0%
-15 sessions earlier      +8.42%    0.77  -30.4%
+month end                +7.16%    0.83  -16.0%
+5 sessions earlier       +7.22%    0.76  -28.3%
+10 sessions earlier      +6.25%    0.69  -25.2%
+15 sessions earlier      +8.34%    0.94  -18.1%
 ```
 
-Eleven basis points — near zero, and that is the expected answer here. Timing luck comes
-from *selection*, and a 60/40 does not select; it wants the same 60/40 whichever day it
-looks. A momentum strategy that rotates its holdings will not get off so lightly, which
-is why the measurement exists before the strategy does.
+**Two percentage points of annualised return, and a drawdown between −16% and −28%, from
+a choice with no meaning.** The same measurement on a 60/40 gives a spread of 0.11 points
+— timing luck is a property of *selection*, and a fixed-weight portfolio does not select.
+
+Reporting the month-end run would have claimed a −16% maximum drawdown. Averaging four
+staggered tranches gives −21.8%, which is the number above and the one to believe.
+Turnover barely moved, because the tranches' trades partly cancel before an order is
+produced.
 
 ## Is the accounting right?
 
