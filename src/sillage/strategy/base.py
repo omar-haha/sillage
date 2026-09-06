@@ -69,21 +69,75 @@ class Daily:
 
 
 class Monthly:
-    """Rebalance on the last tradable session of each month.
+    """Rebalance once a month, `offset` sessions before the month's last one.
 
     The last *tradable* session, not the 31st -- see `TradingCalendar`. Monthly is the
     default for this system because it is slow enough that costs stay a rounding error
     and slow enough that a 12-month momentum signal is not being asked to say something
     new every day, which it cannot.
+
+    **`offset` exists because the choice of date is arbitrary and it matters.** Nothing
+    makes the last session of the month a better moment to trade than the third-to-last
+    or the tenth-to-last. But a strategy rebalanced on one of those dates and the same
+    strategy rebalanced on another will hold different things for weeks at a time, and
+    over twenty years the two can differ by a percent a year or more purely by luck.
+    This is documented -- Hoffstein's "rebalance timing luck" -- and a backtest on a
+    single date is one draw from that distribution, presented as if it were the answer.
+
+    `offset=0` is month end, `offset=5` is roughly a week earlier, and so on. Two uses:
+    measuring the size of the effect (`sillage timing-luck`), and eventually removing
+    most of it by running several offsets side by side and averaging them, which is the
+    standard remedy and costs nothing but bookkeeping.
     """
 
     name = "monthly"
 
+    def __init__(self, offset: int = 0) -> None:
+        if offset < 0:
+            raise ValueError("offset must not be negative")
+        self.offset = offset
+        if offset:
+            self.name = f"monthly-{offset}"
+
     def is_rebalance_session(self, session: date, calendar: Calendar) -> bool:
-        return calendar.is_month_end_session(session)
+        if not self.offset:
+            return calendar.is_month_end_session(session)
+        return session in _offset_rebalance_days(calendar, self.offset)
 
     def reset(self) -> None:
         return None
+
+
+#: Keyed by calendar name and offset. A hand-rolled cache rather than `lru_cache`
+#: because a calendar is not hashable, and keying on its name is what actually
+#: identifies it.
+_OFFSET_CACHE: dict[tuple[str, int], frozenset[date]] = {}
+
+
+def _offset_rebalance_days(calendar: Calendar, offset: int) -> frozenset[date]:
+    """Every session that sits `offset` trading days before a month end.
+
+    Computed once per calendar and cached, because the alternative -- walking forward
+    from each session to find its month end -- is a handful of calendar lookups on
+    every one of five thousand days.
+
+    The whole span of the calendar is materialised rather than just the backtest's
+    range, so the answer does not depend on which window happened to be asked for.
+    """
+    key = (calendar.name, offset)
+    cached = _OFFSET_CACHE.get(key)
+    if cached is not None:
+        return cached
+
+    days = [s.day for s in calendar.sessions(*calendar.bounds)]
+    ends = [
+        index
+        for index, day in enumerate(days[:-1])
+        if (days[index + 1].year, days[index + 1].month) != (day.year, day.month)
+    ]
+    computed = frozenset(days[index - offset] for index in ends if index >= offset)
+    _OFFSET_CACHE[key] = computed
+    return computed
 
 
 class Weekly:

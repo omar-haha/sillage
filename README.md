@@ -16,9 +16,9 @@ Clock ──▶ Data(as_of) ──▶ Strategy ──▶ Sizing ──▶ Rebala
   └ LiveClock      (wall time)                       IBKRBroker / CcxtBroker           ┘
 ```
 
-Status: **Phase 1 complete** — a point-in-time data layer holding 21 years of history
-for 13 ETFs, and an event-driven backtest engine with a cost-aware simulated broker.
-Next: performance metrics and tearsheets, then the strategy itself.
+Status: **Phase 2 complete** — a point-in-time data layer holding 21 years of history
+for 13 ETFs, an event-driven backtest engine with a cost-aware simulated broker, and
+risk metrics validated against an independent implementation. Next: the strategy.
 See [docs/ROADMAP.md](docs/ROADMAP.md) for the full plan and
 [docs/research-log.md](docs/research-log.md) for findings along the way, including the
 ones that went nowhere.
@@ -27,7 +27,8 @@ ones that went nowhere.
 uv sync
 uv run sillage data sync                    # ~21y of daily bars for the core universe
 uv run sillage data check                   # gaps, unadjusted splits, stale feeds
-uv run sillage backtest --strategy 60-40    # replay it
+uv run sillage backtest -s 60-40 -b spy --report   # replay it, write a tearsheet
+uv run sillage timing-luck -s 60-40               # how much did the rebalance date matter?
 ```
 
 ## What the engine does, once per session
@@ -51,15 +52,43 @@ Twenty years of benchmarks, run through the real engine with commission, spread 
 volume-scaled impact model. These are not the strategy; they are what the strategy will
 have to beat.
 
-| 2007-01-03 → 2026-09-04 | Total return | Annualised | Fills | Costs |
-|---|---|---|---|---|
-| Buy & hold SPY | +678.8% | 11.00% | 1 | $8 |
-| 60/40 SPY/IEF, rebalanced monthly | +387.6% | 8.39% | 16 | $41 |
-| Equal weight, 12 ETFs, monthly | +293.3% | 7.21% | 318 | $195 |
+| 2007-01-03 → 2026-09-04 | SPY | 60/40 | Equal weight |
+|---|---|---|---|
+| Annualised | 11.00% | 8.39% | 7.21% |
+| Volatility | 19.6% | 10.9% | 12.1% |
+| Sharpe | 0.63 | **0.80** | 0.64 |
+| Max drawdown | −55.1% | −31.0% | −36.8% |
+| Longest drawdown | 4.9 years | 3.0 years | 2.6 years |
+| Cost drag | 0.000%/yr | 0.001%/yr | 0.005%/yr |
 
-Risk-adjusted numbers — the ones that actually decide whether any of this is worth
-doing — arrive with the metrics module in Phase 2. A total return without a drawdown
-next to it is not a result.
+The point of the risk columns is the one the return column hides: SPY made the most
+money and was the worst investment to actually hold. It spent **four years and ten
+months** below its 2007 high — peak 2007-10-09, trough 2009-03-09 at −55.1%, back to
+even 2012-08-16. Those are the real dates, which is a decent check that the engine is
+wired correctly.
+
+`--report` writes a self-contained HTML tearsheet: equity curve, underwater chart,
+rolling 12-month return, monthly heatmap, exposure, and a per-calendar-year table.
+
+## How much of a backtest is luck?
+
+A strategy that rebalances monthly has to pick a day of the month, and nothing makes the
+last session better than the third-to-last. Two runs differing only in that choice can
+diverge by a percent a year — noise, reported as a result. `sillage timing-luck` runs
+the same configuration across four dates a week apart and reports the spread:
+
+```
+rebalance date       annualised  Sharpe  max DD
+month end                +8.39%    0.80  -31.0%
+5 sessions earlier       +8.49%    0.79  -29.2%
+10 sessions earlier      +8.38%    0.78  -30.0%
+15 sessions earlier      +8.42%    0.77  -30.4%
+```
+
+Eleven basis points — near zero, and that is the expected answer here. Timing luck comes
+from *selection*, and a 60/40 does not select; it wants the same 60/40 whichever day it
+looks. A momentum strategy that rotates its holdings will not get off so lightly, which
+is why the measurement exists before the strategy does.
 
 ## Is the accounting right?
 
@@ -88,7 +117,9 @@ make test
 ```
 
 `mypy --strict` covers `core/`, `engine/`, `portfolio/` and `risk/` — the layers where
-a type error is a money error.
+a type error is a money error. Risk statistics are cross-checked against `quantstats`,
+an independent implementation, and agree to machine precision on Sharpe, Sortino,
+volatility and max drawdown.
 
 ## License
 

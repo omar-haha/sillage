@@ -112,16 +112,46 @@ and signals computed on close of day T can only trade at the open of T+1.
 Later: `BTC/USD`, `ETH/USD`.
 
 **Signal** — for each asset, each month-end:
-- 12-1 momentum: total return over the last 12 months, skipping the most recent month
-  (short-term reversal contaminates it).
+- Momentum: total return over 3, 6 and 12 months, each skipping the most recent month
+  (short-term reversal contaminates it), combined by averaging the *ranks* rather than
+  the returns. Blending is close to free here and makes the score much less sensitive to
+  any single lookback being the wrong one for a given regime — which one is right varies,
+  and there is no way to know in advance which.
 - Trend filter: price > 200-day moving average.
+
+Note the two are **not independent layers of protection**. An asset with strong 12-1
+momentum is usually already above its 200-day average, so the filter binds mainly at
+turning points. That is exactly where it is wanted, but it should not be counted twice.
 
 **Selection**: take the top 5 by momentum score; any that fail the trend filter get
 their weight reallocated to `BIL`.
 
-**Weighting**: inverse-volatility across the selected assets (60-day realized vol), then
-scale total gross exposure so ex-ante portfolio vol ≈ 10% annualized, capped at 100% gross
-(no leverage in v1).
+**Weighting**: inverse-volatility across the selected assets (60-day realized vol) for
+*relative* sizing, then one scaling factor applied to the whole book so ex-ante
+portfolio volatility ≈ 10% annualized, capped at 100% gross (no leverage in v1).
+
+Two details that a first draft of this got wrong, both worth stating precisely:
+
+- **Ex-ante portfolio vol is √(wᵀΣw), not a weighted sum of individual vols.** Inverse-
+  vol sizing ignores correlations entirely, and a momentum screen is *systematically*
+  prone to picking five assets that are secretly one trade — that is what a momentum
+  screen does, it concentrates into whatever has been working. Assuming diversification
+  you do not have means a book targeting 10% realizes considerably more. The covariance
+  matrix is estimated on the same 60-day window with Ledoit–Wolf shrinkage; at ~5
+  selected assets over 60 observations the raw sample estimate is usable, but shrinkage
+  costs nothing and the estimator is not the place to be brave.
+- **Covariance drives the single gross-scaling number, not the relative weights.**
+  Inverse-vol needs no matrix and is robust; wᵀΣw puts a noisy estimate in charge of one
+  scalar rather than five weights. Full mean-variance optimization is deliberately not
+  used: it is famously an error-maximizer, allocating hardest to whichever asset's
+  estimate is most wrong.
+
+**The 10% target is one-sided, and "10% vol" overstates it.** In calm regimes the
+strategy would need more than 100% gross to reach 10% and gets capped, so it runs under
+target; in violent regimes it scales down correctly. Average realized vol will therefore
+land *below* 10%, and returns below what a 10% target implies. That is an accepted
+consequence of refusing leverage in v1, not an oversight — but the honest description is
+"at most 10%, usually less".
 
 **Rebalance**: monthly, with a no-trade band — only trade a position if its actual weight
 has drifted more than 20% relative to target.
@@ -262,19 +292,69 @@ prices as first published — noted in `data/providers/yahoo.py`, not built spec
 drops in, but writing it now would mean writing scheduling and blocking behaviour with
 nothing to test it against. It lands in Phase 5a where it has a job.
 
-### Phase 2 — Metrics & tearsheets (Week 3)
+### Phase 2 — Metrics & tearsheets (Week 3) — **done, 2026-09-05**
 - CAGR, ann. vol, Sharpe, Sortino, max drawdown, Calmar, turnover, exposure, hit rate,
-  best/worst month, rolling 12m return, underwater curve, monthly returns heatmap,
-  per-asset attribution.
-- Plotly HTML tearsheet, committed as an artifact per run.
-- ✅ **Milestone**: `sillage backtest --config configs/60_40.yaml --report` produces a
-  tearsheet whose Sharpe/maxDD match `quantstats` to 3 decimals.
+  best/worst month, rolling 12m return, underwater curve, monthly returns heatmap.
+- Plotly HTML tearsheet, self-contained, written to `reports/`.
+- ✅ **Milestone**: `sillage backtest --strategy 60-40 --report` produces a tearsheet
+  whose Sharpe and maxDD match `quantstats` — to machine precision, not three decimals.
+  CAGR and Calmar differ by ~1.3bp because quantstats divides elapsed days by 365 and
+  this divides by 365.25; the difference is kept and documented rather than matched.
+
+Added beyond the plan, and why:
+
+- **Per-calendar-year breakdown**, in the terminal and the tearsheet. An aggregate
+  figure spanning 2008 says nothing about the fifteen years since, and the regime you
+  will actually trade in is the recent one.
+- **`sillage timing-luck`** — the same strategy across four rebalance dates a week
+  apart. See §7.5 below and `research-log.md`.
+- **Peak-to-recovery drawdown duration**, rather than days-spent-under-water. The
+  question is "how long until I was whole again", which is what decides whether a
+  strategy gets abandoned.
+
+Per-asset attribution is deferred to Phase 3, where there is a strategy whose asset
+selection is worth attributing.
 
 ### Phase 3 — The strategy (Weeks 4–5)
-- `Strategy` protocol, dual-momentum implementation, benchmark strategies.
-- Inverse-vol sizing, portfolio vol targeting, constraints, no-trade-band rebalancer.
+- Dual-momentum implementation on the spec in §4 (`Strategy` protocol, benchmarks and
+  the no-trade-band rebalancer landed in Phase 1).
+- Inverse-vol sizing, covariance-based portfolio vol targeting, position constraints.
+- **Tranching** — see §7.5. Built here rather than earlier because it can only be
+  validated against a strategy that actually has timing luck to remove.
+- Per-asset attribution: which sleeves earned the return, and which ones the strategy
+  was holding when it lost.
 - ✅ **Milestone**: full 2006–2026 backtest of the strategy vs SPY / 60-40 / XEQT, with a
-  written interpretation in `docs/strategy.md` — including where it loses.
+  written interpretation in `docs/strategy.md` — including where it loses, and including
+  a separate reading of 2010 onward on its own. Dual momentum's reputation is built
+  disproportionately on 2000–02 and 2008; post-2009 the family has generally trailed
+  plain equity, and 2020 moved too fast for a monthly signal — it sold near the bottom
+  and bought back higher. If the last fifteen years alone are not acceptable, the
+  twenty-year number is not the one to believe.
+
+
+### 7.5 — Rebalance timing luck, and tranching
+
+A strategy that rebalances monthly must rebalance on *some* day of the month, and
+nothing makes the last session better than the third-to-last. But two runs of the
+identical strategy differing only in that date will hold different things for weeks at
+a time. The effect is documented (Hoffstein's "rebalance timing luck") and can reach a
+percent a year or more. It is noise reported as a result.
+
+**Measured first.** `sillage timing-luck` runs a configuration across four dates a week
+apart. On the fixed-weight benchmarks the spread is 0.08–0.11% a year — near zero, and
+correctly so: timing luck is a property of *selection*, and a 60/40 does not select.
+A momentum strategy that rotates its holdings will not be so lucky.
+
+**The remedy is tranching**, in Phase 3: split capital into four sub-portfolios on
+staggered monthly schedules and average their target weights, so no single date drives
+the book. Cheap here, because `target_weights` is already a pure function of `as_of` —
+run it four times and average. Net turnover does not rise much, because the tranches'
+trades partly net against each other at the aggregate level.
+
+**A second effect found while measuring the first.** A single-asset book that never
+rebalances still shows a 0.62% annual spread across the same four dates, because the
+offset changes which day the money went in. Entry-date luck is larger than rebalance
+luck there, and nobody thinks to vary a backtest's start date. Phase 4 should.
 
 ### Phase 4 — Honest validation (Week 6)
 This is the phase that separates the project from every other GitHub trading repo.
@@ -285,6 +365,11 @@ This is the phase that separates the project from every other GitHub trading rep
 - Cost sensitivity: at what cost level does the edge vanish?
 - Monte Carlo / block bootstrap on returns for a confidence interval on Sharpe.
 - Note the number of configurations tested, and deflate the Sharpe accordingly.
+- Vary the *start date* as well as the parameters — see §7.5. An arbitrary start is a
+  free parameter that never gets counted as one.
+- On "these are the standard values, I did not optimize them": true, and weaker than it
+  sounds. The literature optimized them, largely on this same US data. That is
+  collective overfitting, and the deflation should account for trials nobody here ran.
 - ✅ **Milestone**: `docs/research-log.md` with dated entries, including at least two
   documented failures and what you changed because of them.
 

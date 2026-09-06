@@ -7,15 +7,22 @@ arguments recorded -- rather than a notebook cell someone ran once and cannot re
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import date
 from pathlib import Path
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 import typer
 from rich.console import Console
 from rich.table import Table
 
 from sillage import __version__
+
+if TYPE_CHECKING:
+    # Type-only. Every command imports what it needs inside its own body so that
+    # `sillage --help` does not pay for pandas.
+    from sillage.backtest.metrics import Performance
+    from sillage.backtest.runner import BacktestConfig, BacktestResult
 
 app = typer.Typer(
     name="sillage",
@@ -177,6 +184,67 @@ def data_check(
         raise typer.Exit(1)
 
 
+def _build_config(
+    strategy: str,
+    universe: str,
+    root: Path,
+    start: str,
+    end: str,
+    cash: float,
+    band: float,
+    cost_scale: float,
+) -> BacktestConfig:
+    """Assemble a BacktestConfig from command-line options, or exit with an explanation."""
+    from datetime import UTC, datetime
+
+    from sillage.backtest.runner import BacktestConfig
+    from sillage.core.money import dec
+    from sillage.data.universe import get_universe
+    from sillage.execution.costs import CostModel
+    from sillage.portfolio.rebalance import Rebalancer
+    from sillage.strategy.registry import build, names
+
+    try:
+        uni = get_universe(universe)
+    except KeyError as exc:
+        console.print(f"[red]{exc}[/]")
+        raise typer.Exit(1) from None
+    try:
+        chosen = build(strategy, uni)
+    except KeyError:
+        console.print(f"[red]unknown strategy {strategy!r}[/]; known: {', '.join(names())}")
+        raise typer.Exit(1) from None
+
+    return BacktestConfig(
+        strategy=chosen,
+        universe=uni,
+        start=date.fromisoformat(start),
+        end=date.fromisoformat(end) if end else datetime.now(UTC).date(),
+        initial_cash=dec(cash),
+        costs=CostModel().scaled(cost_scale),
+        rebalancer=Rebalancer(band=dec(band)),
+        data_root=root,
+    )
+
+
+def _run(config: BacktestConfig) -> BacktestResult:
+    from sillage.backtest.runner import run_backtest
+
+    try:
+        result = run_backtest(config)
+    except FileNotFoundError as exc:
+        console.print(f"[red]{exc}[/]")
+        raise typer.Exit(1) from None
+    if not result.nav_points:
+        console.print("[red]no sessions in range.[/]")
+        raise typer.Exit(1)
+    return result
+
+
+def _slug(text: str) -> str:
+    return "".join(c if c.isalnum() else "-" for c in text.lower()).strip("-")
+
+
 @app.command()
 def backtest(
     strategy: Annotated[
@@ -193,83 +261,115 @@ def backtest(
     cost_scale: Annotated[
         float, typer.Option(help="Multiply every cost assumption. 0 disables costs.")
     ] = 1.0,
-) -> None:
-    """Replay a strategy over stored history."""
-    from datetime import UTC, datetime
-
-    from sillage.backtest.runner import BacktestConfig, run_backtest
-    from sillage.core.money import dec
-    from sillage.data.universe import get_universe
-    from sillage.execution.costs import CostModel
-    from sillage.portfolio.rebalance import Rebalancer
-    from sillage.strategy.registry import build, names
-
-    uni = get_universe(universe)
-    try:
-        chosen = build(strategy, uni)
-    except KeyError:
-        console.print(f"[red]unknown strategy {strategy!r}[/]; known: {', '.join(names())}")
-        raise typer.Exit(1) from None
-
-    config = BacktestConfig(
-        strategy=chosen,
-        universe=uni,
-        start=date.fromisoformat(start),
-        end=date.fromisoformat(end) if end else datetime.now(UTC).date(),
-        initial_cash=dec(cash),
-        costs=CostModel().scaled(cost_scale),
-        rebalancer=Rebalancer(band=dec(band)),
-        data_root=root,
-    )
-
-    with console.status(f"replaying {chosen.name}..."):
-        try:
-            result = run_backtest(config)
-        except FileNotFoundError as exc:
-            console.print(f"[red]{exc}[/]")
-            raise typer.Exit(1) from None
-
-    if not result.nav_points:
-        console.print("[red]no sessions in range.[/]")
-        raise typer.Exit(1)
-
-    table = Table(box=None, pad_edge=False, show_header=False)
-    table.add_column("", style="dim")
-    table.add_column("", justify="right")
-    first, last = result.nav_points[0], result.nav_points[-1]
-    years = (last.session - first.session).days / 365.25
-    from sillage.backtest.runner import annualised
-
-    for label, value in (
-        ("strategy", chosen.name),
-        (
-            "period",
-            f"{first.session} to {last.session}  ({years:.1f}y, {result.sessions} sessions)",
+    benchmark: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--benchmark", "-b", help="Also run this strategy for comparison. Repeatable."
         ),
-        ("starting NAV", f"{float(result.initial_nav):,.2f}"),
-        ("final NAV", f"{float(result.final_nav):,.2f}"),
-        ("total return", f"{float(result.total_return):+.2%}"),
-        ("annualised", f"{float(annualised(result.total_return, years)):+.2%}"),
-        ("fills", f"{len(result.fills):,}"),
-        ("traded notional", f"{float(result.traded_notional):,.0f}"),
-        ("commission", f"{float(result.total_commission):,.2f}"),
-        ("slippage", f"{float(result.total_slippage):,.2f}"),
-        ("rejections", f"{len(result.rejections):,}"),
-        ("final cash", f"{float(last.cash):,.2f}"),
-        ("final exposure", f"{float(last.gross_exposure):.1%}"),
-    ):
-        table.add_row(label, str(value))
+    ] = None,
+    report: Annotated[
+        bool, typer.Option("--report", help="Write an HTML tearsheet to reports/.")
+    ] = False,
+    reports_dir: Annotated[Path, typer.Option(help="Where tearsheets are written.")] = Path(
+        "reports"
+    ),
+) -> None:
+    """Replay a strategy over stored history and report how it did."""
+    from sillage.backtest.metrics import analyse
+
+    options = (universe, root, start, end, cash, band, cost_scale)
+    runs = [analyse(_run(_build_config(strategy, *options)))]
+    for name in benchmark or []:
+        runs.append(analyse(_run(_build_config(name, *options))))
+
+    _print_performance(runs)
+
+    if report:
+        from sillage.backtest.report import write
+
+        path = write(runs, reports_dir / f"{_slug(runs[0].label)}.html")
+        console.print(f"\n[green]tearsheet[/] {path}")
+
+
+def _print_performance(runs: list[Performance]) -> None:
+    """The same statistics the tearsheet shows, for people who live in a terminal."""
+    subject = runs[0]
+    table = Table(box=None, pad_edge=False)
+    table.add_column("", style="dim")
+    for run in runs:
+        table.add_column(run.label, justify="right")
+
+    def row(label: str, render: Callable[[Performance], str]) -> None:
+        table.add_row(label, *[render(run) for run in runs])
+
+    m = subject.metrics
+    console.print(
+        f"\n[bold]{m.start} to {m.end}[/]  ({m.years:.1f} years, {len(subject.nav):,} sessions)\n"
+    )
+    row("final NAV", lambda r: f"{float(r.metrics.final_nav):,.0f}")
+    row("total return", lambda r: f"{r.metrics.total_return:+.1%}")
+    row("annualised", lambda r: f"{r.metrics.cagr:+.2%}")
+    row("volatility", lambda r: f"{r.metrics.volatility:.1%}")
+    row("Sharpe", lambda r: f"{r.metrics.sharpe:.2f}")
+    row("Sortino", lambda r: f"{r.metrics.sortino:.2f}")
+    row("max drawdown", lambda r: f"{r.metrics.max_drawdown:.1%}")
+    row("longest drawdown", lambda r: f"{r.metrics.longest_drawdown_days:,}d")
+    row("Calmar", lambda r: f"{r.metrics.calmar:.2f}")
+    row("positive months", lambda r: f"{r.metrics.positive_months:.0%}")
+    row("worst month", lambda r: f"{r.metrics.worst_month:.1%}")
+    row("fills", lambda r: f"{r.trading.fills:,}")
+    row("turnover", lambda r: f"{r.trading.annual_turnover:.2f}x/yr")
+    row("cost drag", lambda r: f"{r.trading.cost_drag:.3%}/yr")
+    row("avg exposure", lambda r: f"{r.trading.average_exposure:.0%}")
     console.print(table)
 
-    if result.rejections:
-        console.print("\n[yellow]rejected orders[/]")
-        for rejection in result.rejections[:10]:
-            console.print(f"  {rejection}")
-        if len(result.rejections) > 10:
-            console.print(f"  ... and {len(result.rejections) - 10} more")
 
+@app.command("timing-luck")
+def timing_luck(
+    strategy: Annotated[
+        str, typer.Option("--strategy", "-s", help="Which strategy to test.")
+    ] = "60-40",
+    universe: UniverseOpt = "core",
+    root: RootOpt = Path("data"),
+    start: Annotated[str, typer.Option(help="First session, YYYY-MM-DD.")] = "2005-01-03",
+    end: Annotated[str, typer.Option(help="Last session, YYYY-MM-DD.")] = "",
+    cash: Annotated[float, typer.Option(help="Starting capital.")] = 100_000,
+    band: Annotated[float, typer.Option(help="No-trade band.")] = 0.20,
+    cost_scale: Annotated[float, typer.Option(help="Multiply every cost assumption.")] = 1.0,
+) -> None:
+    """Run one strategy on several rebalance dates and report how much the date mattered.
+
+    Nothing makes the last session of the month a better day to trade than the
+    third-to-last. If the two disagree by much, the backtest's headline number is
+    partly luck.
+    """
+    from sillage.backtest.timing import study
+
+    config = _build_config(strategy, universe, root, start, end, cash, band, cost_scale)
+    try:
+        result = study(config)
+    except TypeError as exc:
+        console.print(f"[red]{exc}[/]")
+        raise typer.Exit(1) from None
+
+    table = Table(box=None, pad_edge=False)
+    table.add_column("rebalance date", style="dim")
+    for column in ("annualised", "Sharpe", "max DD", "final NAV"):
+        table.add_column(column, justify="right")
+    for offset, metrics in zip(result.offsets, result.metrics, strict=True):
+        label = "month end" if offset == 0 else f"{offset} sessions earlier"
+        table.add_row(
+            label,
+            f"{metrics.cagr:+.2%}",
+            f"{metrics.sharpe:.2f}",
+            f"{metrics.max_drawdown:.1%}",
+            f"{float(metrics.final_nav):,.0f}",
+        )
+    console.print(table)
+    console.print(f"\n{result.summary()}.")
     console.print(
-        "\n[dim]Risk and performance metrics arrive in Phase 2. This is the raw record.[/]"
+        "\n[dim]A fixed-weight strategy should show almost nothing here -- it wants the\n"
+        "same weights whichever day it looks. A selection strategy will not.[/]"
     )
 
 

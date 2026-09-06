@@ -60,6 +60,17 @@ def test_weekly_fires_on_an_ordinary_friday(calendar: TradingCalendar) -> None:
     assert Weekly(weekday=4).is_rebalance_session(date(2024, 3, 22), calendar)
 
 
+def test_monthly_offsets_do_not_change_how_often_it_trades(calendar: TradingCalendar) -> None:
+    """An offset moves the date, never the frequency -- otherwise it would not be a
+    controlled comparison, it would be a different strategy."""
+    sessions = [s.day for s in calendar.sessions(date(2022, 1, 1), date(2023, 12, 31))]
+    counts = {
+        offset: sum(Monthly(offset).is_rebalance_session(d, calendar) for d in sessions)
+        for offset in (0, 5, 10, 15)
+    }
+    assert set(counts.values()) == {24}
+
+
 def test_weekly_rejects_an_impossible_weekday() -> None:
     with pytest.raises(ValueError, match="weekday must be"):
         Weekly(weekday=9)

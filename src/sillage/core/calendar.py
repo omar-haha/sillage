@@ -85,6 +85,17 @@ class Calendar(Protocol):
 
     name: str
 
+    @property
+    def bounds(self) -> tuple[date, date]:
+        """The first and last day this calendar can answer questions about.
+
+        Needed because the underlying library refuses queries outside the window it
+        was built for, and the window it was built for is snapped to real sessions --
+        asking XNYS about 1990-01-01 raises, because its first session is the 2nd.
+        Anything wanting to materialise a whole calendar has to ask rather than guess.
+        """
+        ...
+
     def is_session(self, day: date) -> bool: ...
 
     def sessions(self, start: date, end: date) -> list[Session]: ...
@@ -104,6 +115,10 @@ class TradingCalendar:
     def __init__(self, name: str = DEFAULT_CALENDAR) -> None:
         self.name = name
         self._cal = _calendar(name, CALENDAR_START, _calendar_end())
+
+    @property
+    def bounds(self) -> tuple[date, date]:
+        return self._cal.first_session.date(), self._cal.last_session.date()
 
     def is_session(self, day: date) -> bool:
         return bool(self._cal.is_session(_to_ts(day)))
@@ -156,6 +171,11 @@ class ContinuousCalendar:
     """
 
     name = "24/7"
+
+    @property
+    def bounds(self) -> tuple[date, date]:
+        """The same window the exchange calendars cover, so the two stay comparable."""
+        return date.fromisoformat(CALENDAR_START), date.fromisoformat(_calendar_end())
 
     def is_session(self, day: date) -> bool:  # noqa: ARG002
         return True

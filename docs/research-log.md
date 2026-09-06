@@ -149,3 +149,68 @@ behaviour and had been checking them all along, which is why this surfaced as a
 formatting complaint rather than anything worse. One ignored directory quietly
 disabling a tool on a quarter of the source tree is a good argument for verifying
 against a fresh clone rather than the directory you have been working in.
+
+## 2026-09-05 — Metrics agree with quantstats exactly, except where they should not
+
+The metrics module is validated against `quantstats`, an independent implementation
+nobody here had sight of. Sharpe, Sortino, volatility and maximum drawdown agree to
+machine precision on a 3,000-day series. Sharpe in particular has several defensible
+definitions differing by a few percent, and a figure nobody else can reproduce is not
+evidence.
+
+Two figures disagree by about 1.3 basis points, and the disagreement is kept: CAGR and
+Calmar. quantstats divides elapsed days by 365; this divides by 365.25. Over a twenty
+year sample containing five leap days, 365.25 is right. The test asserts agreement to
+three decimals and says why, rather than adopting the other convention to make a
+number match.
+
+Separately, **"longest drawdown" is measured peak-to-recovery, not days-spent-below-
+water.** The two differ by the length of the final leg, and the first is what the
+question actually means: not "how many bad days" but "how long until I was whole
+again". For SPY over this sample it is 1,773 days — peak 2007-10-09, trough 2009-03-09
+at −55.1%, back to even 2012-08-16. Those are the real dates, which is the strongest
+evidence so far that the whole pipeline is wired correctly.
+
+## 2026-09-05 — Rebalance timing luck, measured before being fixed
+
+A critique of the design named rebalance timing luck as its biggest fixable flaw, and
+it is a real, documented effect (Hoffstein). A strategy rebalancing monthly has to pick
+a day of the month; nothing makes the last session better than the third-to-last; and
+two runs differing only in that choice can diverge by a percent a year or more. A
+backtest on one date reports one draw from a distribution as if it were the answer.
+
+The prescribed remedy is tranching — several sub-portfolios on staggered schedules,
+averaged. It is cheap here because `target_weights` is already a pure function of
+`as_of`.
+
+**It is deliberately not built yet, and measuring first is why.** `Monthly(offset)` and
+`sillage timing-luck` now run the same configuration across four dates a week apart.
+On the benchmarks:
+
+| strategy | CAGR spread across four dates |
+|---|---|
+| 60/40, rebalanced monthly | 0.11% |
+| equal weight, 12 ETFs | 0.08% |
+
+Near zero — which is exactly right, and is the point. **Timing luck is a property of
+selection, not of rebalancing.** A fixed-weight strategy wants the same weights
+whichever day it looks at, so the date can only matter at the margin. Building a
+tranching implementation now would mean building it against strategies that cannot
+exercise it. It belongs with the momentum strategy in Phase 3, where the effect exists.
+
+What the run does establish is that the harness measures the strategy rather than
+inventing variance of its own, which is the thing worth knowing before trusting a
+larger number from it later.
+
+**An unexpected second finding.** A single-asset 100% SPY book shows a *0.62%* annual
+spread across the same four dates over 2010–2020 — six times the two-asset figure —
+despite never rebalancing at all. With one asset there is nothing to rebalance against,
+so the only thing the offset changes is which day the money went in. That is entry-date
+luck, a different effect that happened to be sitting in the same measurement, and it is
+larger here than the thing being measured. Worth separating deliberately: a backtest's
+start date is an arbitrary choice too, and it is one nobody thinks to vary.
+
+Drawdown turns out to be more date-sensitive than return even for the fixed-weight
+book: 60/40's maximum drawdown ranges from −29.2% to −31.0% across the four dates,
+a 1.8-point spread against a 0.11% spread in return. If a strategy is going to be sold
+on its drawdown, the drawdown deserves the same treatment as the headline.
