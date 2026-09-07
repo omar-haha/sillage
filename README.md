@@ -16,10 +16,10 @@ Clock ──▶ Data(as_of) ──▶ Strategy ──▶ Sizing ──▶ Rebala
   └ LiveClock      (wall time)                       IBKRBroker / CcxtBroker           ┘
 ```
 
-Status: **Phase 3 complete** — a point-in-time data layer, an event-driven backtest
-engine with a cost-aware simulated broker, risk metrics validated against an independent
-implementation, and the strategy itself. Next: honest validation — held-out data,
-walk-forward, parameter sensitivity.
+Status: **Phase 4 complete** — a point-in-time data layer, an event-driven backtest
+engine with a cost-aware simulated broker, independently validated risk metrics, the
+strategy itself, and a battery that spends seventy-one backtests trying to prove the
+strategy is an illusion. Next: live paper trading.
 See [docs/ROADMAP.md](docs/ROADMAP.md) for the full plan and
 [docs/research-log.md](docs/research-log.md) for findings along the way, including the
 ones that went nowhere.
@@ -30,6 +30,7 @@ uv run sillage data sync                    # ~21y of daily bars for the core un
 uv run sillage data check                   # gaps, unadjusted splits, stale feeds
 uv run sillage backtest -b spy -b 60-40 --report --attribution
 uv run sillage timing-luck -s momentum-single     # how much did the rebalance date matter?
+uv run sillage validate --report                  # try to prove the strategy wrong
 ```
 
 ## What the engine does, once per session
@@ -78,6 +79,24 @@ it still returns 6.64% at a Sharpe of 0.76. Most retail backtests die here.
 
 The full argument, including the years it loses badly and why, is in
 [docs/strategy.md](docs/strategy.md).
+
+## Does it survive being attacked?
+
+`sillage validate` runs seventy-one configurations against it — data it never saw,
+parameters moved off their defaults, start dates it did not choose, the return series
+resampled, and the whole thing deflated for how many configurations were tried.
+
+- **Held out it got worse**, and that is reported rather than buried: Sharpe 0.87 in
+  sample against 0.73 out, with the maximum drawdown doubling.
+- **Parameters sit on plateaus.** Trend window 100→300 days reads 0.78 / 0.83 / 0.83 /
+  0.82 / 0.77; the volatility lookback is flat across 20→120 sessions. Neither default
+  was chosen because it peaked, because neither peaks.
+- **Bootstrapped Sharpe 0.83, 95% interval 0.42 to 1.27** — wide, and clear of zero.
+- **Deflated for a pessimistic thousand trials, P(the edge is not selection) = 0.9986.**
+
+And two failures found in the process, both in the tooling rather than the strategy —
+[docs/research-log.md](docs/research-log.md) has them, including the one where validating
+on a single rebalance date produced the *opposite* out-of-sample verdict.
 
 ## Benchmarks
 

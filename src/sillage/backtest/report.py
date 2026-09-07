@@ -587,3 +587,226 @@ def _isnan(values: Any) -> Any:
     import numpy as np
 
     return np.isnan(values)
+
+
+# ------------------------------------------------------------------ validation
+
+#: Sequential ramp for magnitude: one hue, light to dark. Never a rainbow -- a
+#: multi-hue scale makes readers infer categories where there is only "more".
+SEQUENTIAL = (
+    "#cde2fb",
+    "#9ec5f4",
+    "#6da7ec",
+    "#3987e5",
+    "#256abf",
+    "#184f95",
+    "#0d366b",
+)
+
+
+def _sensitivity(sensitivity: dict[str, list[Any]]) -> go.Figure | None:
+    """One panel per parameter: Sharpe against the value swept.
+
+    Flat is the good outcome and the one to look for. A peak at the value the strategy
+    happens to use means the value was chosen because it peaked -- by someone, at some
+    point, whether or not deliberately.
+    """
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
+
+    knobs = [k for k, trials in sensitivity.items() if len(trials) > 1]
+    if not knobs:
+        return None
+
+    columns = min(3, len(knobs))
+    rows = -(-len(knobs) // columns)
+    fig = make_subplots(rows=rows, cols=columns, subplot_titles=knobs, vertical_spacing=0.18)
+
+    for index, knob in enumerate(knobs):
+        trials = sensitivity[knob]
+        row, column = index // columns + 1, index % columns + 1
+        fig.add_trace(
+            go.Scatter(
+                x=[str(getattr(t.variant, knob)) for t in trials],
+                y=[t.metrics.sharpe for t in trials],
+                mode="lines+markers",
+                line={"color": SERIES[0], "width": 2},
+                marker={"size": 8, "color": SERIES[0]},
+                hovertemplate="%{x}: Sharpe %{y:.2f}<extra></extra>",
+                showlegend=False,
+            ),
+            row=row,
+            col=column,
+        )
+
+    layout = _layout(
+        "Parameter sensitivity",
+        "Sharpe against each parameter, others held at their defaults. A plateau means "
+        "the effect is real and the exact value does not matter. A spike means it does.",
+        height=200 * rows + 90,
+    )
+    layout["hovermode"] = "closest"
+    layout["showlegend"] = False
+    for key in ("xaxis", "yaxis"):
+        layout.pop(key)
+    fig.update_layout(**layout)
+    fig.update_xaxes(showgrid=False, linecolor=AXIS, tickfont={"color": INK_MUTED, "size": 10})
+    fig.update_yaxes(gridcolor=GRID, zeroline=False, tickfont={"color": INK_MUTED, "size": 10})
+    for annotation in fig.layout.annotations:
+        annotation.font = {"size": 12, "color": INK_SECONDARY, "family": FONT}
+    return fig
+
+
+def _grid_heatmap(grid: list[list[Any]], axes: tuple[Any, Any]) -> go.Figure | None:
+    """Two parameters at once. A plateau should be visible as a region, not a pixel."""
+    import plotly.graph_objects as go
+
+    if not grid or not grid[0]:
+        return None
+    (x_knob, x_values), (y_knob, y_values) = axes
+    values = [[t.metrics.sharpe for t in row] for row in grid]
+
+    fig = go.Figure(
+        go.Heatmap(
+            z=values,
+            x=[str(v) for v in x_values],
+            y=[str(v) for v in y_values],
+            colorscale=[[i / (len(SEQUENTIAL) - 1), c] for i, c in enumerate(SEQUENTIAL)],
+            texttemplate="%{z:.2f}",
+            textfont={"size": 11, "family": FONT},
+            hovertemplate=f"{x_knob} %{{x}}, {y_knob} %{{y}}: Sharpe %{{z:.2f}}<extra></extra>",
+            xgap=2,
+            ygap=2,
+            colorbar={
+                "outlinewidth": 0,
+                "tickfont": {"color": INK_MUTED, "size": 10},
+                "thickness": 10,
+            },
+        )
+    )
+    layout = _layout(
+        f"Sharpe across {x_knob} and {y_knob}",
+        "Every cell is a full backtest. Look for a broad region of decent results, not "
+        "one bright square.",
+        height=110 + 40 * len(y_values),
+    )
+    layout["hovermode"] = "closest"
+    layout["showlegend"] = False
+    layout["xaxis"]["title"] = {"text": x_knob, "font": {"size": 11, "color": INK_MUTED}}
+    layout["yaxis"]["title"] = {"text": y_knob, "font": {"size": 11, "color": INK_MUTED}}
+    layout["yaxis"]["gridcolor"] = SURFACE
+    fig.update_layout(**layout)
+    return fig
+
+
+def _bootstrap(interval: Any) -> go.Figure | None:
+    """The distribution the point estimate came from.
+
+    A Sharpe ratio quoted alone implies a precision it does not have. This is the same
+    number with its error bar drawn, and the error bar is usually humbling.
+    """
+    import plotly.graph_objects as go
+
+    if not interval.samples:
+        return None
+    fig = go.Figure(
+        go.Histogram(
+            x=list(interval.samples),
+            nbinsx=60,
+            marker={"color": _translucent(SERIES[0], 0.75), "line": {"width": 0}},
+            hovertemplate="Sharpe %{x:.2f}: %{y} draws<extra></extra>",
+        )
+    )
+    for value, label, dash in (
+        (interval.point, "observed", "solid"),
+        (interval.low, "2.5%", "dot"),
+        (interval.high, "97.5%", "dot"),
+    ):
+        fig.add_vline(
+            x=value,
+            line={"color": INK_SECONDARY if dash == "solid" else INK_MUTED, "width": 2},
+            annotation_text=label,
+            annotation_font={"size": 10, "color": INK_MUTED},
+        )
+    layout = _layout(
+        "Where the Sharpe ratio might actually be",
+        f"{interval.draws:,} resamples of the return series, in month-long blocks so "
+        "volatility clustering survives the shuffle.",
+        height=320,
+    )
+    layout["hovermode"] = "closest"
+    layout["showlegend"] = False
+    fig.update_layout(**layout)
+    return fig
+
+
+def _validation_summary(report: Any) -> str:
+    rows = [
+        ("Configurations run", f"{report.trials}"),
+        (
+            "In sample",
+            f"Sharpe {report.train.metrics.sharpe:.2f} "
+            f"({report.train.metrics.start} to {report.train.metrics.end})",
+        ),
+        (
+            "Held out",
+            f"Sharpe {report.test.metrics.sharpe:.2f} "
+            f"({report.test.metrics.start} to {report.test.metrics.end})",
+        ),
+        ("Out-of-sample change", f"{report.held_out_gap:+.2f}"),
+    ]
+    if report.interval:
+        rows.append(("Bootstrapped Sharpe", str(report.interval)))
+    for deflation in report.deflation:
+        rows.append(
+            (
+                f"P(edge is real), {deflation.trials:,} trials",
+                f"{deflation.probability:.4f}",
+            )
+        )
+    body = "".join(f"<tr><th scope='row'>{k}</th><td>{v}</td></tr>" for k, v in rows)
+    return f"<table class='stats'><tbody>{body}</tbody></table>"
+
+
+def render_validation(report: Any, *, title: str = "Validation") -> str:
+    """The whole battery as one page."""
+    figures = [
+        figure
+        for figure in (
+            _sensitivity(report.sensitivity),
+            _grid_heatmap(report.grid, report.grid_axes) if report.grid_axes else None,
+            _bootstrap(report.interval) if report.interval else None,
+        )
+        if figure is not None
+    ]
+    blocks = [
+        "<div class='card'>"
+        + figure.to_html(
+            full_html=False,
+            include_plotlyjs="inline" if index == 0 else False,
+            config={"displayModeBar": False, "responsive": True},
+        )
+        + "</div>"
+        for index, figure in enumerate(figures)
+    ]
+    generated = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
+    return f"""<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{title}</title><style>{CSS}</style></head>
+<body><div class="sheet">
+<h1>{title}</h1>
+<p class="lede">Five attempts to show the result is an illusion: data the strategy never
+saw, parameters moved off their defaults, start dates it did not choose, the return
+series resampled, and the whole thing deflated for how many configurations were tried.</p>
+<div class="card">{_validation_summary(report)}</div>
+{"".join(blocks)}
+<footer>Generated by sillage on {generated}. Passing these checks means the result is not
+obviously an artefact. It does not mean the strategy will work.</footer>
+</div></body></html>"""
+
+
+def write_validation(report: Any, path: Path, *, title: str = "Validation") -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(render_validation(report, title=title), encoding="utf-8")
+    return path

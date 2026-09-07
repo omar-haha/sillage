@@ -124,11 +124,25 @@ class TradingCalendar:
         return bool(self._cal.is_session(_to_ts(day)))
 
     def sessions(self, start: date, end: date) -> list[Session]:
-        """Every tradable session in [start, end], inclusive."""
-        days = self._cal.sessions_in_range(_to_ts(start), _to_ts(end))
-        return [self._session_for(d.date()) for d in days]
+        """Every tradable session in [start, end], inclusive.
+
+        Built from the calendar's bulk `opens` and `closes` series in one slice rather
+        than by asking for each day's open and close individually. That is not a
+        micro-optimisation: the per-day form goes through pandas scalar indexing twice
+        per session, and materialising thirty-six years of sessions -- which loading a
+        universe does, once per symbol -- spent fourteen of a seventeen-second backtest
+        inside it.
+        """
+        window = slice(_to_ts(start), _to_ts(end))
+        opens = self._cal.opens[window]
+        closes = self._cal.closes[window]
+        return [
+            Session(day=day.date(), open=open_.to_pydatetime(), close=close.to_pydatetime())
+            for day, open_, close in zip(opens.index, opens, closes, strict=True)
+        ]
 
     def _session_for(self, day: date) -> Session:
+        """One session. Kept for single lookups; `sessions` does not go through it."""
         ts = _to_ts(day)
         return Session(
             day=day,

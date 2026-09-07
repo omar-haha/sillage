@@ -19,6 +19,7 @@ would be the number people quote before that validation exists.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
@@ -26,7 +27,7 @@ from pathlib import Path
 
 from sillage.core.calendar import Calendar, TradingCalendar
 from sillage.core.money import ZERO, dec, safe_div
-from sillage.core.types import Fill, Order, Portfolio
+from sillage.core.types import Bar, Fill, Order, Portfolio
 from sillage.data.store import BarStore
 from sillage.data.universe import Universe
 from sillage.engine.clock import BacktestClock
@@ -132,8 +133,13 @@ class BacktestResult:
         )
 
 
-def run_backtest(config: BacktestConfig) -> BacktestResult:
-    """Replay `config` and return everything that happened."""
+def load_universe(config: BacktestConfig) -> dict[str, list[Bar]]:
+    """Read a config's universe into memory, ready to be replayed.
+
+    Split out from `run_backtest` so a parameter sweep can pay for it once instead of
+    once per configuration. Reading and re-stamping thirteen symbols is about half the
+    cost of a single backtest, and a sweep does fifty of them.
+    """
     store = BarStore(config.data_root)
     instruments = {i.symbol: i for i in config.universe.all_instruments}
 
@@ -144,10 +150,29 @@ def run_backtest(config: BacktestConfig) -> BacktestResult:
             f"{config.universe.name}` first"
         )
 
-    calendar = config.calendar or TradingCalendar()
     # No start bound: the strategy's lookback needs the history before the first
     # session it trades on. The `as_of` gate is what keeps that from being cheating.
-    bars = load_bars(store, instruments.values(), calendar=calendar, end=config.end)
+    return load_bars(
+        store,
+        instruments.values(),
+        calendar=config.calendar or TradingCalendar(),
+        end=config.end,
+    )
+
+
+def run_backtest(
+    config: BacktestConfig, *, bars: Mapping[str, list[Bar]] | None = None
+) -> BacktestResult:
+    """Replay `config` and return everything that happened.
+
+    `bars` is an escape hatch for sweeps: pass history already loaded by
+    `load_universe` and it is reused rather than re-read. It must cover the same
+    universe and end no earlier than `config.end`, which is the caller's job to ensure
+    -- nothing here can check it without doing the work it exists to avoid.
+    """
+    instruments = {i.symbol: i for i in config.universe.all_instruments}
+    calendar = config.calendar or TradingCalendar()
+    bars = dict(bars) if bars is not None else load_universe(config)
     journal = InMemoryJournal()
 
     engine = Engine(

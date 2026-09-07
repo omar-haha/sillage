@@ -102,13 +102,30 @@ def load_bars(
     }
     if calendar is None:
         return bars
+
+    # The session-close map is built once per calendar and shared, rather than once per
+    # symbol. Thirteen symbols spanning the same twenty years asked the same calendar
+    # the same question thirteen times, which was most of the cost of loading a universe.
     continuous = {i.symbol for i in instruments if i.trades_continuously}
+    spans = [(s[0].ts.date(), s[-1].ts.date()) for s in bars.values() if s]
+    if not spans:
+        return bars
+    first, last = min(a for a, _ in spans), max(b for _, b in spans)
+
+    closes = _session_closes(calendar, first, last)
+    continuous_closes = _session_closes(ContinuousCalendar(), first, last) if continuous else {}
     return {
-        symbol: stamp_at_session_close(
-            series, ContinuousCalendar() if symbol in continuous else calendar
-        )
+        symbol: _restamp(series, continuous_closes if symbol in continuous else closes)
         for symbol, series in bars.items()
     }
+
+
+def _session_closes(calendar: Calendar, first: date, last: date) -> dict[date, datetime]:
+    return {session.day: session.close for session in calendar.sessions(first, last)}
+
+
+def _restamp(bars: Sequence[Bar], closes: Mapping[date, datetime]) -> list[Bar]:
+    return [replace(bar, ts=closes[day]) for bar in bars if (day := bar.ts.date()) in closes]
 
 
 def stamp_at_session_close(bars: Sequence[Bar], calendar: Calendar) -> list[Bar]:
@@ -121,11 +138,7 @@ def stamp_at_session_close(bars: Sequence[Bar], calendar: Calendar) -> list[Bar]
     """
     if not bars:
         return []
-    closes = {
-        session.day: session.close
-        for session in calendar.sessions(bars[0].ts.date(), bars[-1].ts.date())
-    }
-    return [replace(bar, ts=closes[day]) for bar in bars if (day := bar.ts.date()) in closes]
+    return _restamp(bars, _session_closes(calendar, bars[0].ts.date(), bars[-1].ts.date()))
 
 
 class HistoricalFeed:

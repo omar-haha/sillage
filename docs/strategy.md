@@ -165,6 +165,62 @@ is not that. The cash sleeve is the largest single average holding at 18% — th
 spends roughly a fifth of its life partly out of the market, which is the mechanism, not
 a side effect.
 
+## Does it survive being attacked?
+
+Phase 4 ran seventy-one configurations against it. The full battery is
+`sillage validate --report`; this is what came back.
+
+**Held-out data — it got modestly worse.** Fitting nothing and simply splitting at
+2018-01-02:
+
+| | in sample (2005–2018) | held out (2018–2026) |
+|---|---|---|
+| Sharpe | 0.87 | 0.73 |
+| Max drawdown | −10.9% | −21.8% |
+
+A decline, and the drawdown doubled. Sharpe 0.73 still beats buy-and-hold SPY's 0.64 over
+the same span, so this is a degradation rather than a collapse — but it is a degradation
+and it is reported as one. Note also that the split date is itself an unexamined choice:
+2018 puts 2008, the strategy's best year, wholly in the training half.
+
+**Parameters sit on plateaus, not spikes.**
+
+| Trend window | 100 | 150 | **200** | 250 | 300 |
+|---|---|---|---|---|---|
+| Sharpe | 0.78 | 0.83 | **0.83** | 0.82 | 0.77 |
+
+| Vol lookback | 20 | 40 | **60** | 90 | 120 |
+|---|---|---|---|---|---|
+| Sharpe | 0.84 | 0.82 | **0.83** | 0.83 | 0.82 |
+
+A broad gentle hill and a flat line. Neither default was chosen because it peaked,
+because neither peaks. The lookback blend is also vindicated: a single 12-month signal
+gives 0.77 against the blend's 0.83.
+
+**Two "parameters" are really preferences.** Holding more assets raises Sharpe and lowers
+return monotonically (top 3 → top 10: 0.71 → 0.90 Sharpe, +6.9% → +5.4% CAGR); the
+volatility target does the same in reverse. Neither has an optimum to overfit to. The
+defaults sit mid-dial.
+
+**One tempting result, deliberately not acted on.** Holding the top eight instead of five
+gives a better Sharpe *and* a third less turnover — better on both, worse only on raw
+return. Moving the default to eight would convert an inherited parameter into a fitted
+one and would quietly invalidate the deflation figures below, which assume the reported
+configuration was not chosen from among the trials. If it is real it will survive being
+tested on data selected for the purpose. That is a different experiment, run in a
+different order.
+
+**Start date barely matters.** Seven starts across a decade: Sharpe 0.80 to 0.86.
+
+**The edge survives deflation.** Bootstrapping the return series in month-long blocks
+gives a Sharpe of 0.83 with a 95% interval of **0.42 to 1.27** — wide, and clear of zero.
+Correcting for selection, the best of a thousand random strategies would be expected to
+show 0.17, and the probability this result is not selection comes to **0.9986**.
+
+**What that does not establish.** Every test above asks whether the result is an artefact
+of this sample. None can say the sample resembles the future, and the strategy's case
+still rests on one crisis in a window containing one crisis.
+
 ## Known weaknesses
 
 - **Its case rests on one crisis.** It beat the index in all three of the sample's down
@@ -184,8 +240,14 @@ a side effect.
   turning points. That is where it is wanted, but it is one layer of protection, not two.
 - **Six parameters**, all inherited from the literature rather than fitted here. That is
   a real defence and a weaker one than it sounds: the literature fitted them, largely on
-  this same US data. Phase 4 tests sensitivity and should deflate for trials nobody here
-  ran.
+  this same US data. The deflation above uses a pessimistic thousand trials partly to
+  stand in for the ones nobody here ran, but that is a gesture at the problem, not a
+  measurement of it.
+- **Turnover of about 7x a year is inherent, not a setting.** The no-trade band removes a
+  fifth of the trades and almost none of the notional: turnover comes from monthly
+  re-selection and from the volatility scalar moving every weight at once. Costs are
+  currently immaterial because these are liquid ETFs at small size. At scale, or in
+  anything wider than an ETF spread, this would be the first thing to break.
 - **Adjusted prices restate the past.** Every historical bar reflects dividends paid
   after it. Immaterial for monthly rebalancing on ETFs; not immaterial in principle.
 

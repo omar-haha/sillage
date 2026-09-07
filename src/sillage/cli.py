@@ -420,5 +420,170 @@ def timing_luck(
     )
 
 
+@app.command()
+def validate(
+    universe: UniverseOpt = "core",
+    root: RootOpt = Path("data"),
+    start: Annotated[str, typer.Option(help="First session, YYYY-MM-DD.")] = "2005-01-03",
+    end: Annotated[str, typer.Option(help="Last session, YYYY-MM-DD.")] = "",
+    split: Annotated[
+        str, typer.Option(help="Held-out boundary: everything after it is out of sample.")
+    ] = "2018-01-02",
+    cash: Annotated[float, typer.Option(help="Starting capital.")] = 100_000,
+    single: Annotated[
+        bool,
+        typer.Option("--single", help="Sweep one rebalance date instead of four tranches."),
+    ] = False,
+    quick: Annotated[
+        bool, typer.Option("--quick", help="A coarse pass, for checking it runs.")
+    ] = False,
+    report: Annotated[
+        bool, typer.Option("--report", help="Write an HTML validation page to reports/.")
+    ] = False,
+    reports_dir: Annotated[Path, typer.Option(help="Where reports are written.")] = Path("reports"),
+) -> None:
+    """Try to prove the strategy wrong: held-out data, sensitivity, bootstrap, deflation.
+
+    Takes several minutes. Sweeping one rebalance date with --single is four times
+    faster and, on this strategy, mostly measures timing luck -- which is itself worth
+    seeing once.
+    """
+    from datetime import UTC, datetime
+
+    from sillage.backtest.runner import BacktestConfig
+    from sillage.backtest.validation import run_battery
+    from sillage.core.money import dec
+    from sillage.data.universe import get_universe
+    from sillage.strategy.momentum import build as build_momentum
+
+    try:
+        uni = get_universe(universe)
+    except KeyError as exc:
+        console.print(f"[red]{exc}[/]")
+        raise typer.Exit(1) from None
+
+    base = BacktestConfig(
+        strategy=build_momentum(uni),
+        universe=uni,
+        start=date.fromisoformat(start),
+        end=date.fromisoformat(end) if end else datetime.now(UTC).date(),
+        initial_cash=dec(cash),
+        data_root=root,
+    )
+
+    with console.status("validating...") as status:
+        try:
+            battery = run_battery(
+                base,
+                boundary=date.fromisoformat(split),
+                tranched=not single,
+                quick=quick,
+                progress=lambda step: status.update(f"validating: {step}"),
+            )
+        except FileNotFoundError as exc:
+            console.print(f"[red]{exc}[/]")
+            raise typer.Exit(1) from None
+
+    _print_validation(battery)
+
+    if report:
+        from sillage.backtest.report import write_validation
+
+        path = write_validation(battery, reports_dir / "validation.html")
+        console.print(f"\n[green]validation report[/] {path}")
+
+
+def _print_validation(report: object) -> None:
+    """Render the battery. Each section answers one way the result could be an illusion."""
+    from sillage.backtest.validation import Report
+
+    assert isinstance(report, Report)
+    m = report.baseline.metrics
+    console.print(
+        f"\n[bold]baseline[/]  CAGR {m.cagr:+.2%}  vol {m.volatility:.1%}  "
+        f"Sharpe {m.sharpe:.2f}  maxDD {m.max_drawdown:.1%}"
+    )
+
+    console.print("\n[bold]held out[/]")
+    held = Table(box=None, pad_edge=False)
+    held.add_column("window", style="dim")
+    for column in ("period", "CAGR", "Sharpe", "maxDD"):
+        held.add_column(column, justify="right")
+    for label, trial in (("in sample", report.train), ("held out", report.test)):
+        t = trial.metrics
+        held.add_row(
+            label,
+            f"{t.start} to {t.end}",
+            f"{t.cagr:+.2%}",
+            f"{t.sharpe:.2f}",
+            f"{t.max_drawdown:.1%}",
+        )
+    console.print(held)
+    # Stated, not graded. A pass mark against a threshold picked after seeing the number
+    # is not a test, and the drawdown moving is at least as informative as the Sharpe.
+    drawdown_change = report.test.metrics.max_drawdown - report.train.metrics.max_drawdown
+    console.print(
+        f"  out of sample: Sharpe {report.held_out_gap:+.2f}, "
+        f"max drawdown {drawdown_change * 100:+.1f} points"
+    )
+
+    console.print("\n[bold]parameter sensitivity[/]  [dim](a plateau is good; a spike is not)[/]")
+    for knob, trials in report.sensitivity.items():
+        table = Table(box=None, pad_edge=False, title=None)
+        table.add_column(knob, style="dim")
+        for trial in trials:
+            table.add_column(str(getattr(trial.variant, knob)), justify="right")
+        table.add_row("Sharpe", *[f"{t.metrics.sharpe:.2f}" for t in trials])
+        table.add_row("CAGR", *[f"{t.metrics.cagr:+.1%}" for t in trials])
+        table.add_row("maxDD", *[f"{t.metrics.max_drawdown:.0%}" for t in trials])
+        # Turnover belongs here rather than in a costs section: without it a knob that
+        # only moves trading looks like a knob that does nothing at all, which is
+        # exactly the wrong conclusion to draw from a flat Sharpe row.
+        table.add_row("turnover", *[f"{t.turnover:.2f}x" for t in trials])
+        console.print(table)
+
+    if report.starts:
+        console.print("\n[bold]start date[/]  [dim](an arbitrary choice nobody counts)[/]")
+        table = Table(box=None, pad_edge=False)
+        table.add_column("start", style="dim")
+        for trial in report.starts:
+            table.add_column(str(trial.start), justify="right")
+        table.add_row("Sharpe", *[f"{t.metrics.sharpe:.2f}" for t in report.starts])
+        table.add_row("CAGR", *[f"{t.metrics.cagr:+.1%}" for t in report.starts])
+        console.print(table)
+
+    if report.costs:
+        console.print("\n[bold]cost sensitivity[/]  [dim](where does the edge vanish?)[/]")
+        table = Table(box=None, pad_edge=False)
+        table.add_column("costs", style="dim")
+        for trial in report.costs:
+            table.add_column(f"{trial.variant.cost_scale:g}x", justify="right")
+        table.add_row("Sharpe", *[f"{t.metrics.sharpe:.2f}" for t in report.costs])
+        table.add_row("CAGR", *[f"{t.metrics.cagr:+.2%}" for t in report.costs])
+        console.print(table)
+
+    if report.interval:
+        console.print(f"\n[bold]bootstrap[/]  Sharpe {report.interval}")
+        console.print(
+            "  [green]excludes zero[/]"
+            if report.interval.excludes_zero
+            else "  [red]includes zero — the edge is not distinguishable from luck[/]"
+        )
+
+    if report.deflation:
+        console.print(f"\n[bold]deflated Sharpe[/]  [dim]({report.trials} configurations run)[/]")
+        table = Table(box=None, pad_edge=False)
+        for column in ("assumed trials", "observed", "best of N by chance", "P(edge is real)"):
+            table.add_column(column, justify="right")
+        for d in report.deflation:
+            table.add_row(
+                f"{d.trials:,}",
+                f"{d.observed:.2f}",
+                f"{d.expected_maximum:.2f}",
+                f"[{'green' if d.survives else 'red'}]{d.probability:.4f}[/]",
+            )
+        console.print(table)
+
+
 if __name__ == "__main__":
     app()

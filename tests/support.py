@@ -13,13 +13,15 @@ decide-at-close/trade-at-next-open guarantee would be untestable.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import date
 from decimal import Decimal
+from pathlib import Path
 
 from sillage.core.calendar import Session, TradingCalendar
 from sillage.core.money import dec, quantize_price
 from sillage.core.types import AssetClass, Bar, Instrument
+from sillage.data.store import BarStore
 
 #: Opens sit 10% below closes so the two are never confusable in an assertion.
 OPEN_RATIO = dec("0.9")
@@ -68,3 +70,41 @@ def make_bars(
             )
         )
     return bars
+
+
+def synthetic_store(root: Path, symbols: Mapping[str, float], sessions: int = 700) -> BarStore:
+    """A store of invented history, for tests that need to run a whole backtest.
+
+    Each symbol gets a compounding path at its own drift plus an alternating wobble, so
+    the series have genuine volatility -- a perfectly smooth ramp has a constant daily
+    return and therefore *zero* measured volatility, which silently disables any sizing
+    logic under test.
+    """
+    import pandas as pd
+
+    store = BarStore(root)
+    days = [s.day for s in sessions_from(sessions)]
+    for offset, (symbol, drift) in enumerate(symbols.items()):
+        prices, price = [], 100.0
+        for i in range(sessions):
+            prices.append(price)
+            price *= 1.0 + drift + (0.008 if (i + offset) % 2 == 0 else -0.008)
+        frame = pd.DataFrame(
+            {
+                "open": [p * 0.999 for p in prices],
+                "high": [p * 1.01 for p in prices],
+                "low": [p * 0.99 for p in prices],
+                "close": prices,
+                "volume": [1_000_000.0] * sessions,
+            },
+            index=pd.DatetimeIndex([pd.Timestamp(d, tz="UTC") for d in days], name="ts"),
+        )
+        store.write(symbol, frame)
+    return store
+
+
+def sessions_from(count: int, *, start: date = FIRST_SESSION) -> list[Session]:
+    """`count` real NYSE sessions, starting well before `FIRST_SESSION` if needed."""
+    calendar = TradingCalendar()
+    window = calendar.sessions(date(start.year - 6, 1, 1), date(start.year + 6, 1, 1))
+    return window[:count]

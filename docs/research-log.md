@@ -287,3 +287,136 @@ the strategy.
 after 2010. The trend filter did its job in 2008 and then cost money for a decade. A
 strategy's worst moment being in the regime it handles *well* is a useful thing to know
 about, because it is not what anyone expects when they buy it.
+
+## 2026-09-06 — Validation gave the opposite answer depending on how it was run
+
+The held-out test, run on a single rebalance date:
+
+| | in sample (2005–2018) | held out (2018–2026) |
+|---|---|---|
+| Sharpe | 0.77 | **0.86** |
+
+Improved out of sample. The same test on the tranched strategy — same split, same
+parameters, same data:
+
+| | in sample | held out |
+|---|---|---|
+| Sharpe | 0.87 | **0.73** |
+| Max drawdown | −10.9% | −21.8% |
+
+Degraded out of sample, and the drawdown doubled. **Two opposite conclusions from the
+same experiment**, and the only difference is whether the rebalance date was one
+arbitrary choice or an average of four.
+
+The mechanism is Phase 2's finding compounding. A single-date run carries about two
+percentage points of timing luck; splitting the sample in half roughly doubles the noise
+in each piece, because each half has half the sessions to average it out. The result is
+a comparison where the noise is larger than the effect being measured.
+
+**Nothing that varies a parameter can be trusted on an untranched strategy.** Every
+sweep in this phase — sensitivity, start dates, costs, the grid — would otherwise be
+measuring which rebalance dates happened to be lucky for each configuration. The
+`validate` command therefore tranches by default and `--single` exists only to reproduce
+the problem. It is four times slower and it is not optional.
+
+The honest reading of the tranched result: the strategy got modestly worse on data it
+had not seen. It is not a collapse — Sharpe 0.73 still beats buy-and-hold SPY's 0.64
+over the same span — but it is a decline, and it should be reported as one. The split
+itself is also a free parameter nobody counts: cutting at 2018 puts 2008, the strategy's
+single best year, entirely in the training half, and 2020, one of its worst, entirely in
+the held-out half. A different boundary would tell a different story, and I have not run
+one.
+
+## 2026-09-06 — A sensitivity table that could not show what it was measuring
+
+The no-trade band swept from 0.05 to 0.50 produced this:
+
+```
+band     0.05   0.10   0.20   0.30   0.50
+Sharpe   0.83   0.83   0.83   0.83   0.83
+CAGR    +7.3%  +7.3%  +7.3%  +7.3%  +7.3%
+maxDD    -22%   -22%   -22%   -22%   -22%
+```
+
+Which reads unambiguously as "this parameter does nothing", and is wrong. Widening the
+band from 0.05 to 0.50 removes **1,161 trades** — a fifth of them. What it does not
+remove is turnover:
+
+| band | fills | turnover | costs |
+|---|---|---|---|
+| 0.00 | 6,134 | 7.25x | $7,025 |
+| 0.20 | 5,328 | 7.13x | $6,710 |
+| 0.90 | 3,966 | 6.69x | $5,925 |
+
+**The band controls the number of trades, not the amount traded.** It removes the small
+ones, and the small ones are not where the money goes. Turnover here is driven by
+monthly re-selection — five holdings out of twelve, rotating — and by the volatility
+scalar moving every weight at once each month. Neither is something a drift band can
+prevent, and a 500-dollar cost difference over twenty-one years on a hundred thousand
+does not move a Sharpe ratio to two decimal places.
+
+**The failure was mine, not the strategy's.** A sensitivity sweep that reports only
+return metrics cannot show a parameter whose only effect is on trading, and I built one
+and then read "flat" as "irrelevant". Every sensitivity row now carries turnover
+alongside Sharpe, CAGR and drawdown.
+
+The finding underneath survives the correction and is worth keeping: the band is nearly
+free to set anywhere, and the strategy's 7x annual turnover is inherent to what it does
+rather than a knob that was left in the wrong position. There is no tuning fix for it.
+
+Adding the column immediately changed how three other sweeps read. Holding more assets
+cuts turnover almost in half (top 3 → top 10: 7.84x to 4.38x); a longer volatility
+window cuts it by a fifth at identical Sharpe (20 → 120 sessions: 8.43x to 6.76x). Both
+were invisible in a table of return metrics, and both are the kind of thing that decides
+whether a strategy is tradable at size.
+
+## 2026-09-06 — What survived the attacks
+
+Seventy-one configurations, all tranched.
+
+**Plateaus, not spikes.** The trend window reads 0.78 / 0.83 / 0.83 / 0.82 / 0.77 across
+100 to 300 days — a broad, gentle hill centred near the conventional 200, which is what a
+real effect looks like. The volatility lookback is flatter still: 0.82 to 0.84 across
+20 to 120 sessions, essentially indifferent. Neither value was chosen because it peaked,
+because neither peaks.
+
+**The lookback blend earns its place.** A single 12-month lookback gives 0.77; blending
+3, 6 and 12 gives 0.83. That decision was made in Phase 3 on the argument that no single
+lookback is right in every regime, before this was measured, and the measurement agrees.
+
+**Two knobs are preferences, not optimisations.** Holding more assets raises Sharpe and
+lowers return monotonically (top 3 → top 10: Sharpe 0.71 to 0.90, CAGR +6.9% to +5.4%),
+and the volatility target does the same in reverse (6% → 15%: Sharpe 0.91 to 0.84, CAGR
++5.6% to +8.5%). Neither has an optimum to overfit to; both are dials between risk and
+return, and the defaults sit in the middle of each. Worth stating plainly, because a
+sensitivity sweep that shows a monotonic line is often misread as "the parameter is set
+wrong".
+
+**And here is the trap that reading invites.** Holding the top eight rather than five
+gives a better Sharpe (0.90 against 0.83) *and* a third less turnover (5.47x against
+7.13x) — better on both axes anyone would care about, worse only on raw return. It is
+extremely tempting to move the default.
+
+It stays at five. Choosing a parameter because it looked best across the whole sample is
+precisely the thing this phase exists to detect in other people's work, and doing it here
+would convert an inherited value into a fitted one — and would invalidate every deflation
+figure in this entry, because those count trials on the assumption that the reported
+configuration was not selected from among them. If the top-eight result is real it will
+survive being tested on data chosen for the purpose, and that is a different experiment
+run in a different order. Noted, not acted on.
+
+**Start dates barely matter, once tranched.** Seven starts across a decade give Sharpes
+of 0.80 to 0.86 and returns of 7.0% to 7.8%. Phase 2 found a single-asset book swinging
+0.62% a year purely on entry date; four staggered tranches largely remove that too.
+
+**The edge survives being deflated.** The bootstrapped Sharpe is 0.83 with a 95% interval
+of 0.42 to 1.27 — wide, and clear of zero. Deflating for selection, the best of a
+thousand random strategies would be expected to show 0.17; the probability the observed
+result is not selection comes to 0.9986. That holds at the honest count of 71
+configurations and at a pessimistic 1,000.
+
+**What none of this establishes.** Every one of these tests asks whether the result is an
+artefact of *this sample*. None of them can say the sample is representative of the
+future, and the strategy's single best year remains one crisis in a window containing one
+crisis. Passing this battery means the number is not obviously an illusion. It does not
+mean it will happen again.

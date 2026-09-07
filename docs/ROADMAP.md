@@ -362,7 +362,7 @@ rebalances still shows a 0.62% annual spread across the same four dates, because
 offset changes which day the money went in. Entry-date luck is larger than rebalance
 luck there, and nobody thinks to vary a backtest's start date. Phase 4 should.
 
-### Phase 4 — Honest validation (Week 6)
+### Phase 4 — Honest validation (Week 6) — **done, 2026-09-06**
 This is the phase that separates the project from every other GitHub trading repo.
 - Train/test split (fit on 2006–2017, never touch 2018–2026 until the end).
 - Walk-forward analysis with rolling re-optimization.
@@ -378,6 +378,37 @@ This is the phase that separates the project from every other GitHub trading rep
   collective overfitting, and the deflation should account for trials nobody here ran.
 - ✅ **Milestone**: `docs/research-log.md` with dated entries, including at least two
   documented failures and what you changed because of them.
+
+**What it found**, in full in `strategy.md` and the research log:
+
+- **Held out, the strategy got worse**: Sharpe 0.87 in sample against 0.73 out, with the
+  maximum drawdown doubling. A decline rather than a collapse, and reported as one.
+- **Plateaus, not spikes.** The trend window and the volatility lookback are both broad
+  and flat; neither default was chosen because it peaked. The 3/6/12 lookback blend beats
+  a single 12-month signal 0.83 to 0.77, which was decided on argument in Phase 3 and
+  measured here.
+- **The edge survives deflation.** Bootstrapped Sharpe 0.83, 95% interval 0.42 to 1.27,
+  clear of zero; deflated for a pessimistic thousand trials, P = 0.9986.
+- **It survives five times its modelled costs.**
+
+**Two documented failures, both mine:**
+
+1. **Validation on a single rebalance date gave the opposite verdict.** Untranched, the
+   held-out half looked *better* (0.77 → 0.86); tranched, it looked worse (0.87 → 0.73).
+   Splitting the sample halves the data available to average out two percentage points of
+   timing luck, so the noise exceeded the effect. `validate` now tranches by default and
+   `--single` exists only to reproduce the problem.
+2. **A sensitivity table that could not show what it measured.** The no-trade band read
+   as identical at every value from 0.05 to 0.50 — because the sweep reported only return
+   metrics, and the band's entire effect is on trading. It removes a fifth of the trades
+   and almost none of the notional. Every sensitivity row now carries turnover.
+
+**Deferred, and named rather than quietly dropped.** Walk-forward with rolling
+re-optimisation is not built. Nothing here is optimised — the parameters are inherited —
+so there is no fitting procedure to walk forward, and building one purely to demonstrate
+that re-optimising would have hurt is an experiment about a strategy this project does
+not run. The sensitivity sweeps answer the question it was there to answer: whether
+performance depends on the exact values. It does not.
 
 ### Phase 5 — Live paper trading (Weeks 7–9)
 
