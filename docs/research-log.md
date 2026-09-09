@@ -420,3 +420,141 @@ artefact of *this sample*. None of them can say the sample is representative of 
 future, and the strategy's single best year remains one crisis in a window containing one
 crisis. Passing this battery means the number is not obviously an illusion. It does not
 mean it will happen again.
+
+## 2026-09-09 — A fund that held nothing for twenty-one years and said 0.00%
+
+Asked what the cash sleeve had returned, so that Sharpe ratios could be computed against
+a real risk-free rate rather than zero, a buy-and-hold on BIL came back with **0.00% a
+year**. Not an error. No rejected orders. Just a fund that finished exactly where it
+started.
+
+It had never traded. **BIL did not exist until May 2007**, and the backtest began in
+January 2005. On the first session the `Once` schedule fired, the strategy looked for a
+price, found none, and correctly returned "no opinion" — and the single firing that
+`Once` grants was gone. It was never asked again.
+
+The general fault is not about BIL. **A schedule that fires a fixed number of times can
+spend one of them on a warm-up**, and nothing downstream can tell: the engine sees no
+orders, the broker sees no orders, the journal records no rejections. The only symptom is
+a plausible number.
+
+Fixed by making the invariant explicit. `Schedule.defer()` hands a firing back, and the
+engine calls it whenever a strategy declines the opportunity it was given. Stateless
+schedules implement it as a no-op; `Once` un-fires. Nothing else changed, because
+`Monthly` fires every month regardless — which is why the momentum strategy was never
+affected and why this sat undiscovered through four phases.
+
+**What it cost to find:** an unrelated question, asked for an unrelated reason. There was
+no test that would have caught it, because every test used assets that existed on day one.
+
+## 2026-09-09 — Why the holdings count stays at five
+
+Phase 4 turned up an uncomfortable result: holding the top eight rather than five gave a
+better Sharpe (0.90 against 0.83) *and* a third less turnover. It was left alone on the
+grounds that changing a parameter because it looked best across the whole sample is the
+thing this project exists to catch elsewhere. That was the right call for the wrong
+reason, and the real reason is more interesting.
+
+Realised volatility falls monotonically as the strategy holds more:
+
+| top_n | 3 | 4 | 5 | 6 | 8 | 10 |
+|---|---|---|---|---|---|---|
+| realised vol | 10.1% | 9.5% | 9.0% | 8.5% | 7.1% | 6.0% |
+| ex-ante vol | 12.5% | 11.3% | 10.3% | 9.5% | 8.1% | 7.4% |
+
+At eight holdings the book's forecast volatility is 8.1%, *below* the 10% target — so the
+volatility scaler wants to lever up, is capped at 1.0, and the fund runs at 7.1% instead.
+**"Top eight is better" is mostly "top eight takes less risk"**, which is the one-sided
+cap documented back in Phase 3 showing up somewhere new.
+
+The decisive comparison is at matched risk:
+
+| | realised vol | CAGR | Sharpe |
+|---|---|---|---|
+| top 8, 10% target | 7.1% | 6.32% | 0.80 |
+| top 5, 7% target | 7.1% | 6.12% | 0.78 |
+
+Two basis points of Sharpe, against a bootstrap interval of ±0.4. There is a real
+diversification benefit in there and it is far too small to see. So: **bumping to eight
+is defensible, but it is a risk reduction wearing a selection improvement's clothes**,
+and the honest way to take it is to turn the volatility target down — a preference, not a
+fitted parameter. Top five at a 6% target gives the best Sharpe of any configuration
+tested (0.81 against a real cash rate) and costs a point and a half of return.
+
+**A measurement correction that came out of the same investigation.** Every Sharpe in
+this project is computed against a zero risk-free rate, which is the convention and is
+also flattering to a strategy that parks a fifth of its capital in Treasury bills.
+Against the cash sleeve's actual return the baseline moves from 0.83 to 0.76. That the
+gap is small is luck: BIL's life is dominated by the zero-rate years, and cash averaged
+0.66% a year. In a period like 2023-24 it would matter a great deal.
+
+## 2026-09-09 — Where a Sharpe of 1.1 would have to come from
+
+Combining strategies is the only reliable way to raise a Sharpe ratio, because the
+arithmetic depends on correlation rather than on the quality of either part. Two sleeves
+at 0.83 apiece combine to 1.17 if they are uncorrelated and 0.87 if they correlate at
+0.8. Individual quality barely moves it.
+
+Measured, on daily returns over the sample:
+
+| | momentum | 60/40 | SPY | equal weight |
+|---|---|---|---|---|
+| momentum | 1.00 | 0.58 | 0.50 | 0.57 |
+| 60/40 | 0.58 | 1.00 | 0.97 | 0.91 |
+
+And the blend that correlation implies, built and run:
+
+| | vol | CAGR | Sharpe |
+|---|---|---|---|
+| momentum | 9.0% | 7.27% | 0.83 |
+| 60/40 | 10.9% | 8.35% | 0.79 |
+| **half of each** | **8.7%** | **7.82%** | **0.91** |
+
+Better than either sleeve on Sharpe, Sortino, Calmar, maximum drawdown and worst month —
+*and* it returns more than the momentum sleeve alone, at half the turnover, because the
+60/40 half barely trades. Their bad years are different ones: trend bleeds through long
+calm bull markets, which is exactly when a static allocation compounds quietly.
+
+**The ceiling is about 0.95, and it is set by correlation.** Everything long-only on
+these thirteen ETFs correlates with everything else at 0.5 or more, because they are the
+same assets. Adding a third or fourth long-only sleeve buys almost nothing. Getting to
+1.1 needs a sleeve that is *structurally* different:
+
+- **Market-neutral cross-sectional momentum** — long the strongest, short the weakest.
+  Near-zero correlation to a long-only book by construction, and the engine already
+  supports shorting (`SimulatedBroker(allow_short=True)`, and `Position` handles flips
+  through zero). The cheapest real option.
+- **A genuinely different asset class** — the crypto sleeve already planned for Phase 7.
+- **A different holding period** — intraday or weekly, which needs data this project
+  does not have.
+
+A faster trend sleeve and a short-term reversal sleeve were considered and are not worth
+building first: both still hold the same twelve ETFs long-only, so both land in the same
+0.5-correlation trap. `Blend` is built and general, so any of these drops in when it
+exists.
+
+## 2026-09-09 — Three ways a live fund fails quietly
+
+Phase 5a is meant to test the operational machinery rather than the strategy. It did,
+immediately, and all three failures share a shape: the fund kept running and reported
+numbers that looked fine.
+
+**A risk limit that fought the strategy.** The default position cap was 35% of the fund.
+A 60/40 wants 60% in equities. Every order it placed was refused, and the fund sat in
+cash reporting a healthy NAV of exactly its starting capital. The cap was wrong in kind,
+not degree: a position limit should be a *fault* threshold — in a long-only fund any
+weight above 100% is a bug — not a portfolio constraint competing with the allocation.
+Default raised to 1.0, with tightening left to whoever runs a particular fund.
+
+**Nothing shouted.** The step reported "2 orders, 0 fills" and moved on. Finding out why
+meant opening the database. Placing orders and filling none is the signature of nearly
+every quiet live failure, so it now has its own flag and the runner says so in bold.
+
+**Stale data was not detected.** The store's newest bar was days old and every read
+succeeded, because stale market data is not an error — the files are there and every
+price is a real price, just the wrong week's. A fund on a cron job would trade on them
+every evening and report nothing unusual. `run_once` now refuses to act when the newest
+bar is more than a few sessions behind.
+
+None of the three were found by tests. All three were found by running the thing once and
+reading what it said, which is roughly the argument for Phase 5 existing.

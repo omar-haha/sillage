@@ -154,7 +154,16 @@ consequence of refusing leverage in v1, not an oversight — but the honest desc
 "at most 10%, usually less".
 
 **Rebalance**: monthly, with a no-trade band — only trade a position if its actual weight
-has drifted more than 20% relative to target.
+has drifted more than 20% relative to target. Phase 4 established that this band controls
+the *number* of trades and barely the amount traded; turnover here is inherent to a
+monthly top-five-of-twelve rotation.
+
+**Combining sleeves.** `Blend` runs several strategies as one fund, each holding a fixed
+share. Half dual momentum and half a 60/40 reaches a Sharpe of 0.91 against 0.83 and 0.79
+for the parts, at half the turnover, because their bad years are different ones. The
+ceiling for long-only sleeves on this universe is around 0.95 — everything holding these
+thirteen ETFs correlates with everything else at 0.5 or more. Past that needs a
+market-neutral sleeve or a different asset class; see the research log.
 
 **Costs**: 1bp commission + half-spread per asset + a slippage model proportional to
 order size vs. average daily volume.
@@ -416,13 +425,37 @@ Split in two, because self-simulated paper trading and real-broker paper trading
 completely different failure modes.
 
 **5a — Own simulator on a live clock (Week 7–8).** Tests the operational machinery.
+**Done, 2026-09-09**, except the two-week unattended run, which is a calendar
+requirement rather than a code one.
 - State DB + append-only journal, idempotent order submission, restart-safe.
 - **Reconciliation**: on every start, compare held positions against the journal and
   refuse to trade on mismatch. This is where real systems break.
-- Risk limits + drawdown kill-switch + alerting (email/Discord webhook).
-- Scheduler (APScheduler in-process, or cron + `sillage live run-once`).
-- ✅ **Milestone**: runs unattended for two weeks, rebalances on schedule, survives a
-  kill -9 mid-session with no double-submitted or orphaned orders.
+- Risk limits + drawdown kill-switch.
+- Scheduler: cron + `sillage live run-once`, rather than an in-process scheduler. A
+  process that holds a loop open has to be supervised, restarted and reasoned about;
+  one that answers "what have I missed since the last thing I recorded" and exits is
+  restart-safe by construction and testable without waiting for a clock.
+- ✅ **Milestone**: `sillage live run-once` is idempotent, catches up after downtime,
+  executes orders decided before a crash, refuses to trade against a book it cannot
+  verify, and refuses to trade on stale prices.
+
+**One deviation from the plan, and why.** The journal is plain `sqlite3`, not SQLAlchemy.
+This is four append-only tables and one derived view; an ORM would add a dependency, a
+migration story and a layer of indirection in exchange for nothing. The SQL is standard,
+so the Postgres path stays open. Money is stored as **text**, because SQLite's only
+numeric type is a float and round-tripping a `Decimal` through one would reintroduce, at
+the persistence layer, exactly the error the domain model exists to avoid.
+
+**What is not built:** alerting (email/Discord webhook). `run_once` exits non-zero and
+explains itself on every refusal, which is what a cron wrapper needs to page someone;
+wiring that to a specific transport is deployment configuration, not engine work.
+
+**Three failures it found, all in the first live run** — full accounts in the research
+log. A position cap of 35% silently blocked every order a 60/40 tried to place, leaving
+the fund in cash and reporting a healthy NAV. A step that ordered and filled nothing
+said so only in the database. Stale prices were not detected at all, because a failed
+data sync is not an error — the reads succeed, with last week's numbers. None were found
+by tests; all three were found by running it once and reading the output.
 
 **5b — IBKR paper account (Week 9).** Same engine, `IBKRBroker` swapped for
 `SimulatedBroker`. Tests reality.

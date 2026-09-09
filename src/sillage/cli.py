@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from datetime import date
+from decimal import Decimal
 from pathlib import Path
 from typing import TYPE_CHECKING, Annotated
 
@@ -35,6 +36,8 @@ app = typer.Typer(
 )
 data_app = typer.Typer(name="data", help="Fetch and inspect market data.", no_args_is_help=True)
 app.add_typer(data_app)
+live_app = typer.Typer(name="live", help="Run the fund forward on real time.", no_args_is_help=True)
+app.add_typer(live_app)
 
 console = Console()
 
@@ -583,6 +586,155 @@ def _print_validation(report: object) -> None:
                 f"[{'green' if d.survives else 'red'}]{d.probability:.4f}[/]",
             )
         console.print(table)
+
+
+StrategyOpt = Annotated[str, typer.Option("--strategy", "-s", help="Which strategy to run.")]
+JournalOpt = Annotated[Path, typer.Option("--journal", help="Where live state is kept.")]
+
+
+def _live_config(
+    strategy: str, universe: str, root: Path, journal: Path, cash: float, drawdown: float
+) -> object:
+    from sillage.core.money import dec
+    from sillage.data.universe import get_universe
+    from sillage.live.runner import LiveConfig
+    from sillage.risk.limits import RiskLimits
+    from sillage.strategy.registry import build, names
+
+    try:
+        uni = get_universe(universe)
+    except KeyError as exc:
+        console.print(f"[red]{exc}[/]")
+        raise typer.Exit(1) from None
+    try:
+        chosen = build(strategy, uni)
+    except KeyError:
+        console.print(f"[red]unknown strategy {strategy!r}[/]; known: {', '.join(names())}")
+        raise typer.Exit(1) from None
+
+    return LiveConfig(
+        strategy=chosen,
+        universe=uni,
+        journal_path=journal,
+        data_root=root,
+        initial_cash=dec(cash),
+        limits=RiskLimits(max_drawdown=dec(drawdown)),
+    )
+
+
+@live_app.command("run-once")
+def live_run_once(
+    strategy: StrategyOpt = "balanced",
+    universe: UniverseOpt = "core",
+    root: RootOpt = Path("data"),
+    journal: JournalOpt = Path("state/live.db"),
+    cash: Annotated[float, typer.Option(help="Starting capital, on first run only.")] = 100_000,
+    drawdown: Annotated[
+        float, typer.Option(help="Halt trading below this drawdown from the peak.")
+    ] = 0.25,
+    positions: Annotated[
+        str,
+        typer.Option(
+            "--broker-positions",
+            help="What the broker says it holds, as SYM=QTY,SYM=QTY. Reconciled before trading.",
+        ),
+    ] = "",
+) -> None:
+    """Process every completed session since the last one recorded, then exit.
+
+    Safe to run on a schedule and safe to run twice: a second call finds nothing
+    outstanding and does nothing. Intended for cron, once per evening after the close.
+    """
+    from sillage.core.money import dec
+    from sillage.live.reconcile import ReconciliationError
+    from sillage.live.runner import StaleDataError, run_once
+
+    config = _live_config(strategy, universe, root, journal, cash, drawdown)
+    held = None
+    if positions:
+        try:
+            held = {
+                part.split("=")[0].strip().upper(): dec(part.split("=")[1])
+                for part in positions.split(",")
+                if part.strip()
+            }
+        except (IndexError, ValueError):
+            console.print("[red]--broker-positions must look like SPY=100,IEF=50[/]")
+            raise typer.Exit(1) from None
+
+    try:
+        report = run_once(config, broker_positions=held)  # type: ignore[arg-type]
+    except ReconciliationError as exc:
+        console.print(f"[bold red]{exc}[/]")
+        console.print(
+            "\n[red]refusing to trade.[/] Positions must be explained before "
+            "the fund places another order."
+        )
+        raise typer.Exit(2) from None
+    except StaleDataError as exc:
+        console.print(f"[bold red]stale data:[/] {exc}")
+        raise typer.Exit(4) from None
+    except FileNotFoundError as exc:
+        console.print(f"[red]{exc}[/]")
+        raise typer.Exit(1) from None
+
+    if report.reconciliation:
+        console.print(f"[dim]{report.reconciliation}[/]")
+    console.print(str(report))
+    if report.stalled:
+        console.print(
+            "\n[bold yellow]nothing filled.[/] Orders were placed and every one was "
+            "refused — check the rejections in the journal before the next run."
+        )
+    if report.halted:
+        console.print(f"\n[bold red]TRADING HALTED[/] {report.halted}")
+        raise typer.Exit(3)
+
+
+@live_app.command("status")
+def live_status(
+    strategy: StrategyOpt = "balanced",
+    universe: UniverseOpt = "core",
+    root: RootOpt = Path("data"),
+    journal: JournalOpt = Path("state/live.db"),
+    cash: Annotated[float, typer.Option(help="Starting capital.")] = 100_000,
+) -> None:
+    """Show what the fund holds, without touching it."""
+    from sillage.live.runner import status
+
+    config = _live_config(strategy, universe, root, journal, cash, 0.25)
+    state = status(config)  # type: ignore[arg-type]
+
+    table = Table(box=None, pad_edge=False, show_header=False)
+    table.add_column("", style="dim")
+    table.add_column("", justify="right")
+    for label, key in (
+        ("journal", "journal"),
+        ("last session", "last_session"),
+        ("sessions recorded", "sessions_recorded"),
+        ("NAV", "nav"),
+        ("high-water mark", "high_water_mark"),
+        ("cash", "cash"),
+        ("pending orders", "pending"),
+    ):
+        value = state[key]
+        if isinstance(value, Decimal):
+            table.add_row(label, f"{float(value):,.2f}")
+        else:
+            table.add_row(label, str(value))
+    counts = state["counts"]
+    assert isinstance(counts, dict)
+    table.add_row("journal rows", ", ".join(f"{k} {v}" for k, v in counts.items()))
+    console.print(table)
+
+    holdings = state["positions"]
+    assert isinstance(holdings, dict)
+    if holdings:
+        console.print("\n[bold]positions[/]")
+        for symbol, quantity in sorted(holdings.items()):
+            console.print(f"  {symbol:<6} {float(quantity):>12,.4f}")
+    else:
+        console.print("\n[dim]no positions[/]")
 
 
 if __name__ == "__main__":

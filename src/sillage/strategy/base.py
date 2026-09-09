@@ -38,6 +38,13 @@ TargetWeights = dict[str, Decimal]
 
 
 @runtime_checkable
+class HasSchedule(Protocol):
+    """Anything a combinator can ask when it next wants to act."""
+
+    schedule: Schedule
+
+
+@runtime_checkable
 class Schedule(Protocol):
     """When a strategy gets to make a decision."""
 
@@ -56,6 +63,22 @@ class Schedule(Protocol):
         """
         ...
 
+    def defer(self) -> None:
+        """Take back a firing the strategy declined to act on.
+
+        The engine grants an opportunity by asking `is_rebalance_session`, and only
+        afterwards discovers whether the strategy had an opinion. A schedule that
+        counts its firings must not count one that produced nothing, or the opportunity
+        is spent on a warm-up.
+
+        This was found the hard way. A buy-and-hold on BIL over 2005-2026 traded
+        *nothing*: `Once` fired on the first session, BIL did not exist until May 2007
+        so the strategy returned no opinion, and the single firing was gone. No error,
+        no rejected order -- just a fund that sat in cash for twenty-one years and
+        reported a plausible-looking 0.00% return.
+        """
+        ...
+
 
 class Daily:
     """Rebalance every session. Maximal responsiveness, maximal turnover."""
@@ -66,6 +89,10 @@ class Daily:
         return True
 
     def reset(self) -> None:
+        return None
+
+    def defer(self) -> None:
+        """Nothing to take back: this schedule fires again tomorrow regardless."""
         return None
 
 
@@ -106,6 +133,10 @@ class Monthly:
         return session in _offset_rebalance_days(calendar, self.offset)
 
     def reset(self) -> None:
+        return None
+
+    def defer(self) -> None:
+        """Nothing to take back: next month comes whether or not this one was used."""
         return None
 
 
@@ -174,6 +205,9 @@ class Weekly:
     def reset(self) -> None:
         return None
 
+    def defer(self) -> None:
+        return None
+
 
 class Once:
     """Fire on the first session asked about, then never again.
@@ -194,6 +228,10 @@ class Once:
         return True
 
     def reset(self) -> None:
+        self._fired = False
+
+    def defer(self) -> None:
+        """Un-fire. The one firing is spent only on a session that produced a decision."""
         self._fired = False
 
 
@@ -218,6 +256,40 @@ class AnyOf:
     def reset(self) -> None:
         for schedule in self.schedules:
             schedule.reset()
+
+    def defer(self) -> None:
+        for schedule in self.schedules:
+            schedule.defer()
+
+
+class AnyOfSleeves:
+    """Fires when any of several strategies' *current* schedules fires.
+
+    Reads each strategy's schedule at the moment it is asked, rather than capturing them
+    at construction. The difference matters: a combinator that snapshotted its sleeves'
+    schedules would go quietly stale the moment one of them was swapped -- and the
+    sleeve-level dispatch inside `target_weights` reads them live, so the two halves
+    would disagree about when a rebalance was due. One of them being right is worse than
+    neither, because the symptom is a strategy that trades on the wrong days.
+    """
+
+    name = "any-sleeve"
+
+    def __init__(self, sleeves: Sequence[HasSchedule]) -> None:
+        if not sleeves:
+            raise ValueError("AnyOfSleeves needs at least one strategy")
+        self._sleeves = tuple(sleeves)
+
+    def is_rebalance_session(self, session: date, calendar: Calendar) -> bool:
+        return any(s.schedule.is_rebalance_session(session, calendar) for s in self._sleeves)
+
+    def reset(self) -> None:
+        for sleeve in self._sleeves:
+            sleeve.schedule.reset()
+
+    def defer(self) -> None:
+        for sleeve in self._sleeves:
+            sleeve.schedule.defer()
 
 
 @runtime_checkable

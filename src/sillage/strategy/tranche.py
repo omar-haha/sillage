@@ -38,7 +38,7 @@ from decimal import Decimal
 from sillage.core.calendar import Calendar, TradingCalendar
 from sillage.core.money import ZERO, dec
 from sillage.engine.feed import DataSource
-from sillage.strategy.base import AnyOf, Monthly, Schedule, Strategy, TargetWeights
+from sillage.strategy.base import AnyOfSleeves, Monthly, Schedule, Strategy, TargetWeights
 
 #: Month end, and roughly one, two and three weeks earlier.
 DEFAULT_OFFSETS: tuple[int, ...] = (0, 5, 10, 15)
@@ -69,9 +69,7 @@ class Tranched:
             tranche.schedule = Monthly(offset)
 
         self.calendar: Calendar = calendar or TradingCalendar()
-        # Annotated as the protocol type, not the concrete one: the engine only
-        # ever asks a schedule whether today is a rebalance day.
-        self.schedule: Schedule = AnyOf([t.schedule for t in self.tranches])
+        self.schedule: Schedule = AnyOfSleeves(self.tranches)
         self.name = name or f"{prototype.name} ({len(self.offsets)} tranches)"
         self._held: list[TargetWeights | None] = [None] * len(self.offsets)
 

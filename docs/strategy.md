@@ -202,13 +202,18 @@ return monotonically (top 3 → top 10: 0.71 → 0.90 Sharpe, +6.9% → +5.4% CA
 volatility target does the same in reverse. Neither has an optimum to overfit to. The
 defaults sit mid-dial.
 
-**One tempting result, deliberately not acted on.** Holding the top eight instead of five
-gives a better Sharpe *and* a third less turnover — better on both, worse only on raw
-return. Moving the default to eight would convert an inherited parameter into a fitted
-one and would quietly invalidate the deflation figures below, which assume the reported
-configuration was not chosen from among the trials. If it is real it will survive being
-tested on data selected for the purpose. That is a different experiment, run in a
-different order.
+**The tempting result, chased down.** Holding the top eight instead of five gives a
+better Sharpe *and* a third less turnover. It turns out to be mostly an illusion of the
+leverage cap: eight holdings diversify better, so the book's forecast volatility drops to
+8.1% against a 10% target, the scaler cannot lever up to reach it, and the fund runs at
+7.1% realised instead of 9.0%. Less risk taken, better Sharpe. Compared at *matched*
+risk — top eight at a 10% target against top five at 7% — the gap is 0.80 against 0.78,
+two basis points inside a bootstrap interval of ±0.4.
+
+So the honest reading is that bumping to eight is a risk reduction wearing a selection
+improvement's clothes. If less risk is what you want, turn the volatility target down and
+say so: top five at a 6% target gives the best risk-adjusted result of anything tested,
+and costs about a point and a half of annual return.
 
 **Start date barely matters.** Seven starts across a decade: Sharpe 0.80 to 0.86.
 
@@ -220,6 +225,40 @@ show 0.17, and the probability this result is not selection comes to **0.9986**.
 **What that does not establish.** Every test above asks whether the result is an artefact
 of this sample. None can say the sample resembles the future, and the strategy's case
 still rests on one crisis in a window containing one crisis.
+
+## Combining it with something else
+
+Adding a second strategy is the only reliable way to raise a Sharpe ratio, because the
+arithmetic turns on correlation rather than on how good either part is. Two sleeves at
+0.83 each combine to 1.17 if uncorrelated and 0.87 if they correlate at 0.8.
+
+Dual momentum and a 60/40 correlate at **0.58**, and half of each gives:
+
+| | Volatility | Annualised | Sharpe | Max drawdown | Turnover |
+|---|---|---|---|---|---|
+| Momentum | 9.0% | 7.27% | 0.83 | −21.8% | 7.13x |
+| 60/40 | 10.9% | 8.35% | 0.79 | −31.2% | 0.07x |
+| **Half of each** | **8.7%** | **7.82%** | **0.91** | **−19.9%** | **3.65x** |
+
+Better than both sleeves on Sharpe, Sortino, Calmar, drawdown and worst month — and it
+returns *more* than momentum alone, at half the turnover. Their bad years are different
+ones: trend bleeds through long calm bull markets, which is exactly when a static
+allocation compounds quietly. `sillage backtest -s balanced`.
+
+**The ceiling is about 0.95** and correlation sets it. Everything long-only on these
+thirteen ETFs correlates with everything else at 0.5 or more, because it is the same
+thirteen assets. A third and fourth long-only sleeve buy almost nothing. Reaching 1.1
+needs something structurally different — a market-neutral long/short sleeve (the engine
+already supports shorting), or a different asset class such as the planned crypto sleeve.
+
+## A note on the risk-free rate
+
+Every Sharpe ratio here is computed against zero, which is the convention and is also
+flattering to a strategy that keeps a fifth of its capital in Treasury bills. Against the
+cash sleeve's actual return the headline moves from 0.83 to **0.76**, and the 60/40 from
+0.79 to 0.66. The gap is small only because this sample is dominated by the zero-rate
+years: cash averaged 0.66% a year over it. In a period like 2023-24 the correction would
+be several times larger.
 
 ## Known weaknesses
 

@@ -33,8 +33,9 @@ from sillage.engine.clock import Clock
 from sillage.engine.events import Event
 from sillage.engine.feed import DataSource
 from sillage.engine.journal import InMemoryJournal, Journal, NavPoint
-from sillage.execution.broker import Broker
+from sillage.execution.broker import Broker, Rejection
 from sillage.portfolio.rebalance import Rebalancer
+from sillage.risk.limits import RiskLimits, filter_orders
 from sillage.strategy.base import Strategy
 
 DEFAULT_INITIAL_CASH = dec("100000")
@@ -54,6 +55,8 @@ class Engine:
         rebalancer: Rebalancer | None = None,
         journal: Journal | None = None,
         initial_cash: Decimal = DEFAULT_INITIAL_CASH,
+        limits: RiskLimits | None = None,
+        high_water_mark: Decimal = ZERO,
     ) -> None:
         if initial_cash <= ZERO:
             raise ValueError("initial cash must be positive")
@@ -65,28 +68,73 @@ class Engine:
         self.rebalancer = rebalancer or Rebalancer()
         self.journal: Journal = journal if journal is not None else InMemoryJournal()
         self.portfolio = Portfolio(cash=initial_cash)
+        #: Optional. When set, every order is checked against the fund's own rules
+        #: before it reaches the broker -- see `sillage.risk.limits`. Off by default
+        #: in a backtest, because a limit that silently suppressed trades would make
+        #: the result a study of the limits rather than of the strategy.
+        self.limits = limits
+        #: Highest NAV ever marked. Seeded from the journal on a live restart, so a
+        #: drawdown kill-switch measures against the real peak and not this run's.
+        self.high_water_mark = high_water_mark
+        self.halted = ""
         self.first_rebalance: date | None = None
+        #: Orders decided at the last close, waiting for the next open. Public so a
+        #: live runner can persist it across process restarts -- an order decided on
+        #: Friday evening has to survive until Monday morning.
+        self.pending = self._Pending()
 
     def run(self) -> Portfolio:
         """Replay every event the clock produces. Returns the final book."""
         self.strategy.reset()
-        pending = self._Pending()
-
         for event in self.clock.events():
-            if event.is_open:
-                self._execute(pending.take(), event)
-            else:
-                self._mark(event)
-                if self._should_decide(event.session):
-                    pending.put(self._decide(event))
-
+            self.step(event)
         return self.portfolio
+
+    def step(self, event: Event) -> None:
+        """React to one event. The entire cycle, and the only place it lives.
+
+        Public, and called one event at a time by the live runner, because the claim
+        this project is built on -- that backtesting and live trading run the same code
+        -- is only true if they literally call the same method. A live loop that
+        reimplemented "execute, then mark, then decide" would be a second engine wearing
+        the first one's documentation, and the two would drift apart in exactly the ways
+        nobody notices until money is involved.
+        """
+        if event.is_open:
+            self._execute(self.pending.take(), event)
+        else:
+            self._mark(event)
+            if self._should_decide(event.session):
+                self.pending.put(self._decide(event))
 
     # ------------------------------------------------------------------ the two halves
 
     def _execute(self, orders: list[Order], event: Event) -> None:
         if not orders:
             return
+
+        if self.limits is not None:
+            prices = self._prices(event)
+            decision = filter_orders(
+                orders,
+                portfolio=self.portfolio,
+                prices=prices,
+                limits=self.limits,
+                high_water_mark=self.high_water_mark,
+            )
+            for rejection in decision.rejected:
+                self.journal.record_rejection(rejection)
+            self.halted = decision.halted
+            if decision.halted:
+                # Every order is dropped and recorded as refused, so the reason is in
+                # the journal rather than only in a log nobody reads.
+                for order in orders:
+                    self.journal.record_rejection(Rejection(order, decision.halted, event.ts))
+                return
+            orders = list(decision.allowed)
+            if not orders:
+                return
+
         report = self.broker.execute(
             orders,
             portfolio=self.portfolio,
@@ -104,6 +152,11 @@ class Engine:
         if targets is None:
             # No opinion. Distinct from an empty mapping, which would mean "sell
             # everything" -- see the note in `strategy.base`.
+            #
+            # The firing is handed back, because a schedule that only fires a fixed
+            # number of times must not spend one on a session where nothing was
+            # decided. See `Schedule.defer` for the bug that established this.
+            self.strategy.schedule.defer()
             return []
 
         unknown = sorted(set(targets) - set(self.instruments))
@@ -142,6 +195,7 @@ class Engine:
                 weights=self.portfolio.weights(prices),
             )
         )
+        self.high_water_mark = max(self.high_water_mark, self.portfolio.nav(prices))
 
     def _prices(self, event: Event) -> dict[str, Decimal]:
         """Last known close for everything tradable, as of this instant.
@@ -175,3 +229,11 @@ class Engine:
         def take(self) -> list[Order]:
             orders, self._orders = self._orders, []
             return orders
+
+        def peek(self) -> list[Order]:
+            """What is still waiting, without consuming it.
+
+            The live runner persists this after each step; taking it to write it down
+            would mean a crash during the write lost the order entirely.
+            """
+            return list(self._orders)

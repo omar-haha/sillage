@@ -16,10 +16,11 @@ Clock ──▶ Data(as_of) ──▶ Strategy ──▶ Sizing ──▶ Rebala
   └ LiveClock      (wall time)                       IBKRBroker / CcxtBroker           ┘
 ```
 
-Status: **Phase 4 complete** — a point-in-time data layer, an event-driven backtest
-engine with a cost-aware simulated broker, independently validated risk metrics, the
-strategy itself, and a battery that spends seventy-one backtests trying to prove the
-strategy is an illusion. Next: live paper trading.
+Status: **Phase 5a complete** — a point-in-time data layer, an event-driven backtest
+engine, independently validated risk metrics, the strategy, a battery that spends
+seventy-one backtests trying to prove it is an illusion, and a restart-safe live runner
+with a durable journal, reconciliation and a kill-switch. Next: a real broker on the
+other side.
 See [docs/ROADMAP.md](docs/ROADMAP.md) for the full plan and
 [docs/research-log.md](docs/research-log.md) for findings along the way, including the
 ones that went nowhere.
@@ -31,6 +32,7 @@ uv run sillage data check                   # gaps, unadjusted splits, stale fee
 uv run sillage backtest -b spy -b 60-40 --report --attribution
 uv run sillage timing-luck -s momentum-single     # how much did the rebalance date matter?
 uv run sillage validate --report                  # try to prove the strategy wrong
+uv run sillage live run-once                      # trade a day forward, then exit
 ```
 
 ## What the engine does, once per session
@@ -79,6 +81,45 @@ it still returns 6.64% at a Sharpe of 0.76. Most retail backtests die here.
 
 The full argument, including the years it loses badly and why, is in
 [docs/strategy.md](docs/strategy.md).
+
+## Combining sleeves
+
+Adding a second strategy is the only reliable way to raise a Sharpe ratio, because the
+arithmetic turns on correlation rather than on how good either part is. Dual momentum and
+a 60/40 correlate at 0.58, and half of each (`-s balanced`) gives:
+
+| | Volatility | Annualised | Sharpe | Max drawdown | Turnover |
+|---|---|---|---|---|---|
+| Momentum | 9.0% | 7.27% | 0.83 | −21.8% | 7.13x |
+| 60/40 | 10.9% | 8.35% | 0.79 | −31.2% | 0.07x |
+| **Half of each** | **8.7%** | **7.82%** | **0.91** | **−19.9%** | **3.65x** |
+
+Better than both on Sharpe, Sortino, Calmar, drawdown and worst month — and it returns
+more than momentum alone at half the turnover. The ceiling for long-only sleeves on this
+universe is about 0.95; everything holding these thirteen ETFs correlates with everything
+else at 0.5 or more.
+
+## Running it forward
+
+```
+sillage live run-once
+```
+
+Processes every completed session since the last one recorded, then exits. Safe on a
+cron schedule and safe to run twice — a second call finds nothing outstanding and does
+nothing. It is **the same engine**: `Engine.step` is the one place the decide-execute-mark
+cycle exists, and live passes a `LiveClock` where a backtest passes a `BacktestClock`.
+
+State lives in an append-only SQLite journal. Orders are written *before* they are sent
+and keyed on an idempotency id, so a crash between the two is recoverable rather than
+ambiguous. Positions are never stored — they are replayed from fills, because a stored
+position and a stored fill history can disagree and there is no way to tell which is
+right. Money is stored as text; SQLite's only numeric type is a float.
+
+Before it trades it refuses on three grounds: the broker disagreeing with the journal
+about what is held, prices being stale, or the fund being too far below its high-water
+mark. The first live run found three quiet failures within a minute — all in
+[docs/research-log.md](docs/research-log.md).
 
 ## Does it survive being attacked?
 

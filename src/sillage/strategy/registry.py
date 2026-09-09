@@ -13,6 +13,7 @@ from collections.abc import Callable
 from sillage.data.universe import Universe
 from sillage.strategy.base import Strategy
 from sillage.strategy.benchmarks import buy_and_hold, equal_weight, sixty_forty
+from sillage.strategy.blend import Blend
 from sillage.strategy.momentum import build as build_momentum
 from sillage.strategy.tranche import Tranched
 
@@ -24,6 +25,10 @@ BUILDERS: dict[str, Builder] = {
     # is the thing this project exists not to do.
     "momentum": lambda u: Tranched(build_momentum(u)),
     "momentum-single": build_momentum,
+    # Trend plus a static allocation, half each. Their bad years are different ones --
+    # trend bleeds in long calm bull markets, which is when a 60/40 compounds quietly --
+    # and over this sample the blend beats both sleeves on risk-adjusted terms.
+    "balanced": lambda u: Blend([Tranched(build_momentum(u)), sixty_forty()], name="balanced"),
     # Benchmarks. Not decoration -- a result is meaningless without them.
     "buy-and-hold": lambda _: buy_and_hold("SPY"),
     "spy": lambda _: buy_and_hold("SPY"),
