@@ -16,11 +16,11 @@ Clock ──▶ Data(as_of) ──▶ Strategy ──▶ Sizing ──▶ Rebala
   └ LiveClock      (wall time)                       IBKRBroker / CcxtBroker           ┘
 ```
 
-Status: **Phase 5a complete** — a point-in-time data layer, an event-driven backtest
+Status: **Phase 5 complete** — a point-in-time data layer, an event-driven backtest
 engine, independently validated risk metrics, the strategy, a battery that spends
-seventy-one backtests trying to prove it is an illusion, and a restart-safe live runner
-with a durable journal, reconciliation and a kill-switch. Next: a real broker on the
-other side.
+seventy-one backtests trying to prove it is an illusion, a restart-safe live runner with
+a durable journal and a kill-switch, and an Interactive Brokers adapter. The adapter has
+not yet met a real gateway. Next: the API and dashboard.
 See [docs/ROADMAP.md](docs/ROADMAP.md) for the full plan and
 [docs/research-log.md](docs/research-log.md) for findings along the way, including the
 ones that went nowhere.
@@ -109,6 +109,15 @@ Processes every completed session since the last one recorded, then exits. Safe 
 cron schedule and safe to run twice — a second call finds nothing outstanding and does
 nothing. It is **the same engine**: `Engine.step` is the one place the decide-execute-mark
 cycle exists, and live passes a `LiveClock` where a backtest passes a `BacktestClock`.
+
+It also runs against **Interactive Brokers** (`--broker ibkr`), which is the only way
+to find out whether the cost assumptions were honest — a backtest graded by its own
+estimates will always agree with itself. `sillage live divergence` pairs each intended
+trade across the two journals and reports the gap in basis points against the trader,
+ending with a suggested `--cost-scale` for re-running the backtest on measured
+assumptions. Phase 4 established the strategy survives 5x its modelled costs, so that
+number is the bar. See [docs/ibkr.md](docs/ibkr.md) — and note the adapter is written and
+tested against a fake, not yet verified against a live gateway.
 
 State lives in an append-only SQLite journal. Orders are written *before* they are sent
 and keyed on an idempotency id, so a crash between the two is recoverable rather than

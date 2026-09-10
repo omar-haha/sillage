@@ -44,8 +44,10 @@ from sillage.core.types import Bar, Portfolio
 from sillage.data.store import BarStore
 from sillage.data.universe import Universe
 from sillage.engine.clock import LiveClock
+from sillage.engine.events import Event, EventKind
 from sillage.engine.feed import HistoricalFeed, MarketFeed, load_bars
 from sillage.engine.loop import Engine
+from sillage.execution.broker import LiveBroker
 from sillage.execution.costs import CostModel
 from sillage.execution.simulated import SimulatedBroker
 from sillage.live.reconcile import Reconciliation, ReconciliationError, reconcile
@@ -79,6 +81,11 @@ class LiveConfig:
     #: data sync is silent by nature: the store still answers, with last week's prices,
     #: and the fund trades on them without complaint.
     max_staleness_sessions: int = 3
+    #: A real broker. Left unset, the fund trades against its own simulator, which
+    #: validates the machinery and grades its own fills. Set, the fund also reconciles
+    #: against what the venue says it holds -- which is the first check in the run that
+    #: can actually disagree with the journal.
+    broker: LiveBroker | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -134,16 +141,20 @@ def run_once(
 ) -> LiveReport:
     """Process everything that has happened since the last recorded session.
 
-    `broker_positions` is what a real broker says it holds. Left unset, the fund is
-    reconciled against itself, which always agrees -- that is not a check, it is a
-    tautology, and it is what self-simulated paper trading is worth. The parameter exists
-    so the code path is exercised and ready for a broker that can actually disagree.
+    `broker_positions` is what a real broker says it holds. With `config.broker` set it
+    is fetched from the venue automatically and this argument is only for tests. Left
+    unset with no broker, the fund is reconciled against itself, which always agrees --
+    that is not a check, it is a tautology, and it is exactly what self-simulated paper
+    trading is worth.
     """
     now = now or datetime.now(UTC)
     journal = SqliteJournal(config.journal_path)
     instruments = {i.symbol: i for i in config.universe.all_instruments}
 
     portfolio = journal.portfolio(instruments, initial_cash=config.initial_cash)
+
+    if broker_positions is None and config.broker is not None:
+        broker_positions = config.broker.positions()
 
     # Reconcile before anything else. A fund that cannot account for what it owns has no
     # business deciding what to own next.
@@ -172,7 +183,7 @@ def run_once(
     engine = Engine(
         clock=clock,
         data=HistoricalFeed(bars),
-        broker=SimulatedBroker(MarketFeed(bars), config.costs),
+        broker=config.broker or SimulatedBroker(MarketFeed(bars), config.costs),
         strategy=config.strategy,
         instruments=instruments,
         rebalancer=config.rebalancer,
@@ -194,6 +205,9 @@ def run_once(
         if event.is_close:
             sessions.append(event.session)
 
+    if config.broker is not None:
+        _submit_ahead(engine, calendar, clock.now)
+
     # Persisted last, so a crash mid-step leaves the previous pending set intact rather
     # than an empty one. Re-processing a session is safe; losing an order is not.
     outstanding = engine.pending.peek()
@@ -213,6 +227,35 @@ def run_once(
         reconciliation=reconciliation,
         halted=engine.halted,
     )
+
+
+def _submit_ahead(engine: Engine, calendar: TradingCalendar, now: datetime) -> None:
+    """Get tonight's decisions to the venue before tomorrow's opening auction.
+
+    The one place the live path genuinely cannot mirror the backtest, and it is worth
+    being precise about why. In a replay, an order decided at Tuesday's close is
+    executed when the engine later reaches Wednesday's open -- the engine gets to travel
+    forward in time and act retroactively. A real broker does not: a market-on-open
+    order has to be sitting at the exchange *before* the auction, which means it must be
+    sent on Tuesday evening, hours before the event that will formally execute it.
+
+    So the orders are submitted now, against tomorrow's open. Because the market is shut
+    they will not fill, and the broker reports them outstanding, which puts them straight
+    back into pending. When the next run reaches that open for real, the adapter
+    recognises its own order references at the venue and collects the fills instead of
+    sending a second set. That recognition is the whole reason every order carries the
+    engine's id into the broker.
+
+    Live brokers only. Handing a future open to the simulator would ask it for a price
+    that does not exist yet; it would refuse, and refusals are not re-queued.
+    """
+    if not engine.pending.peek():
+        return
+    session = calendar.next_session(now.date())
+    opens = calendar.sessions(session, session)
+    if not opens:
+        return
+    engine.step(Event(EventKind.SESSION_OPEN, opens[0].open, session))
 
 
 class StaleDataError(RuntimeError):

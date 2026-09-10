@@ -22,6 +22,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import date, datetime
+from decimal import Decimal
 from typing import Protocol, runtime_checkable
 
 from sillage.core.types import Fill, Order, Portfolio
@@ -41,14 +42,30 @@ class Rejection:
 
 @dataclass(frozen=True, slots=True)
 class ExecutionReport:
-    """Everything that came back from one round of submissions."""
+    """Everything that came back from one round of submissions.
+
+    Three buckets, not two. A simulator resolves every order it is given -- it fills or
+    it refuses, and the answer is known before the call returns. A real venue does not
+    work that way: an order can be accepted and still be working when the timeout
+    expires, and the fill may arrive minutes later or after the process has exited.
+    Collapsing that third state into either of the others is how live systems either
+    lose orders or send them twice.
+    """
 
     fills: list[Fill] = field(default_factory=list)
     rejections: list[Rejection] = field(default_factory=list)
+    #: Accepted by the venue and neither filled nor refused yet. The caller must keep
+    #: these and stop submitting them; they are already at the broker.
+    outstanding: list[Order] = field(default_factory=list)
 
     @property
     def all_filled(self) -> bool:
-        return not self.rejections
+        return not self.rejections and not self.outstanding
+
+    @property
+    def resolved(self) -> bool:
+        """Whether every order reached a terminal state during this call."""
+        return not self.outstanding
 
 
 class BrokerError(RuntimeError):
@@ -76,4 +93,18 @@ class Broker(Protocol):
         reject a buy for lack of cash that a sell in the same batch was about to
         provide.
         """
+        ...
+
+
+@runtime_checkable
+class LiveBroker(Broker, Protocol):
+    """A broker that holds real positions someone else is also keeping track of.
+
+    The extra method is the whole difference. A simulator's positions are whatever the
+    caller says they are, so asking is meaningless; a real venue has its own record, and
+    the gap between the two is the thing reconciliation exists to find.
+    """
+
+    def positions(self) -> dict[str, Decimal]:
+        """What the venue says is held, by symbol. Signed."""
         ...

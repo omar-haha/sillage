@@ -458,14 +458,33 @@ data sync is not an error — the reads succeed, with last week's numbers. None 
 by tests; all three were found by running it once and reading the output.
 
 **5b — IBKR paper account (Week 9).** Same engine, `IBKRBroker` swapped for
-`SimulatedBroker`. Tests reality.
-- IB Gateway in Docker, connection lifecycle, reconnect-on-drop.
-- Handle what a real venue does and a simulator doesn't: rejections, partial fills,
-  price improvement, halts, timeouts.
-- ✅ **Milestone**: a divergence report comparing 5a fills against 5b fills over the same
-  period — where the simulator was optimistic and by how much. Feed the findings back into
-  the cost model, then re-run the Phase 3 backtest with corrected assumptions. This
-  before/after is one of the strongest sections the README can have.
+`SimulatedBroker`. **Code done 2026-09-09; unverified against a gateway.**
+- `execution/ibkr.py`: the adapter, behind a narrow client protocol so its reasoning is
+  testable against a fake and `ib_async`'s types never reach the rest of the system.
+- Handles what a real venue does and a simulator does not: orders that are accepted and
+  still working when the call returns, one order filling in several pieces at several
+  prices, price improvement, halts, unqualifiable contracts, timeouts.
+- Idempotency on the engine's own order id, carried into IBKR as `orderRef` and checked
+  three ways before anything is submitted — open orders, today's executions, and the
+  status of the reference itself. A cancelled order appears in neither of the first two.
+- `live/divergence.py` + `sillage live divergence`: pairs each intended trade across the
+  two journals, collapses multiple real fills to a volume-weighted price, and reports the
+  gap in basis points against the trader.
+- `sillage broker-check`: connect read-only, report, disconnect. Run it first.
+- **`ExecutionReport` gained a third bucket.** A simulator resolves every order it is
+  given; a real venue may not. Collapsing "still working" into either "filled" or
+  "refused" is how live systems lose orders or send them twice.
+- **The one place live cannot mirror the backtest**, and it is documented rather than
+  papered over: a market-on-open order must reach the exchange *before* the auction, so a
+  live run submits tonight's decisions immediately against tomorrow's open, and the next
+  run recognises its own references at the venue and collects rather than resubmitting.
+
+- ⏳ **Milestone blocked on the account**: the divergence report needs real fills. The
+  machinery is built and tested end to end on seeded journals; the numbers it will
+  produce do not exist yet, and a monthly-rebalanced fund needs months to reach the
+  thirty paired fills below which the report declines to suggest a correction.
+
+See `docs/ibkr.md` for gateway setup and the list of things that will go wrong.
 
 ### Phase 6 — API & dashboard (Weeks 9–10)
 - FastAPI: `/nav`, `/positions`, `/orders`, `/metrics`, `/signals`, `/backtests/{id}`.

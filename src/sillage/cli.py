@@ -593,7 +593,14 @@ JournalOpt = Annotated[Path, typer.Option("--journal", help="Where live state is
 
 
 def _live_config(
-    strategy: str, universe: str, root: Path, journal: Path, cash: float, drawdown: float
+    strategy: str,
+    universe: str,
+    root: Path,
+    journal: Path,
+    cash: float,
+    drawdown: float,
+    broker: str = "simulated",
+    **connection: object,
 ) -> object:
     from sillage.core.money import dec
     from sillage.data.universe import get_universe
@@ -612,6 +619,18 @@ def _live_config(
         console.print(f"[red]unknown strategy {strategy!r}[/]; known: {', '.join(names())}")
         raise typer.Exit(1) from None
 
+    venue = None
+    if broker == "ibkr":
+        try:
+            from sillage.execution.ibkr import IBGatewayClient, IBKRBroker
+        except ImportError:
+            console.print("[red]ib_async is not installed[/]; run `uv sync --extra ibkr`")
+            raise typer.Exit(1) from None
+        venue = IBKRBroker(IBGatewayClient(**connection))  # type: ignore[arg-type]
+    elif broker != "simulated":
+        console.print(f"[red]unknown broker {broker!r}[/]; known: simulated, ibkr")
+        raise typer.Exit(1)
+
     return LiveConfig(
         strategy=chosen,
         universe=uni,
@@ -619,6 +638,7 @@ def _live_config(
         data_root=root,
         initial_cash=dec(cash),
         limits=RiskLimits(max_drawdown=dec(drawdown)),
+        broker=venue,
     )
 
 
@@ -632,11 +652,18 @@ def live_run_once(
     drawdown: Annotated[
         float, typer.Option(help="Halt trading below this drawdown from the peak.")
     ] = 0.25,
+    broker: Annotated[
+        str, typer.Option("--broker", help="Where orders go: simulated, or ibkr.")
+    ] = "simulated",
+    host: Annotated[str, typer.Option(help="IB Gateway host, with --broker ibkr.")] = "127.0.0.1",
+    port: Annotated[int, typer.Option(help="IB Gateway port, with --broker ibkr.")] = 7497,
+    client_id: Annotated[int, typer.Option(help="IB client id, with --broker ibkr.")] = 17,
     positions: Annotated[
         str,
         typer.Option(
             "--broker-positions",
-            help="What the broker says it holds, as SYM=QTY,SYM=QTY. Reconciled before trading.",
+            help="What the broker holds, as SYM=QTY,SYM=QTY. Only for a simulated run; "
+            "with --broker ibkr the venue is asked directly.",
         ),
     ] = "",
 ) -> None:
@@ -649,7 +676,16 @@ def live_run_once(
     from sillage.live.reconcile import ReconciliationError
     from sillage.live.runner import StaleDataError, run_once
 
-    config = _live_config(strategy, universe, root, journal, cash, drawdown)
+    config = _live_config(
+        strategy,
+        universe,
+        root,
+        journal,
+        cash,
+        drawdown,
+        broker,
+        **({"host": host, "port": port, "client_id": client_id} if broker == "ibkr" else {}),
+    )
     held = None
     if positions:
         try:
@@ -735,6 +771,139 @@ def live_status(
             console.print(f"  {symbol:<6} {float(quantity):>12,.4f}")
     else:
         console.print("\n[dim]no positions[/]")
+
+
+@live_app.command("divergence")
+def live_divergence(
+    simulated: Annotated[
+        Path, typer.Option("--simulated", help="Journal of the self-simulated fund.")
+    ] = Path("state/live.db"),
+    actual: Annotated[
+        Path, typer.Option("--live", help="Journal of the fund traded at a real broker.")
+    ] = Path("state/ibkr.db"),
+    universe: UniverseOpt = "core",
+    show: Annotated[int, typer.Option(help="How many individual fills to list.")] = 12,
+) -> None:
+    """Compare what the simulator said trades would cost against what they did cost.
+
+    The one number in this project a backtest cannot produce on its own. Every cost
+    assumption so far is a defensible guess, and a backtest graded by its own guesses
+    will always agree with itself.
+    """
+    from sillage.data.universe import get_universe
+    from sillage.execution.costs import CostModel
+    from sillage.live.divergence import compare
+    from sillage.state.journal import SqliteJournal
+
+    uni = get_universe(universe)
+    instruments = {i.symbol: i for i in uni.all_instruments}
+    for path in (simulated, actual):
+        if not path.exists():
+            console.print(f"[red]no journal at {path}[/]")
+            raise typer.Exit(1)
+
+    report = compare(
+        SqliteJournal(simulated).fills(instruments),
+        SqliteJournal(actual).fills(instruments),
+    )
+    costs = CostModel()
+
+    if not report.count:
+        console.print(f"[yellow]{report.summary(costs)}[/]")
+        console.print(
+            f"[dim]{report.unmatched_simulated} simulated and {report.unmatched_actual} "
+            "real fills had no counterpart.[/]"
+        )
+        raise typer.Exit(1)
+
+    table = Table(box=None, pad_edge=False)
+    table.add_column("", style="dim")
+    table.add_column("", justify="right")
+    for label, value in (
+        ("paired fills", f"{report.count}"),
+        ("median divergence", f"{report.median_bps:+.1f} bp"),
+        ("mean divergence", f"{report.mean_bps:+.1f} bp"),
+        ("worst fill", f"{report.worst_bps:+.1f} bp"),
+        ("fills that improved", f"{report.improved}"),
+        ("modelled half-spread", f"{report.modelled_bps(costs):.1f} bp"),
+        ("commission divergence", f"{report.commission_bps:+.2f} bp"),
+        ("model optimism", f"{report.optimism(costs):.2f}x"),
+    ):
+        table.add_row(label, value)
+    console.print(table)
+
+    if show:
+        console.print("\n[bold]individual fills[/]")
+        for pair in report.pairs[:show]:
+            console.print(f"  {pair}")
+        if report.count > show:
+            console.print(f"  [dim]... and {report.count - show} more[/]")
+
+    console.print(f"\n{report.summary(costs)}")
+    if not report.trustworthy:
+        console.print(
+            "[yellow]Too few fills to correct the cost model on.[/] Re-run after the "
+            "paper account has traded for longer."
+        )
+    else:
+        console.print(
+            f"\n[green]suggested correction:[/] re-run the backtest with "
+            f"--cost-scale {report.optimism(costs):.2f}"
+        )
+
+
+@app.command("broker-check")
+def broker_check(
+    host: Annotated[str, typer.Option(help="Where IB Gateway or TWS is listening.")] = "127.0.0.1",
+    port: Annotated[
+        int, typer.Option(help="7497 TWS paper, 4002 Gateway paper. Live ports are not defaults.")
+    ] = 7497,
+    client_id: Annotated[int, typer.Option(help="Must be unique per connection.")] = 17,
+    account: Annotated[str, typer.Option(help="Account code, if you have several.")] = "",
+) -> None:
+    """Connect to IB Gateway, report what it says, and disconnect.
+
+    Run this first, before pointing anything that places orders at it. It connects
+    read-only, so the worst it can do is fail.
+    """
+    try:
+        from sillage.execution.ibkr import IBGatewayClient
+    except ImportError:
+        console.print("[red]ib_async is not installed[/]; run `uv sync --extra ibkr`")
+        raise typer.Exit(1) from None
+
+    client = IBGatewayClient(
+        host=host, port=port, client_id=client_id, account=account, readonly=True
+    )
+    console.print(f"connecting to [bold]{host}:{port}[/] as client {client_id}...")
+    try:
+        client.connect()
+    # Deliberately broad: ib_async surfaces socket errors, asyncio timeouts and its own
+    # exception types depending on which way the connection failed, and an operator
+    # running this needs the message rather than a traceback.
+    except Exception as exc:
+        console.print(f"[red]could not connect:[/] {exc}")
+        console.print(
+            "\n[dim]Check that IB Gateway or TWS is running, that the API is enabled "
+            "(Configure > Settings > API > Enable ActiveX and Socket Clients), that the "
+            "port matches, and that 127.0.0.1 is a trusted IP.[/]"
+        )
+        raise typer.Exit(1) from None
+
+    try:
+        held = client.positions()
+        console.print("[green]connected.[/]")
+        if held:
+            console.print("\n[bold]positions the broker reports[/]")
+            for symbol, quantity in sorted(held.items()):
+                console.print(f"  {symbol:<6} {float(quantity):>12,.4f}")
+        else:
+            console.print("\n[dim]the account reports no positions[/]")
+        console.print(
+            f"\n[dim]To trade against it: sillage live run-once --broker ibkr --port {port}[/]"
+        )
+    finally:
+        client.disconnect()
 
 
 if __name__ == "__main__":

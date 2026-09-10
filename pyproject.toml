@@ -24,6 +24,12 @@ dependencies = [
 [project.scripts]
 sillage = "sillage.cli:app"
 
+[project.optional-dependencies]
+# Only needed to trade at a real broker. Kept out of the default install so that
+# backtesting -- which is most of what this does -- carries no dependency on a wrapper
+# around an undocumented socket protocol.
+ibkr = ["ib-async>=2.0"]
+
 [dependency-groups]
 dev = [
     "pytest>=8.3",
@@ -66,7 +72,7 @@ no_implicit_optional = true
 # Third-party libraries without type stubs. Listed explicitly rather than with a
 # blanket ignore, so a newly added untyped dependency is a deliberate decision.
 [[tool.mypy.overrides]]
-module = ["yfinance.*", "exchange_calendars.*", "plotly.*", "quantstats.*"]
+module = ["yfinance.*", "exchange_calendars.*", "plotly.*", "quantstats.*", "ib_async.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]

@@ -146,6 +146,10 @@ class Engine:
             self.journal.record_fill(fill)
         for rejection in report.rejections:
             self.journal.record_rejection(rejection)
+        if report.outstanding:
+            # Accepted by the venue and not yet resolved. Held, not resent: the broker
+            # already has them, and the only thing worse than a late fill is two of them.
+            self.pending.put(report.outstanding)
 
     def _decide(self, event: Event) -> list[Order]:
         targets = self.strategy.target_weights(as_of=event.ts, data=self.data)

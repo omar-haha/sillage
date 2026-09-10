@@ -558,3 +558,79 @@ bar is more than a few sessions behind.
 
 None of the three were found by tests. All three were found by running the thing once and
 reading what it said, which is roughly the argument for Phase 5 existing.
+
+## 2026-09-09 — Building a broker adapter with no broker to test it against
+
+Phase 5b was written before the IBKR account existed, which forces a question worth
+answering deliberately: what can honestly be built and tested against nothing?
+
+The answer turned out to be most of it, because the interesting part of a broker adapter
+is not the protocol translation. It is the reasoning — when to resubmit, what to do with
+an order that has not resolved, how to tell a refusal from a delay — and that reasoning
+can be tested against a fake if the boundary is drawn in the right place.
+
+So the boundary is a narrow `IBClient` protocol of eight methods, **normalised at the
+edge**: `ib_async`'s types never reach the rest of the system. `IBGatewayClient` is the
+only thing that touches the library, it contains no decisions, and it is consequently the
+only part that cannot be tested. Everything with judgement in it sits in `IBKRBroker` and
+runs against a fake venue that can do the things a simulator cannot — accept an order and
+leave it working, fill one order in three pieces at three prices, cancel something after
+accepting it.
+
+**The design error that found.** Idempotency was originally checked two ways: open orders,
+and today's executions. An order that IBKR accepted and then cancelled — a halt, a margin
+failure — appears in *neither*. It is not working and it never executed. Only its status
+remembers it happened, so the adapter would have placed it again on the next attempt,
+every evening, forever. Found by writing the test for "an order the venue cancelled" and
+watching it come back outstanding instead of rejected. There is now a third check.
+
+**A structural change that came out of it.** `ExecutionReport` grew a third bucket.
+Everything written before this point assumed an order resolves during the call that
+submits it, because that is the only thing a simulator can do. A real venue accepts an
+order and it works — for a second, or until the opening auction. Collapsing that into
+"filled" loses the fill; collapsing it into "refused" sends the order twice. So
+`outstanding` is now a first-class outcome, the engine puts those orders back into
+pending rather than dropping them, and the simulated broker simply never produces any.
+
+**And the one place live genuinely cannot mirror the backtest.** The engine's rule is
+decide at the close, fill at the next open, and in a replay it satisfies that by
+travelling forward and acting retroactively. A real market-on-open order has to be at the
+exchange *before* the auction — it must be sent hours before the event that will execute
+it. There is no way to make those identical, so a live run submits tonight's decisions
+immediately against tomorrow's open, they come back outstanding because the market is
+shut, and the next run recognises its own order references at the venue and collects
+instead of resubmitting. It works precisely because the idempotency check exists, which
+is a pleasant result: the property added for crash safety turned out to be what made the
+order lifecycle possible at all.
+
+**What is not established.** That any of this speaks the protocol correctly. A fake I
+wrote agreeing with an adapter I wrote is a check on internal consistency, nothing more.
+`sillage broker-check` against a live gateway is the first real evidence, and until it
+passes the honest description of this phase is "written, not working".
+
+## 2026-09-09 — What the divergence report will and will not be able to say
+
+The Phase 5b milestone is a number comparing simulated fills against real ones, and the
+machinery for it now runs end to end on seeded journals — 80 paired fills, a median
+divergence, a suggested cost correction. The number itself does not exist and will not
+for some time, which is worth writing down before it arrives so that the standard is set
+in advance rather than after seeing it.
+
+**The threshold that matters is 5x.** Phase 4 established that the strategy survives five
+times its modelled costs at a Sharpe of 0.76. So the divergence report is not really
+asking "were the estimates right" — they will not be. It is asking whether they were
+wrong by less than a factor of five. Comfortably under and the twenty-one-year backtest
+stands with a corrected cost model. Near or above it and the result needs rewriting
+rather than adjusting.
+
+**It will take months to mean anything.** A monthly-rebalanced fund holding five of
+twelve assets produces a handful of trades per rebalance. Thirty paired fills is most of
+a year, and below that the report says so and declines to suggest a correction — a
+confident-looking figure built from eleven trades is worse than no figure.
+
+**And it measures the gap between two models, not the gap to reality.** IBKR's paper
+account simulates its own book. It is a far better simulator than this one, built by
+people with the order flow to calibrate it, and it is still a simulator. The last step —
+whether a real order in a real book behaves like either of them — costs money to find
+out, and nothing here should be traded with real money until it has run on paper long
+enough to surprise you at least twice.

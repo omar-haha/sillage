@@ -267,3 +267,50 @@ def test_status_reads_without_touching_anything(store: Path, tmp_path: Path) -> 
     state = status(config(store, journal_path))
     assert SqliteJournal(journal_path).counts() == before
     assert isinstance(state["nav"], Decimal)
+
+
+# ------------------------------------------------------------------ submitting ahead
+
+
+def test_a_live_broker_gets_tonight_s_orders_before_tomorrow_s_open(
+    store: Path, tmp_path: Path
+) -> None:
+    """A market-on-open order has to be at the exchange before the auction, which means
+    sending it the evening before -- hours before the event that formally executes it."""
+    from sillage.execution.broker import ExecutionReport
+
+    class RecordingVenue:
+        name = "recording"
+
+        def __init__(self) -> None:
+            self.submitted: list[str] = []
+
+        def execute(self, orders, *, portfolio, session, ts):  # type: ignore[no-untyped-def]
+            self.submitted.extend(o.instrument.symbol for o in orders)
+            # A shut market: accepted, working, nothing filled.
+            return ExecutionReport(outstanding=list(orders))
+
+        def positions(self) -> dict[str, Decimal]:
+            return {}
+
+    venue = RecordingVenue()
+    settings = LiveConfig(
+        strategy=StaticWeights({"AAA": "0.6", "BBB": "0.4"}),
+        universe=UNIVERSE,
+        journal_path=tmp_path / "live.db",
+        data_root=store,
+        initial_cash=dec(100_000),
+        limits=RiskLimits(max_weight=dec(1), max_drawdown=dec("0.9")),
+        broker=venue,
+    )
+    report = run_once(settings, now=AFTER_LAST_CLOSE)
+
+    assert venue.submitted, "the venue never saw tonight's orders"
+    assert report.pending > 0, "orders the venue is holding must stay pending"
+
+
+def test_a_simulated_run_does_not_submit_ahead(store: Path, tmp_path: Path) -> None:
+    """Handing a future open to the simulator asks it for a price that does not exist
+    yet; it would refuse, and refusals are not re-queued."""
+    report = run_once(config(store, tmp_path / "live.db"), now=AFTER_LAST_CLOSE)
+    assert report.fills > 0
