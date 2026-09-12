@@ -109,7 +109,9 @@ and signals computed on close of day T can only trade at the open of T+1.
 
 **Universe** (~12 liquid US ETFs, long history, tight spreads):
 `SPY QQQ IWM EFA EEM TLT IEF LQD HYG GLD DBC VNQ` + `BIL` (T-bills) as the cash asset.
-Later: `BTC/USD`, `ETH/USD`.
+Crypto (`BTC-USD`, `ETH-USD`) joined in Phase 7, with a declared admission date rather
+than from the start of their price series — see §7 and the research log, because the
+difference between those two choices is worth 0.17 of Sharpe and all of it is hindsight.
 
 **Signal** — for each asset, each month-end:
 - Momentum: total return over 3, 6 and 12 months, each skipping the most recent month
@@ -520,14 +522,40 @@ for refused orders — a fund whose data stopped updating keeps reporting a NAV,
 placing orders and filling none looks healthy from every other view. Both failures were
 found by running the thing; both now have somewhere to show up.
 
-### Phase 7 — Multi-asset & polish (Weeks 10–12)
-- `CcxtBroker` (Kraken) + crypto data, 24/7 calendar path, crypto sleeve added to the universe
-  with its own weight cap (crypto vol is 4–5x equities; without a cap it dominates the
-  vol-targeted book).
-- README: hero screenshot, GIF of the dashboard, results table, architecture diagram,
-  honest "limitations & what I'd do next" section.
-- Deployed demo URL with seeded paper data.
-- ✅ **Milestone**: someone who's never seen the repo understands what it does in 60s.
+### Phase 7 — Multi-asset & polish (Weeks 10–12) — **done, 2026-09-12**
+- Crypto data and the 24/7 calendar path, exercised end to end for the first time. The
+  calendar mismatch resolves conservatively: a crypto bar closes at 23:59 UTC, after the
+  New York close, so the strategy sees crypto a session behind and never ahead. Verified
+  rather than assumed.
+- A per-position weight cap, **and the roadmap's reason for it was wrong**. Crypto cannot
+  dominate an inverse-volatility book — that is what inverse-volatility sizing is for, and
+  its largest position was 14.9%. What dominates is whatever looks *quietest*: uncapped,
+  the strategy took **58.7% in high-yield credit**. The rule is now "no more than a third
+  of the fund in one thing", it costs nine basis points a year, and maximum drawdown is
+  unchanged at every cap level — it is insurance against something that did not happen.
+- README: architecture diagram, refreshed results, and a *Limitations and what I would do
+  next* section that names eight of them.
+- ✅ **Milestone**: the README opens with what it is, a diagram of how, a results table,
+  and the honest caveats. No screenshot or GIF — nothing here can render a page to an
+  image, which is also why the dashboard is unreviewed as a visual object.
+
+**The finding this phase is actually about.** Adding crypto took the Sharpe from 0.86 to
+1.03, and almost all of that is hindsight. Admitted in January 2018 — when ether had two
+months of price history — it crosses 1.0; admitted on a date a real committee might have
+reached, it adds **0.01**. Nothing in Phase 4 could have caught it: the bootstrap, the
+deflation and the held-out split all take the universe as given, and this bias happens
+before any test runs. `Instrument.available_from` now declares when something became
+investable, separately from when its prices begin, so the assumption can be swept.
+
+**Two things from the plan deliberately not built:**
+
+- **`CcxtBroker` (Kraken).** It would be execution plumbing for an allocation that adds a
+  hundredth of a Sharpe ratio, and with no Kraken account it would be a *second*
+  unverifiable broker adapter. The pattern is established by `IBKRBroker`; if crypto earns
+  a place on a defensible admission date, the broker follows in an afternoon. Building it
+  now is following the plan past the point it was still right.
+- **A deployed demo URL.** Nothing here can deploy. `docker compose up` is written and
+  untested.
 
 ## 8. Traps to design against
 

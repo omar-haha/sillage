@@ -9,26 +9,42 @@ deviate from its rules.
 **The core idea: backtesting, paper trading, and live execution run the same code.**
 Only the clock and the broker are swapped.
 
-```
-Clock ──▶ Data(as_of) ──▶ Strategy ──▶ Sizing ──▶ Rebalance ──▶ Risk ──▶ Broker ──▶ Journal
-  │                                                                        │
-  ├ BacktestClock  (replay history)                  SimulatedBroker (costs + slippage) ┤
-  └ LiveClock      (wall time)                       IBKRBroker / CcxtBroker           ┘
+```mermaid
+flowchart LR
+    CLOCK["Clock"] --> STEP["Engine.step<br/><i>the only cycle there is</i>"]
+    STEP --> DATA["Data<br/>as_of gated"]
+    DATA --> STRAT["Strategy<br/>target weights"]
+    STRAT --> SIZE["Sizing<br/>inverse-vol + covariance"]
+    SIZE --> REBAL["Rebalance<br/>no-trade band"]
+    REBAL --> RISK["Risk<br/>caps + kill-switch"]
+    RISK --> BROKER["Broker"]
+    BROKER --> JOURNAL["Journal<br/>append-only"]
+    JOURNAL --> VIEW["API + dashboard"]
+
+    BT["BacktestClock<br/>replay history"] -.-> CLOCK
+    LT["LiveClock<br/>wall time"] -.-> CLOCK
+    SIM["SimulatedBroker<br/>costs + slippage"] -.-> BROKER
+    IB["IBKRBroker<br/>paper or real"] -.-> BROKER
 ```
 
-Status: **Phase 6 complete** — a point-in-time data layer, an event-driven backtest
-engine, independently validated risk metrics, the strategy, a battery that spends
-seventy-one backtests trying to prove it is an illusion, a restart-safe live runner with
-a durable journal and a kill-switch, an Interactive Brokers adapter, and a read-only API
-with a dashboard. The broker adapter has not yet met a real gateway. Next: a crypto
-sleeve and polish.
+Dotted edges are the only things that change between a twenty-year replay and this
+afternoon. Everything on the solid path runs identically in both, because it is the same
+`Engine.step` in one file.
+
+Status: **all seven phases built.** A point-in-time data layer, an event-driven backtest
+engine, risk metrics validated against an independent implementation, the strategy, a
+battery that spends seventy-one backtests trying to prove the strategy is an illusion, a
+restart-safe live runner with a durable journal and a kill-switch, an Interactive Brokers
+adapter, a read-only API with a dashboard, and a multi-asset sleeve. Two things are
+genuinely unfinished and named as such in *Limitations* below: the broker adapter has
+never met a real gateway, and nothing here has traded a real pound.
 See [docs/ROADMAP.md](docs/ROADMAP.md) for the full plan and
 [docs/research-log.md](docs/research-log.md) for findings along the way, including the
 ones that went nowhere.
 
 ```bash
 uv sync
-uv run sillage data sync                    # ~21y of daily bars for the core universe
+uv run sillage data sync --universe core+crypto   # ~21y of bars, 15 instruments
 uv run sillage data check                   # gaps, unadjusted splits, stale feeds
 uv run sillage backtest -b spy -b 60-40 --report --attribution
 uv run sillage timing-luck -s momentum-single     # how much did the rebalance date matter?
@@ -59,13 +75,13 @@ survivors inversely to their volatility and scale the whole book — using the c
 matrix, not a sum of individual volatilities — to a 10% volatility target. Run four
 staggered copies a week apart and average them.
 
-| 2006-01 → 2026-09 | Momentum | 60/40 | SPY | Equal weight |
+| 2005-01 → 2026-09 | Momentum | 60/40 | SPY | Equal weight |
 |---|---|---|---|---|
-| Annualised | 7.27% | 8.35% | **10.93%** | 6.52% |
-| Volatility | **9.0%** | 10.9% | 18.9% | 11.6% |
-| Sharpe | **0.83** | 0.79 | 0.64 | 0.61 |
+| Annualised | 7.16% | 8.30% | **10.88%** | 6.47% |
+| Volatility | **8.9%** | 10.9% | 18.9% | 11.6% |
+| Sharpe | **0.82** | 0.78 | 0.64 | 0.60 |
 | Max drawdown | **−21.8%** | −31.2% | −55.1% | −36.8% |
-| Longest drawdown | **697d** | 1,092d | 1,773d | 967d |
+| Longest drawdown | **698d** | 1,092d | 1,773d | 967d |
 
 Best risk-adjusted return, a third of the index's drawdown, recovers in two years where
 the index took five — and the second-lowest return of the four. That is the trade, and
@@ -91,9 +107,9 @@ a 60/40 correlate at 0.58, and half of each (`-s balanced`) gives:
 
 | | Volatility | Annualised | Sharpe | Max drawdown | Turnover |
 |---|---|---|---|---|---|
-| Momentum | 9.0% | 7.27% | 0.83 | −21.8% | 7.13x |
-| 60/40 | 10.9% | 8.35% | 0.79 | −31.2% | 0.07x |
-| **Half of each** | **8.7%** | **7.82%** | **0.91** | **−19.9%** | **3.65x** |
+| Momentum | 8.9% | 7.16% | 0.82 | −21.8% | 6.89x |
+| 60/40 | 10.9% | 8.30% | 0.78 | −31.2% | 0.07x |
+| **Half of each** (`-s balanced`) | **8.6%** | **7.79%** | **0.91** | **−19.9%** | **3.55x** |
 
 Better than both on Sharpe, Sortino, Calmar, drawdown and worst month — and it returns
 more than momentum alone at half the turnover. The ceiling for long-only sleeves on this
@@ -137,13 +153,13 @@ mark. The first live run found three quiet failures within a minute — all in
 parameters moved off their defaults, start dates it did not choose, the return series
 resampled, and the whole thing deflated for how many configurations were tried.
 
-- **Held out it got worse**, and that is reported rather than buried: Sharpe 0.87 in
+- **Held out it got worse**, and that is reported rather than buried: Sharpe 0.86 in
   sample against 0.73 out, with the maximum drawdown doubling.
-- **Parameters sit on plateaus.** Trend window 100→300 days reads 0.78 / 0.83 / 0.83 /
-  0.82 / 0.77; the volatility lookback is flat across 20→120 sessions. Neither default
+- **Parameters sit on plateaus.** Trend window 100→300 days reads 0.77 / 0.83 / 0.82 /
+  0.81 / 0.77; the volatility lookback is flat across 20→120 sessions. Neither default
   was chosen because it peaked, because neither peaks.
-- **Bootstrapped Sharpe 0.83, 95% interval 0.42 to 1.27** — wide, and clear of zero.
-- **Deflated for a pessimistic thousand trials, P(the edge is not selection) = 0.9986.**
+- **Bootstrapped Sharpe 0.82, 95% interval 0.41 to 1.23** — wide, and clear of zero.
+- **Deflated for a pessimistic thousand trials, P(the edge is not selection) = 0.9984.**
 
 And two failures found in the process, both in the tooling rather than the strategy —
 [docs/research-log.md](docs/research-log.md) has them, including the one where validating
@@ -170,10 +186,10 @@ the same configuration across four dates a week apart and reports the spread:
 
 ```
 rebalance date       annualised  Sharpe  max DD
-month end                +7.16%    0.83  -16.0%
-5 sessions earlier       +7.22%    0.76  -28.3%
-10 sessions earlier      +6.25%    0.69  -25.2%
-15 sessions earlier      +8.34%    0.94  -18.1%
+month end                +7.00%    0.81  -16.0%
+5 sessions earlier       +7.09%    0.75  -28.3%
+10 sessions earlier      +6.19%    0.68  -25.2%
+15 sessions earlier      +8.25%    0.93  -18.1%
 ```
 
 **Two percentage points of annualised return, and a drawdown between −16% and −28%, from
@@ -217,6 +233,70 @@ none is invisible from the equity curve, the allocation and the blotter at the s
 ```bash
 docker compose up             # dashboard on localhost:8000
 ```
+
+## Holding things that never close
+
+The universe extends to bitcoin and ether, which trade 24/7 while the portfolio's
+heartbeat is the NYSE. That mismatch is the whole difficulty, and it resolves in the
+conservative direction: a crypto bar for a given day closes at 23:59 UTC, three hours
+*after* the New York close, so at the moment a decision is made the strategy can see
+crypto only through the previous day. A one-session lag, and the opposite of the mistake.
+
+**And then the result fell apart under inspection, which is the interesting part.**
+Adding crypto took the Sharpe from 0.86 to 1.03. That is the number a portfolio project
+would normally lead with. It is almost entirely hindsight:
+
+| Crypto admitted to the universe | Sharpe | Annualised |
+|---|---|---|
+| Never | 0.86 | 7.51% |
+| **January 2018** | **1.03** | **10.05%** |
+| January 2021 | 0.87 | 8.06% |
+| January 2023 | 0.90 | 8.12% |
+
+The top row is a fund that, in January 2018, put money into an asset whose price series
+was two months old, because the person writing the backtest in 2026 knows how it went.
+Admitted on a date a real investment committee might plausibly have chosen — after
+regulated futures, mainstream custody and corporate treasuries, so 2021 — crypto adds
+**0.01 of Sharpe.**
+
+No amount of bootstrapping, deflation or held-out testing catches this, because the bias
+is not in the testing. It is in the choice of what to test. So the admission date is now a
+declared field on every instrument rather than an unexamined assumption, which makes it a
+thing that can be swept — and a bias you can size is a bias you can argue about.
+
+## Limitations, and what I would do next
+
+The honest list, in the order I would worry about them.
+
+1. **Nothing here has traded real money.** Every number is a simulation of the past.
+2. **The Interactive Brokers adapter has never met a gateway.** It is written against a
+   narrow protocol and tested against a fake that models partial fills, rejections,
+   timeouts and disconnects — which tests the adapter's logic and says nothing about
+   whether IB behaves as I assumed. Until it runs against a paper account, the cost model
+   is unvalidated and the divergence report that would validate it has no input.
+3. **The strategy's case rests on one crisis.** It beat the index in all three of the
+   sample's down years, but 2008 supplies almost all of the margin and is the only genuine
+   crash in the window. Post-2010, a plain 60/40 beats it on every measure. The 2000–02
+   bear market is the natural second test and the data begins in 2005; extending it is the
+   cheapest real improvement available.
+4. **The Sharpe ceiling here is about 0.95.** Every long-only sleeve on these fifteen
+   instruments correlates with every other at 0.5 or more, so adding more of the same buys
+   almost nothing. Getting past it needs a market-neutral long/short sleeve — the engine
+   already supports shorting — or genuinely different data.
+5. **Turnover of roughly 7x a year is inherent, not a setting.** Costs are immaterial at
+   this size in liquid ETFs and would not be at scale or in anything wider than an ETF
+   spread. That is the first thing that would break.
+6. **The dashboard is unreviewed as a visual object.** It is verified to render and to say
+   the right things; nobody has checked whether it looks right at 900 pixels.
+7. **`docker compose up` is untested.** Docker was not installed on the machine this was
+   written on.
+8. **No point-in-time fundamentals, and no survivorship-safe single-stock universe.** The
+   ETF universe is fixed and declared, which sidesteps the problem rather than solving it.
+
+What I would build next, in order: the IBKR paper run and the divergence report it feeds,
+because everything about execution cost is currently an assumption. Then the market-neutral
+sleeve, because it is the only route past the correlation ceiling. Then point-in-time
+constituents, because that is what would let this look at single stocks honestly.
 
 ## Why this exists
 

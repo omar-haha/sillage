@@ -685,3 +685,102 @@ The general principle, which took five phases to arrive at: **a monitoring surfa
 be designed around the failures that have actually happened, not around the data that
 happens to be easy to plot.** Every quiet failure this project has found looked
 completely normal on the charts anyone would build first.
+
+## 2026-09-12 — The crypto sleeve works, and its result is hindsight
+
+Extending the universe to bitcoin and ether was the last piece of the plan. The 24/7
+calendar path had been written in Phase 0 and never once run through the engine, so this
+was expected to find bugs. It found none in the calendar, and one large problem with the
+result.
+
+**The calendar mismatch resolves in the safe direction.** A crypto bar for day D closes at
+23:59:59 UTC; the NYSE closes at 20:00 or 21:00 UTC. So at the instant a decision is made,
+the `as_of` gate hides that day's crypto bar entirely and the strategy sees crypto only
+through D-1. Verified explicitly rather than assumed. Execution is fine too: the fill
+happens at crypto's midnight-UTC open on the following session, three hours *after* the
+decision. A one-session lag in what it sees, no lookahead anywhere.
+
+**Then the number.** Adding crypto over 2018–2026 took the Sharpe from 0.86 to 1.03 and
+the annualised return from 7.5% to 10.1%. Crossing 1.0 was the stated goal for this
+project, and it took about four minutes of work.
+
+It is almost entirely selection bias, and here is the measurement:
+
+| Crypto admitted | Sharpe | Annualised | mean weight |
+|---|---|---|---|
+| never | 0.86 | 7.51% | — |
+| 2018-01-02 | **1.03** | 10.05% | 5.5% |
+| 2021-01-01 | 0.87 | 8.06% | 4.2% |
+| 2023-01-01 | 0.90 | 8.12% | 3.3% |
+| 2025-01-01 | 0.80 | 6.96% | 1.0% |
+
+The top row is a fund that in January 2018 allocated to an asset with two months of price
+history, because the person writing the backtest in 2026 knows what happened next.
+Admitted on a date a real committee might have reached — after regulated futures,
+mainstream custody and corporate treasuries, so 2021 — crypto adds **0.01 of Sharpe.**
+
+**No part of Phase 4 could have caught this.** The bootstrap resamples the returns of a
+given strategy; the deflated Sharpe corrects for how many configurations were tried; the
+held-out split tests data the strategy did not see. All three take the universe as given.
+The bias here is in the choice of *what to put in the universe*, and it is invisible to
+every statistical test because it happens before any test runs.
+
+The only defence is to make the assumption a declared field and vary it, so
+`Instrument.available_from` now says when something became a thing a reasonable person
+would own — separately from when its prices begin, which the strategy already handles by
+refusing to rank what it cannot measure. The universe itself stays fixed: every instrument
+is declared up front, and nothing is added retroactively because it worked.
+
+## 2026-09-12 — The position cap was needed, for the opposite reason
+
+The roadmap said crypto would need its own weight cap, "because crypto vol is 4–5x
+equities; without a cap it dominates the vol-targeted book". Both halves of that are
+wrong, and measuring rather than implementing is what established it.
+
+Inverse-volatility sizing gives a four-times-more-volatile asset a four-times-*smaller*
+weight. That is what it is for. Crypto's largest single position across the whole sample
+was **14.9%**, and its mean weight 4–5%. It cannot dominate; the mechanism prevents it.
+
+With the cap removed, the largest position the strategy ever took was **58.7% in HYG** —
+high-yield credit. Inverse-vol hands the biggest weight to whatever looks quietest, and
+what looks quietest is very often what is quietly risky. Credit is the canonical case: its
+ordinary days understate it because it sells off in jumps and stops being liquid exactly
+when someone wants out, which is what made it the instrument of 2008. A 58.7% position in
+it is not a decision anybody made. It is an artefact of sizing by an average.
+
+So the cap stays, the rule is stated before the number — **no more than a third of the
+fund in one thing** — and the price is disclosed:
+
+| cap | annualised | Sharpe | largest position |
+|---|---|---|---|
+| none | 7.25% | 0.83 | 58.7% |
+| 0.50 | 7.25% | 0.83 | 50.0% |
+| **0.35** | **7.16%** | **0.82** | **35.0%** |
+| 0.25 | 6.87% | 0.80 | 25.0% |
+
+Nine basis points a year. And note what it does not buy: **maximum drawdown is unchanged
+at every cap level tested.** This is insurance against a concentration event that did not
+occur in twenty-one years of data, priced at nine basis points, and that is the honest
+description of insurance rather than an argument against it.
+
+A quarter-cap looks better on Sharpe in the crypto window and costs four times as much on
+the long sample. It is available by asking and is not the default, because choosing the
+level that scored best on the sample is the thing Phase 4 exists to catch.
+
+## 2026-09-12 — Not building the crypto broker
+
+`CcxtBroker` for Kraken was in the plan for this phase and is deliberately not built.
+
+The argument is not that it is hard. The IBKR adapter established the pattern — a narrow
+client protocol, a thin real implementation, a fake that models the venue's awkward
+behaviours — and a second adapter on that pattern is a couple of hundred lines.
+
+The argument is that it would be execution plumbing for an allocation that, measured
+honestly above, **adds one hundredth of a Sharpe ratio.** There is no Kraken account to
+test it against, so it would be a second unverifiable broker adapter, doubling the surface
+area that cannot be checked in order to trade a sleeve whose investment case did not
+survive its own analysis.
+
+If crypto earns a place on a defensible admission date, the broker follows. Right now the
+finding is that it does not, and building the plumbing anyway would be following a plan
+past the point where the plan was still right.

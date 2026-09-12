@@ -7,7 +7,7 @@ selected and a falling one must not, and if that stops being true the test says 
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 
 import pytest
@@ -216,7 +216,35 @@ def test_warmup_covers_the_longest_thing_it_needs() -> None:
 
 def test_the_cash_proxy_is_never_itself_a_candidate() -> None:
     strat = strategy("A", "B")
-    assert CASH not in strat.candidates
+    assert CASH not in strat.candidates(date(2030, 1, 1))
+
+
+def test_an_asset_is_not_a_candidate_before_it_was_investable() -> None:
+    """Whether something belonged in a diversified fund is a judgement that changed over
+    time; a backtest that ignores that is a story about hindsight."""
+    late = Instrument("LATE", AssetClass.ETF, available_from=date(2025, 1, 1))
+    strat = DualMomentum(Universe("t", (etf("A"), late, CASH), cash_proxy=CASH), QUICK, QUICK_SIZER)
+    assert late not in strat.candidates(date(2024, 6, 1))
+    assert late in strat.candidates(date(2025, 6, 1))
+
+
+def test_a_position_is_capped_and_the_excess_goes_to_cash() -> None:
+    """Inverse-vol handles concentration; the cap is for gap risk it cannot see."""
+    data = feed_of(A=ramp(100, 0.003), B=ramp(100, 0.002))
+    capped = DualMomentum(
+        universe("A", "B"),
+        MomentumConfig(
+            lookbacks=QUICK.lookbacks,
+            trend_window=QUICK.trend_window,
+            top_n=QUICK.top_n,
+            max_weight=dec("0.10"),
+        ),
+        QUICK_SIZER,
+    )
+    weights = capped.target_weights(as_of=LATER, data=data)
+    assert weights is not None
+    assert all(w <= dec("0.10") for s, w in weights.items() if s != "CASH")
+    assert weights["CASH"] >= dec("0.80")
 
 
 @pytest.mark.parametrize(

@@ -14,6 +14,7 @@ all move together and select noise.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date
 from decimal import Decimal
 
 from sillage.core.types import AssetClass, Instrument
@@ -23,13 +24,14 @@ def _etf(symbol: str) -> Instrument:
     return Instrument(symbol, AssetClass.ETF, currency="USD", exchange="ARCA")
 
 
-def _crypto(symbol: str) -> Instrument:
+def _crypto(symbol: str, available_from: date) -> Instrument:
     return Instrument(
         symbol,
         AssetClass.CRYPTO,
         currency="USD",
         lot_size=Decimal("0.00000001"),
         trades_continuously=True,
+        available_from=available_from,
     )
 
 
@@ -52,9 +54,22 @@ CORE_ETFS: tuple[Instrument, ...] = (
     _etf("VNQ"),  # US real estate
 )
 
-CRYPTO: tuple[Instrument, ...] = (
-    _crypto("BTC-USD"),
-    _crypto("ETH-USD"),
+#: When crypto became something a diversified fund would plausibly allocate to, as
+#: opposed to when a price series for it started existing. Both dates are judgements and
+#: both are argued rather than assumed:
+#:
+#: - **2021-01-01 for bitcoin.** By the end of 2020 it had a regulated futures market,
+#:   custody from mainstream providers, and corporate treasuries holding it. Before that
+#:   a systematic multi-asset fund holding it is a story about hindsight.
+#: - **2022-01-01 for ether.** Later, because its investment case rested on a network
+#:   transition that had not happened yet and its history was shorter still.
+#:
+#: `sillage crypto-admission` sweeps these, because the right answer is unknowable and
+#: the size of the disagreement is not.
+CRYPTO_AVAILABLE_FROM = {"BTC-USD": date(2021, 1, 1), "ETH-USD": date(2022, 1, 1)}
+
+CRYPTO: tuple[Instrument, ...] = tuple(
+    _crypto(symbol, available) for symbol, available in CRYPTO_AVAILABLE_FROM.items()
 )
 
 
@@ -88,6 +103,17 @@ class Universe:
     @property
     def has_continuous_assets(self) -> bool:
         return any(i.trades_continuously for i in self.instruments)
+
+    def investable_on(self, day: date) -> tuple[Instrument, ...]:
+        """The instruments a strategy was permitted to consider on `day`.
+
+        The universe stays fixed -- every instrument is declared up front, so nothing is
+        added retroactively because it worked. What varies is *when* each became
+        eligible, which is the honest way to express "bitcoin was not a thing a
+        diversified fund put money into in 2015" without pretending the price series
+        did not exist.
+        """
+        return tuple(i for i in self.instruments if i.investable_on(day))
 
     def get(self, symbol: str) -> Instrument:
         for instrument in self.all_instruments:

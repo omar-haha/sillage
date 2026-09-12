@@ -24,7 +24,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from enum import StrEnum
 from typing import Self
@@ -83,6 +83,17 @@ class Instrument:
     # Crypto never closes; equities respect an exchange calendar. The engine needs to
     # know this to decide whether a given timestamp is even tradable.
     trades_continuously: bool = False
+    # The date this became something a reasonable person would have considered owning.
+    #
+    # Not the date the price series begins -- that is a data question and the strategy
+    # already handles it by refusing to rank an asset it cannot measure. This is the
+    # judgement question: bitcoin has traded since 2010, and a backtest that puts it in
+    # a portfolio from 2014 is one written by someone who knows how it turned out.
+    #
+    # Declaring it makes the assumption visible and, more importantly, variable: a
+    # bias you can sweep is a bias you can size. `None` means "always investable",
+    # which is honest for an ETF that existed throughout and was never controversial.
+    available_from: date | None = None
 
     def __post_init__(self) -> None:
         if not self.symbol:
@@ -93,6 +104,10 @@ class Instrument:
     @property
     def is_cash(self) -> bool:
         return self.asset_class is AssetClass.CASH
+
+    def investable_on(self, day: date) -> bool:
+        """Whether this was something to consider owning on `day`."""
+        return self.available_from is None or day >= self.available_from
 
     def round_to_lot(self, quantity: Decimal) -> Decimal:
         """Round a desired quantity down toward zero to a tradable size.

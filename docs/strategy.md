@@ -26,14 +26,14 @@ quarter of the capital on each, for reasons in §"Timing luck" below.
 Twenty-one years, real prices, with commission, spread and volume-scaled market impact
 charged on every fill.
 
-| 2006-01 → 2026-09 | Momentum | 60/40 | SPY | Equal weight |
+| 2005-01 → 2026-09 | Momentum | 60/40 | SPY | Equal weight |
 |---|---|---|---|---|
-| Annualised | 7.27% | 8.35% | **10.93%** | 6.52% |
-| Volatility | **9.0%** | 10.9% | 18.9% | 11.6% |
-| Sharpe | **0.83** | 0.79 | 0.64 | 0.61 |
-| Sortino | **1.14** | 1.12 | 0.91 | 0.85 |
+| Annualised | 7.16% | 8.30% | **10.88%** | 6.47% |
+| Volatility | **8.9%** | 10.9% | 18.9% | 11.6% |
+| Sharpe | **0.82** | 0.78 | 0.64 | 0.60 |
+| Sortino | **1.12** | 1.11 | 0.91 | 0.85 |
 | Max drawdown | **−21.8%** | −31.2% | −55.1% | −36.8% |
-| Longest drawdown | **697d** | 1,092d | 1,773d | 967d |
+| Longest drawdown | **698d** | 1,092d | 1,773d | 967d |
 | Calmar | **0.33** | 0.27 | 0.20 | 0.18 |
 
 On the full sample it does what it was built to do. It has the best risk-adjusted
@@ -111,10 +111,10 @@ dates a week apart:
 
 | Rebalance date | Annualised | Sharpe | Max drawdown |
 |---|---|---|---|
-| Month end | +7.16% | 0.83 | **−16.0%** |
-| 5 sessions earlier | +7.22% | 0.76 | −28.3% |
-| 10 sessions earlier | +6.25% | 0.69 | −25.2% |
-| 15 sessions earlier | +8.34% | 0.94 | −18.1% |
+| Month end | +7.00% | 0.81 | **−16.0%** |
+| 5 sessions earlier | +7.09% | 0.75 | −28.3% |
+| 10 sessions earlier | +6.19% | 0.68 | −25.2% |
+| 15 sessions earlier | +8.25% | 0.93 | −18.1% |
 
 **A 2.09 percentage point spread in annualised return, and a drawdown ranging from −16%
 to −28%, from a choice with no meaning.** For comparison, the same measurement on a
@@ -124,7 +124,7 @@ fixed-weight portfolio does not select.
 The first version of this document would have reported −16.0% as the maximum drawdown.
 That was the luckiest of four arbitrary dates. Running four staggered tranches and
 averaging them gives **−21.8%**, which is the number in the table above and the number
-to believe. Turnover barely moved (7.13x/yr against 7.08x), because the tranches' trades
+to believe. Turnover barely moved, because the tranches' trades
 partly cancel before an order is ever produced.
 
 ## Does it survive its own costs?
@@ -135,10 +135,10 @@ selection is unchanged.
 
 | Assumed costs | Annualised | Sharpe |
 |---|---|---|
-| Free execution | 7.43% | 0.85 |
-| **Modelled (1x)** | **7.27%** | **0.83** |
-| 3x | 6.96% | 0.80 |
-| 5x | 6.64% | 0.76 |
+| Free execution | 7.31% | 0.84 |
+| **Modelled (1x)** | **7.16%** | **0.82** |
+| 3x | 6.85% | 0.79 |
+| 5x | 6.54% | 0.76 |
 
 At five times the assumed costs it still returns 6.6% at a Sharpe of 0.76. The edge does
 not live inside the cost assumptions, which is the failure mode most retail backtests
@@ -175,7 +175,7 @@ Phase 4 ran seventy-one configurations against it. The full battery is
 
 | | in sample (2005–2018) | held out (2018–2026) |
 |---|---|---|
-| Sharpe | 0.87 | 0.73 |
+| Sharpe | 0.86 | 0.73 |
 | Max drawdown | −10.9% | −21.8% |
 
 A decline, and the drawdown doubled. Sharpe 0.73 still beats buy-and-hold SPY's 0.64 over
@@ -187,18 +187,18 @@ and it is reported as one. Note also that the split date is itself an unexamined
 
 | Trend window | 100 | 150 | **200** | 250 | 300 |
 |---|---|---|---|---|---|
-| Sharpe | 0.78 | 0.83 | **0.83** | 0.82 | 0.77 |
+| Sharpe | 0.77 | 0.83 | **0.82** | 0.81 | 0.77 |
 
 | Vol lookback | 20 | 40 | **60** | 90 | 120 |
 |---|---|---|---|---|---|
-| Sharpe | 0.84 | 0.82 | **0.83** | 0.83 | 0.82 |
+| Sharpe | 0.83 | 0.81 | **0.82** | 0.81 | 0.82 |
 
 A broad gentle hill and a flat line. Neither default was chosen because it peaked,
 because neither peaks. The lookback blend is also vindicated: a single 12-month signal
-gives 0.77 against the blend's 0.83.
+gives 0.76 against the blend's 0.82.
 
 **Two "parameters" are really preferences.** Holding more assets raises Sharpe and lowers
-return monotonically (top 3 → top 10: 0.71 → 0.90 Sharpe, +6.9% → +5.4% CAGR); the
+return monotonically (top 3 → top 10: 0.70 → 0.90 Sharpe, +6.6% → +5.3% CAGR); the
 volatility target does the same in reverse. Neither has an optimum to overfit to. The
 defaults sit mid-dial.
 
@@ -208,7 +208,8 @@ leverage cap: eight holdings diversify better, so the book's forecast volatility
 8.1% against a 10% target, the scaler cannot lever up to reach it, and the fund runs at
 7.1% realised instead of 9.0%. Less risk taken, better Sharpe. Compared at *matched*
 risk — top eight at a 10% target against top five at 7% — the gap is 0.80 against 0.78,
-two basis points inside a bootstrap interval of ±0.4.
+two basis points inside a bootstrap interval of ±0.4. (Those two figures predate the
+position cap; the cap moves both by about a hundredth and the argument not at all.)
 
 So the honest reading is that bumping to eight is a risk reduction wearing a selection
 improvement's clothes. If less risk is what you want, turn the volatility target down and
@@ -218,9 +219,9 @@ and costs about a point and a half of annual return.
 **Start date barely matters.** Seven starts across a decade: Sharpe 0.80 to 0.86.
 
 **The edge survives deflation.** Bootstrapping the return series in month-long blocks
-gives a Sharpe of 0.83 with a 95% interval of **0.42 to 1.27** — wide, and clear of zero.
+gives a Sharpe of 0.82 with a 95% interval of **0.41 to 1.23** — wide, and clear of zero.
 Correcting for selection, the best of a thousand random strategies would be expected to
-show 0.17, and the probability this result is not selection comes to **0.9986**.
+show 0.17, and the probability this result is not selection comes to **0.9984**.
 
 **What that does not establish.** Every test above asks whether the result is an artefact
 of this sample. None can say the sample resembles the future, and the strategy's case
@@ -236,9 +237,9 @@ Dual momentum and a 60/40 correlate at **0.58**, and half of each gives:
 
 | | Volatility | Annualised | Sharpe | Max drawdown | Turnover |
 |---|---|---|---|---|---|
-| Momentum | 9.0% | 7.27% | 0.83 | −21.8% | 7.13x |
-| 60/40 | 10.9% | 8.35% | 0.79 | −31.2% | 0.07x |
-| **Half of each** | **8.7%** | **7.82%** | **0.91** | **−19.9%** | **3.65x** |
+| Momentum | 8.9% | 7.16% | 0.82 | −21.8% | 6.89x |
+| 60/40 | 10.9% | 8.30% | 0.78 | −31.2% | 0.07x |
+| **Half of each** | **8.6%** | **7.79%** | **0.91** | **−19.9%** | **3.55x** |
 
 Better than both sleeves on Sharpe, Sortino, Calmar, drawdown and worst month — and it
 returns *more* than momentum alone, at half the turnover. Their bad years are different
@@ -259,6 +260,54 @@ cash sleeve's actual return the headline moves from 0.83 to **0.76**, and the 60
 0.79 to 0.66. The gap is small only because this sample is dominated by the zero-rate
 years: cash averaged 0.66% a year over it. In a period like 2023-24 the correction would
 be several times larger.
+
+## The crypto sleeve, and why it does almost nothing
+
+The universe extends to bitcoin and ether, which never close while the portfolio's
+heartbeat is the NYSE. That resolves conservatively — a crypto bar closes at 23:59 UTC,
+after the New York close, so the strategy sees crypto a session behind and never ahead.
+
+Adding it took the Sharpe from 0.86 to 1.03 over 2018–2026. Almost all of that is
+hindsight, and the measurement is the point:
+
+| Crypto admitted to the universe | Sharpe | Annualised | Mean weight |
+|---|---|---|---|
+| Never | 0.86 | 7.51% | — |
+| **January 2018** | **1.03** | 10.05% | 5.5% |
+| January 2021 | 0.87 | 8.06% | 4.2% |
+| January 2023 | 0.90 | 8.12% | 3.3% |
+
+The 2018 row is a fund allocating to an asset with two months of price history, because
+whoever wrote the backtest in 2026 knows what happened next. On a date a real investment
+committee might have reached — after regulated futures, mainstream custody and corporate
+treasuries — crypto adds **0.01 of Sharpe.**
+
+Nothing in the validation battery above can detect this. The bootstrap resamples a given
+strategy's returns; the deflation corrects for configurations tried; the held-out split
+tests unseen data. All three take the universe as given, and this bias happens before any
+of them runs. `Instrument.available_from` now declares the assumption so it can at least
+be swept.
+
+## One holding, one third, at most
+
+Positions are capped at a third of the fund. The roadmap expected to need that for crypto
+and was wrong twice: inverse-volatility sizing gives a four-times-more-volatile asset a
+four-times-smaller weight, so crypto never exceeded 14.9%.
+
+What it needed capping for was the opposite end. Uncapped, the largest position the
+strategy ever took was **58.7% in high-yield credit** — inverse-vol hands the biggest
+weight to whatever looks quietest, and credit is quiet until it is not: it sells off in
+jumps and stops being liquid exactly when someone wants out.
+
+| Cap | Annualised | Sharpe | Largest position |
+|---|---|---|---|
+| none | 7.25% | 0.83 | 58.7% |
+| **a third** | **7.16%** | **0.82** | **35.0%** |
+| a quarter | 6.87% | 0.80 | 25.0% |
+
+Nine basis points a year, and maximum drawdown is unchanged at every level — this is
+insurance against a concentration event that did not occur in twenty-one years, which is
+the honest description of insurance rather than an argument against it.
 
 ## Known weaknesses
 
