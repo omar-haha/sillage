@@ -31,3 +31,32 @@ jobs:
       # third-party service being up.
       - name: Tests
         run: uv run pytest -m "not network" --cov=sillage --cov-report=term-missing
+
+  dashboard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install
+        run: npm ci
+        working-directory: web
+
+      # Type-checking and bundling both pass on a component that throws when mounted,
+      # so the render tests are the ones that matter here.
+      - name: Typecheck
+        run: npm run typecheck
+        working-directory: web
+
+      - name: Tests
+        run: npm test
+        working-directory: web
+
+      - name: Build
+        run: npm run build
+        working-directory: web

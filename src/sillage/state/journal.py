@@ -263,6 +263,32 @@ class SqliteJournal:
             rows = connection.execute("SELECT nav FROM nav").fetchall()
         return max((dec(row["nav"]) for row in rows), default=ZERO)
 
+    def recent_orders(self, limit: int = 100) -> list[sqlite3.Row]:
+        """The most recently created orders, newest first.
+
+        Returned as raw rows rather than `Order` objects because the caller -- an API
+        rendering a blotter -- wants what was written, including orders for symbols no
+        longer in the universe. Rebuilding domain objects would drop exactly those, and
+        an order that has vanished from a blotter is the sort of thing that gets
+        someone worrying about a trade that was recorded perfectly well.
+        """
+        with closing(self._connect()) as connection:
+            return list(
+                connection.execute(
+                    "SELECT * FROM orders ORDER BY created_at DESC, rowid DESC LIMIT ?",
+                    (limit,),
+                ).fetchall()
+            )
+
+    def recent_rejections(self, limit: int = 100) -> list[sqlite3.Row]:
+        """The most recent refusals, newest first."""
+        with closing(self._connect()) as connection:
+            return list(
+                connection.execute(
+                    "SELECT * FROM rejections ORDER BY id DESC LIMIT ?", (limit,)
+                ).fetchall()
+            )
+
     def counts(self) -> dict[str, int]:
         with closing(self._connect()) as connection:
             return {

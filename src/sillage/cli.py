@@ -906,5 +906,56 @@ def broker_check(
         client.disconnect()
 
 
+@app.command()
+def serve(
+    journal: JournalOpt = Path("state/live.db"),
+    universe: UniverseOpt = "core",
+    strategy: StrategyOpt = "balanced",
+    root: RootOpt = Path("data"),
+    host: Annotated[
+        str, typer.Option(help="Interface to bind. Localhost by default.")
+    ] = "127.0.0.1",
+    port: Annotated[int, typer.Option(help="Port to listen on.")] = 8000,
+    cash: Annotated[float, typer.Option(help="Opening capital, for an empty journal.")] = 100_000,
+    origins: Annotated[
+        str, typer.Option(help="Comma-separated browser origins allowed to call the API.")
+    ] = "",
+    reload: Annotated[bool, typer.Option("--reload", help="Restart on code changes.")] = False,
+) -> None:
+    """Serve a read-only view of the live fund, and the dashboard if one is built.
+
+    Binds to localhost by default. Every route is a GET and nothing here can place an
+    order, but a window onto a trading account is still not a thing to expose by
+    accident.
+    """
+    import uvicorn
+
+    from sillage.api.app import ApiConfig, create_app
+    from sillage.core.money import dec
+    from sillage.data.universe import get_universe
+
+    try:
+        uni = get_universe(universe)
+    except KeyError as exc:
+        console.print(f"[red]{exc}[/]")
+        raise typer.Exit(1) from None
+
+    config = ApiConfig(
+        journal_path=journal,
+        universe=uni,
+        strategy_name=strategy,
+        data_root=root,
+        initial_cash=dec(cash),
+        allowed_origins=tuple(o.strip() for o in origins.split(",") if o.strip()),
+    )
+    if not journal.exists():
+        console.print(
+            f"[yellow]no fund at {journal}[/] — the API will serve 503 until "
+            "`sillage live run-once` has written something."
+        )
+    console.print(f"serving [bold]http://{host}:{port}[/]  ([dim]docs at /docs[/])")
+    uvicorn.run(create_app(config), host=host, port=port, reload=reload, log_level="info")
+
+
 if __name__ == "__main__":
     app()

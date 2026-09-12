@@ -23,3 +23,7 @@ build/
 *.db
 .DS_Store
 /state/
+
+# dashboard build artifacts
+web/node_modules/
+web/dist/

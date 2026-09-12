@@ -1,0 +1,85 @@
+/* Light only, and deliberately so: a half-implemented dark mode leaves series colours
+   chosen for a light surface sitting on a dark one, which is worse than not offering it.
+   The same decision the tearsheets make, for the same reason. */
+:root {
+  color-scheme: light;
+  --surface: #fcfcfb;
+  --page: #f9f9f7;
+  --ink: #0b0b0b;
+  --ink-secondary: #52514e;
+  --ink-muted: #898781;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --border: rgba(11, 11, 11, 0.1);
+  --up: #184f95;
+  --down: #a02020;
+  --critical: #d03b3b;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: 14px system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.sheet { max-width: 1180px; margin: 0 auto; padding: 32px 24px 64px; }
+
+h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -0.01em; }
+h2 { font-size: 15px; margin: 0 0 4px; }
+.lede, .note { color: var(--ink-secondary); font-size: 13px; margin: 0 0 16px; line-height: 1.5; max-width: 68ch; }
+.note { margin: 0 0 12px; }
+.empty { color: var(--ink-muted); font-size: 13px; margin: 4px 0; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px 18px;
+  margin-bottom: 18px;
+  overflow-x: auto;
+}
+
+.banner {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--axis);
+  border-radius: 6px;
+  background: var(--surface);
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+/* Status is never carried by colour alone: each banner states its condition in words. */
+.banner.critical { border-left-color: var(--critical); }
+
+.tiles { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 22px; }
+.tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  min-width: 150px;
+  flex: 1;
+}
+.tile-label { color: var(--ink-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
+/* Proportional figures on a large standalone number; tabular-nums is for columns. */
+.tile-value { font-size: 22px; margin-top: 4px; }
+.tone-warning { color: #8a6000; }
+.tone-critical { color: var(--critical); }
+.tone-good { color: #0a7a0a; }
+
+table { border-collapse: collapse; width: 100%; font-size: 13px; font-variant-numeric: tabular-nums; }
+th, td { padding: 7px 12px; text-align: left; border-bottom: 1px solid var(--grid); }
+thead th { font-weight: 600; color: var(--ink); border-bottom: 1px solid var(--axis); }
+tbody th { font-weight: 400; }
+.num { text-align: right; }
+.up { color: var(--up); }
+.down { color: var(--down); }
+.reason { color: var(--ink-secondary); }
+
+code { background: var(--page); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+footer { margin-top: 32px; color: var(--ink-muted); font-size: 12px; line-height: 1.6; max-width: 68ch; }

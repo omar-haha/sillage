@@ -16,11 +16,12 @@ Clock ──▶ Data(as_of) ──▶ Strategy ──▶ Sizing ──▶ Rebala
   └ LiveClock      (wall time)                       IBKRBroker / CcxtBroker           ┘
 ```
 
-Status: **Phase 5 complete** — a point-in-time data layer, an event-driven backtest
+Status: **Phase 6 complete** — a point-in-time data layer, an event-driven backtest
 engine, independently validated risk metrics, the strategy, a battery that spends
 seventy-one backtests trying to prove it is an illusion, a restart-safe live runner with
-a durable journal and a kill-switch, and an Interactive Brokers adapter. The adapter has
-not yet met a real gateway. Next: the API and dashboard.
+a durable journal and a kill-switch, an Interactive Brokers adapter, and a read-only API
+with a dashboard. The broker adapter has not yet met a real gateway. Next: a crypto
+sleeve and polish.
 See [docs/ROADMAP.md](docs/ROADMAP.md) for the full plan and
 [docs/research-log.md](docs/research-log.md) for findings along the way, including the
 ones that went nowhere.
@@ -195,6 +196,27 @@ It deliberately does not assert that the fund matches the index exactly, because
 can't. A hundred thousand dollars does not divide evenly into whole SPY shares, so a
 little is left in cash and earns nothing. That drag is real — a live account has it too
 — and the test measures it rather than assuming it away.
+
+## Watching it
+
+```bash
+uv run sillage serve          # http://127.0.0.1:8000, docs at /docs
+```
+
+A read-only API and a React dashboard: equity curve, underwater chart, allocation, risk
+and return, trade blotter, and refused orders. **Every route is a GET**, and the test
+suite asserts that structurally — an interface that can place an order is an interface
+that can be made to place one. The fund trades from `sillage live run-once` on a machine
+nobody browses to.
+
+Two panels exist because of failures Phase 5 actually hit. A banner when market data goes
+stale, because a fund whose prices stopped updating keeps reporting a NAV and looks
+entirely healthy. A card for refused orders, because a fund placing orders and filling
+none is invisible from the equity curve, the allocation and the blotter at the same time.
+
+```bash
+docker compose up             # dashboard on localhost:8000
+```
 
 ## Why this exists
 

@@ -1,4 +1,4 @@
-.PHONY: help install fmt lint type test check clean
+.PHONY: help install fmt lint type test check web web-test serve clean
 
 help:
 	@grep -E '^[a-z-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2}'
@@ -19,6 +19,15 @@ type:     ## type-check (strict on core/engine/portfolio/risk)
 
 test:     ## run the test suite
 	uv run pytest
+
+web:      ## build the dashboard into web/dist
+	cd web && npm install && npm run build
+
+web-test: ## typecheck and render-test the dashboard
+	cd web && npm run typecheck && npm test
+
+serve:    ## run the API and dashboard on http://127.0.0.1:8000
+	uv run sillage serve
 
 check: lint type test  ## everything CI runs
 

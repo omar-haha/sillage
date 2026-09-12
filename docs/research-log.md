@@ -634,3 +634,54 @@ people with the order flow to calibrate it, and it is still a simulator. The las
 whether a real order in a real book behaves like either of them — costs money to find
 out, and nothing here should be traded with real money until it has run on paper long
 enough to surprise you at least twice.
+
+## 2026-09-11 — Building a dashboard I cannot look at
+
+The obvious problem with Phase 6 in this environment is that I can render the page and
+never see it. Headless Firefox is snap-confined here and will not produce a screenshot,
+so the tearsheets built in Phase 2 remain unviewed and a whole single-page app was going
+to be worse.
+
+The resolution was to stop treating "looks right" as the only check and find the ones
+that can be made mechanical.
+
+- **Type-checking** catches a contract mismatch between the API and the client. It caught
+  exactly one real thing: Recharts 3 types a tooltip formatter's value loosely, and my
+  annotation was a lie that `tsc --noEmit` on the wrong config happened to miss.
+- **Bundling** catches imports that do not resolve.
+- **Neither catches a component that throws the moment it is mounted**, which is the
+  failure that matters. So the tree is rendered into a real DOM against canned API
+  responses, and the assertions are about what a reader is there for: the NAV, the
+  holdings in a table, the word "buy" rather than only a colour, and the two banners that
+  only appear when something is wrong.
+
+Those render tests immediately found something worth fixing, though not a crash: "Net
+asset value" labelled both a summary tile and a chart card, and the test could not tell
+them apart. Neither could a reader. Renamed.
+
+**What this still does not establish.** Nothing here knows whether the layout collapses
+at 900 pixels, whether the charts overlap their labels, or whether the whole thing is
+ugly. Those need eyes. The honest description is that the dashboard is *verified to
+render and to say the right things*, and *unreviewed as a visual object*.
+
+## 2026-09-11 — Two panels that exist because of things that went wrong
+
+Most of the dashboard is what any such dashboard has. Two panels are there specifically
+because of Phase 5a, and they are the ones worth keeping if the rest were cut.
+
+**A stale-data banner.** When the market data stops updating, nothing breaks. Every read
+succeeds, every price is a real price, the fund reports a NAV, and the dashboard looks
+entirely healthy. The live runner refuses to trade on stale prices, but a person looking
+at a screen would have no idea why nothing was happening. The banner says how many
+sessions behind the data is and what to run.
+
+**A refused-orders card.** A fund that places orders and fills none is invisible from the
+equity curve, the allocation and the blotter simultaneously — all three look like a fund
+that simply did not trade today. That was the exact shape of the first live failure in
+Phase 5a, where a position cap set to 35% silently blocked every order a 60/40 tried to
+place. Refusals now have somewhere to appear.
+
+The general principle, which took five phases to arrive at: **a monitoring surface should
+be designed around the failures that have actually happened, not around the data that
+happens to be easy to plot.** Every quiet failure this project has found looked
+completely normal on the charts anyone would build first.

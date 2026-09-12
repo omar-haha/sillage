@@ -1,0 +1,33 @@
+# `docker compose up` and the dashboard is on http://localhost:8000.
+#
+# Two services on purpose. The API only ever reads; the thing that trades is a separate,
+# scheduled process that exits. A web server that could place an order is a web server
+# that can be made to place one.
+
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      # Market data and live state live on the host, so a rebuild does not lose the fund.
+      - ./data:/app/data:ro
+      - ./state:/app/state:ro
+    environment:
+      SILLAGE_JOURNAL: /app/state/live.db
+    restart: unless-stopped
+
+  # The fund itself. Runs once per evening and exits, which is what makes it
+  # restart-safe: there is no loop to lose its place. Profile-gated so `docker compose
+  # up` gives you a dashboard without also trading.
+  fund:
+    build: .
+    profiles: ["trade"]
+    volumes:
+      - ./data:/app/data
+      - ./state:/app/state
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "sillage data sync &&
+       sillage live run-once --journal /app/state/live.db"
+    restart: "no"

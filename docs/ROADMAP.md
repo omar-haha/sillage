@@ -216,7 +216,7 @@ sillage/
 | Config | pydantic-settings + YAML strategy configs | every backtest reproducible from one file |
 | CLI | typer | `sillage backtest --config configs/dual_momentum.yaml` |
 | Charts (reports) | plotly → static HTML tearsheet | self-contained, no server needed |
-| API | FastAPI + SQLModel | typed, auto OpenAPI docs |
+| API | FastAPI + pydantic | typed, auto OpenAPI docs. SQLModel dropped: the journal already owns the schema |
 | Frontend | React + Vite + TS + TanStack Query + Recharts | fast, standard, hireable |
 | Testing | pytest + hypothesis | property tests on the portfolio accounting |
 | Quality | ruff + mypy --strict on `core/` and `engine/` | tight typing where correctness matters |
@@ -486,11 +486,39 @@ by tests; all three were found by running it once and reading the output.
 
 See `docs/ibkr.md` for gateway setup and the list of things that will go wrong.
 
-### Phase 6 — API & dashboard (Weeks 9–10)
-- FastAPI: `/nav`, `/positions`, `/orders`, `/metrics`, `/signals`, `/backtests/{id}`.
-- React dashboard: equity curve vs benchmark, drawdown chart, current allocation donut,
-  target-vs-actual weight table, trade blotter, live risk-limit status, strategy signals.
-- ✅ **Milestone**: `docker compose up` → working dashboard on a fresh machine.
+### Phase 6 — API & dashboard (Weeks 9–10) — **done, 2026-09-11**
+- FastAPI: `/status`, `/nav`, `/positions`, `/orders`, `/fills`, `/rejections`,
+  `/metrics`, `/universe`, `/health`. **Every route is a GET**, and the test suite
+  asserts that structurally — an interface that can place an order is one that can be
+  made to place one.
+- React + Vite + TS dashboard: equity curve, underwater chart, allocation, risk and
+  return, trade blotter, refused orders, and banners for the two failure modes Phase 5
+  found. `sillage serve` hosts both.
+- ✅ **Milestone**: `docker compose up` → dashboard on `localhost:8000`. The Dockerfile
+  and compose file are written and **untested**: docker is not installed here.
+
+Four deviations from the plan, each for a reason:
+
+- **No SQLModel.** The journal is plain `sqlite3` and already knows its schema; defining
+  it again would give two sources of truth for four tables, and the one that drifts is
+  always the one nobody is looking at. Pydantic still describes the *responses*, which is
+  what makes the OpenAPI document worth having.
+- **No `/backtests/{id}`.** It needs a job queue — a tranched twenty-year replay takes
+  seconds, far too long for a request. Backtests already produce a self-contained HTML
+  tearsheet that needs no server. The API serves the thing that changes daily and has
+  nowhere else to live.
+- **Allocation is bars, not a donut.** A fund holding two positions at 60% and 40% is
+  precisely the case a pie chart reads worst, and angle is a weaker encoding than length
+  for values this close.
+- **No target-vs-actual weight table.** Target weights are not journalled — the engine
+  computes them at a decision and discards them. Showing actuals beside a target
+  reconstructed after the fact would be a chart of an assumption. Recording targets at
+  decision time is a small journal addition and the honest way to get this.
+
+**Two panels exist because of Phase 5.** A banner when market data goes stale, and a card
+for refused orders — a fund whose data stopped updating keeps reporting a NAV, and a fund
+placing orders and filling none looks healthy from every other view. Both failures were
+found by running the thing; both now have somewhere to show up.
 
 ### Phase 7 — Multi-asset & polish (Weeks 10–12)
 - `CcxtBroker` (Kraken) + crypto data, 24/7 calendar path, crypto sleeve added to the universe
