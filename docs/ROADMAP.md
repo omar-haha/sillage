@@ -557,6 +557,93 @@ investable, separately from when its prices begin, so the assumption can be swep
 - **A deployed demo URL.** Nothing here can deploy. `docker compose up` is written and
   untested.
 
+### Phase 8 — A portfolio that earns its risk (next)
+
+The research objective is now explicit: find a combination of strategies that can
+defensibly exceed a **1.10 after-cost Sharpe ratio**, then test whether taking more risk
+can exceed SPY's return with materially shallower and shorter drawdowns. The target is a
+gate, not an instruction to optimise until one backtest crosses it. Every attempted
+configuration is counted, nearby parameters must work, and chronological results carry
+more weight than the full-sample headline.
+
+**The scorecard is fixed before the search begins.**
+
+- Sharpe is measured over a historical cash-rate series, not the current zero-rate
+  default. The report retains raw Sharpe as a labelled secondary figure so old results
+  remain reproducible.
+- Return is compared with SPY total return over exactly the same dates and currency.
+- Drawdown is judged by maximum depth, worst month, the five largest episodes, total
+  time underwater and longest peak-to-recovery period. The initial research thresholds
+  are maximum drawdown below 20% and recovery inside two years.
+- All results include commissions, spreads, slippage, short-borrow fees, distributions
+  owed on shorts, cash interest and margin financing where applicable.
+- A strategy must survive chronological evaluation, cost stress, start-date variation
+  and a small predeclared parameter grid. Its incremental return must also occur when the
+  existing sleeves struggle; a higher standalone Sharpe that duplicates their exposure
+  does not diversify the fund.
+- Account capital, base currency, whole-share or whole-contract sizing and IBKR trading
+  permissions are inputs to feasibility, not details postponed until deployment.
+
+**8a — Repair the measuring stick.**
+
+1. Add a dated risk-free-rate input and cash accrual to both strategy and benchmark
+   accounting. Report raw and excess-return Sharpe explicitly.
+2. Add margin financing to the simulator by currency and balance; borrowed cash must
+   incur the rate that would have applied at the time.
+3. Extend drawdown reporting with the five largest episodes and total time underwater.
+4. Regenerate the frozen baselines: momentum, 60/40, balanced and SPY. These become the
+   controls for every new experiment.
+
+**8b — Test two complementary sleeves.** Specifications and rejection criteria are
+written before implementation, and failed candidates stay in the research log.
+
+1. **Diversified long/short time-series trend.** Combine predeclared 3/6/12-month signals
+   across liquid equity-index, government-bond, currency and commodity markets; size by
+   volatility and rebalance weekly. First complete a contract feasibility table covering
+   history, multiplier, minimum useful account size, margin, liquidity, expiry and roll.
+   The sleeve proceeds only if whole micro contracts can express its risk budget and its
+   drawdowns are sufficiently different from the existing long-only momentum sleeve.
+2. **Liquid ETF relative value.** Test a small, economically related and predeclared set
+   of ETF pairs. Estimate hedge ratios from trailing data only, require evidence of a
+   stable spread, and model borrow availability, borrow cost and both legs failing to
+   fill together. Reject it if realistic costs consume the edge or results depend on a
+   few pairs or thresholds.
+
+Individual-stock pairs, options selling and intraday reversal are outside the first
+round. They require materially better point-in-time, borrow, quote or option-chain data
+before their backtests could answer a live-trading question.
+
+**8c — Make the winning sleeve executable.** The current IBKR boundary supports US
+stocks and ETFs only. ETF shorts need pre-trade availability and fee checks plus handling
+for recalls, buy-ins and distributions. Futures need domain support for multipliers,
+daily settlement, margin, expiry and rolls; historical continuous series must never leak
+a synthetic roll price into an executable order. Build only the path required by a
+candidate that survives 8b.
+
+**8d — Combine first, scale second.** Freeze every strategy rule before testing portfolio
+risk. Evaluate a small set of risk allocations to the surviving sleeves, then freeze the
+best robust combination. Only after that run portfolio volatility targets of 8%, 10%,
+12% and 14%, including financing costs and stress cases for gaps, correlations rising,
+borrow recalls and higher margin requirements. Increasing exposure is accepted only if
+it improves the SPY comparison without breaking the drawdown and recovery gates.
+
+The drawdown kill-switch also needs a decision before leveraged paper trading: today it
+halts new orders but does not liquidate the book. Define whether a breach holds, reduces
+or exits exposure, which risk-reducing orders remain permitted, and how a human resumes
+the fund.
+
+**8e — Validate at the venue and finish the portfolio surface.** As soon as the account
+exists, run `broker-check`, qualify every required contract, verify restart/reconciliation
+behaviour and begin the separate IBKR paper journal. Paper fills validate the protocol
+and operations, not real execution quality. In parallel: verify Docker, publish a seeded
+read-only demo and representative tearsheet, add dashboard screenshots, and make the
+README distinguish completed evidence from the Phase 8 research target.
+
+**Order of work:** measuring stick → frozen baselines → strategy specifications → sleeve
+research → broker feasibility → frozen blend → risk scaling → paper validation. The IBKR
+gateway check begins immediately when the account is available and does not wait for the
+research sequence.
+
 ## 8. Traps to design against
 
 | Trap | Where it bites | Defense in this design |

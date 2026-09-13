@@ -60,6 +60,10 @@ class Metrics:
     total_return: float
     cagr: float
     volatility: float
+    #: Sharpe against a zero cash rate. Kept separately so historical reports remain
+    #: reproducible when `sharpe` is measured against a dated cash-rate series.
+    raw_sharpe: float
+    #: Sharpe of returns in excess of the supplied cash rate.
     sharpe: float
     sortino: float
     #: Negative, as quantstats reports it: -0.55 means the fund lost 55% peak to trough.
@@ -243,13 +247,14 @@ def from_nav(
     nav: pd.Series,
     *,
     label: str = "",
-    risk_free_rate: float = 0.0,
+    risk_free_rate: float | pd.Series = 0.0,
 ) -> Metrics:
     """Return and risk statistics for an equity curve.
 
-    `risk_free_rate` is annual and is converted to a per-session figure before being
-    subtracted, matching quantstats. Leaving it at zero reports a raw Sharpe, which is
-    what most published figures are, whether or not they say so.
+    `risk_free_rate` is either one annual rate for the whole run or a dated Series of
+    annual rates. Dated observations are carried forward, never backward: a rate first
+    published tomorrow cannot price today's cash. Leaving it at zero makes `sharpe` and
+    `raw_sharpe` identical and reproduces every report written before Phase 8.
     """
     import numpy as np
 
@@ -259,7 +264,7 @@ def from_nav(
     start, end = nav.index[0].date(), nav.index[-1].date()
     years = (end - start).days / DAYS_PER_YEAR
     returns = daily_returns(nav)
-    excess = returns - risk_free_rate / SESSIONS_PER_YEAR
+    excess = _excess_returns(returns, risk_free_rate)
 
     total_return = float(nav.iloc[-1] / nav.iloc[0] - 1.0)
     growth = float(nav.iloc[-1] / nav.iloc[0])
@@ -267,6 +272,9 @@ def from_nav(
 
     deviation = float(returns.std())
     volatility = deviation * np.sqrt(SESSIONS_PER_YEAR)
+    raw_sharpe = (
+        float(returns.mean() / deviation * np.sqrt(SESSIONS_PER_YEAR)) if deviation else 0.0
+    )
     sharpe = float(excess.mean() / deviation * np.sqrt(SESSIONS_PER_YEAR)) if deviation else 0.0
 
     # Downside deviation counts only the losses, so a strategy is not penalised for
@@ -290,6 +298,7 @@ def from_nav(
         total_return=total_return,
         cagr=cagr,
         volatility=volatility,
+        raw_sharpe=raw_sharpe,
         sharpe=sharpe,
         sortino=sortino,
         max_drawdown=max_drawdown,
@@ -303,7 +312,34 @@ def from_nav(
     )
 
 
-def by_calendar_year(nav: pd.Series, *, label: str = "") -> list[Metrics]:
+def _excess_returns(returns: pd.Series, risk_free_rate: float | pd.Series) -> pd.Series:
+    """Subtract an annual scalar or the rate known on each return date."""
+    import pandas as pd
+
+    if not isinstance(risk_free_rate, pd.Series):
+        return returns - float(risk_free_rate) / SESSIONS_PER_YEAR
+    if risk_free_rate.empty:
+        raise ValueError("dated risk-free rate must not be empty")
+
+    rates = risk_free_rate.astype(float).sort_index()
+    rates.index = pd.DatetimeIndex(rates.index)
+    if rates.index.has_duplicates:
+        raise ValueError("dated risk-free rate contains duplicate dates")
+
+    return_index = pd.DatetimeIndex(returns.index)
+    aligned = rates.reindex(rates.index.union(return_index)).ffill().reindex(return_index)
+    if aligned.isna().any():
+        first = returns.index[aligned.isna()][0]
+        raise ValueError(f"no risk-free rate known on or before {first.date()}")
+    return returns - aligned / SESSIONS_PER_YEAR
+
+
+def by_calendar_year(
+    nav: pd.Series,
+    *,
+    label: str = "",
+    risk_free_rate: float | pd.Series = 0.0,
+) -> list[Metrics]:
     """The same statistics, year by year.
 
     Worth more than it looks. A strategy family's reputation is usually built in a few
@@ -317,7 +353,13 @@ def by_calendar_year(nav: pd.Series, *, label: str = "") -> list[Metrics]:
     for year, section in nav.groupby(pd.DatetimeIndex(nav.index).year):
         if len(section) < 2:
             continue
-        years.append(from_nav(section, label=f"{label} {year}".strip()))
+        years.append(
+            from_nav(
+                section,
+                label=f"{label} {year}".strip(),
+                risk_free_rate=risk_free_rate,
+            )
+        )
     return years
 
 
@@ -350,13 +392,17 @@ def trading_stats(result: BacktestResult, nav: pd.Series) -> Trading:
     )
 
 
-def analyse(result: BacktestResult, *, risk_free_rate: float = 0.0) -> Performance:
+def analyse(
+    result: BacktestResult,
+    *,
+    risk_free_rate: float | pd.Series = 0.0,
+) -> Performance:
     """Everything a report needs about one backtest."""
     nav = nav_series(result.nav_points)
     return Performance(
         metrics=from_nav(nav, label=result.name, risk_free_rate=risk_free_rate),
         trading=trading_stats(result, nav),
-        by_year=by_calendar_year(nav, label=result.name),
+        by_year=by_calendar_year(nav, label=result.name, risk_free_rate=risk_free_rate),
         nav=nav,
         drawdown=drawdown_series(nav),
         monthly=monthly_returns(nav),

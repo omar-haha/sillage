@@ -122,6 +122,7 @@ def test_a_flat_curve_has_no_return_and_no_risk() -> None:
     assert metrics.total_return == 0.0
     assert metrics.volatility == 0.0
     assert metrics.sharpe == 0.0
+    assert metrics.raw_sharpe == 0.0
     assert metrics.max_drawdown == 0.0
 
 
@@ -163,6 +164,34 @@ def test_sortino_ignores_upside_volatility() -> None:
 def test_needs_more_than_one_observation() -> None:
     with pytest.raises(ValueError, match="at least two"):
         from_nav(curve([100.0]))
+
+
+def test_dated_risk_free_rate_is_carried_forward_without_changing_raw_sharpe() -> None:
+    nav = curve([100, 101, 102, 103, 104])
+    rates = pd.Series(
+        [0.04, 0.08],
+        index=pd.to_datetime(["2020-01-01", "2020-01-04"]),
+    )
+
+    measured = from_nav(nav, risk_free_rate=rates)
+    raw = from_nav(nav)
+
+    assert measured.raw_sharpe == pytest.approx(raw.sharpe)
+    assert measured.sharpe < measured.raw_sharpe
+
+
+def test_dated_risk_free_rate_cannot_be_backfilled_from_the_future() -> None:
+    rates = pd.Series([0.04], index=pd.to_datetime(["2020-01-03"]))
+
+    with pytest.raises(ValueError, match="no risk-free rate known"):
+        from_nav(curve([100, 101, 102]), risk_free_rate=rates)
+
+
+def test_dated_risk_free_rate_rejects_duplicate_observations() -> None:
+    rates = pd.Series([0.04, 0.05], index=pd.to_datetime(["2019-12-31", "2019-12-31"]))
+
+    with pytest.raises(ValueError, match="duplicate dates"):
+        from_nav(curve([100, 101, 102]), risk_free_rate=rates)
 
 
 # ------------------------------------------------------------------ quantstats
