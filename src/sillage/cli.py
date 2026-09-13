@@ -288,20 +288,56 @@ def backtest(
             help="CSV with date,annual_rate columns for excess-return Sharpe and Sortino."
         ),
     ] = None,
+    margin_rate_file: Annotated[
+        Path | None,
+        typer.Option(help="CSV with date,annual_rate columns charged on negative cash."),
+    ] = None,
+    allow_margin: Annotated[
+        bool,
+        typer.Option(help="Allow buys to create negative cash; requires both rate files."),
+    ] = False,
 ) -> None:
     """Replay a strategy over stored history and report how it did."""
+    from dataclasses import replace
+
     from sillage.backtest.attribution import attribute
     from sillage.backtest.metrics import analyse, load_risk_free_rates
+    from sillage.execution.financing import FinancingModel, RateCurve
 
     options = (universe, root, start, end, cash, band, cost_scale)
-    risk_free = load_risk_free_rates(risk_free_file) if risk_free_file else 0.0
-    subject = _run(_build_config(strategy, *options))
+    cash_rate_series = load_risk_free_rates(risk_free_file) if risk_free_file else None
+    risk_free = cash_rate_series if cash_rate_series is not None else 0.0
+    if allow_margin and (risk_free_file is None or margin_rate_file is None):
+        raise typer.BadParameter("--allow-margin requires --risk-free-file and --margin-rate-file")
+    if margin_rate_file is not None and risk_free_file is None:
+        raise typer.BadParameter("--margin-rate-file requires --risk-free-file")
+
+    financing = None
+    if cash_rate_series is not None:
+        cash_curve = RateCurve.from_series(cash_rate_series)
+        margin_rates = (
+            load_risk_free_rates(margin_rate_file)
+            if margin_rate_file is not None
+            else cash_rate_series
+        )
+        financing = FinancingModel(cash_curve, RateCurve.from_series(margin_rates))
+
+    def config(name: str) -> BacktestConfig:
+        built = _build_config(name, *options)
+        return replace(built, financing=financing, allow_margin=allow_margin)
+
+    subject = _run(config(strategy))
     runs = [analyse(subject, risk_free_rate=risk_free)]
     for name in benchmark or []:
-        runs.append(analyse(_run(_build_config(name, *options)), risk_free_rate=risk_free))
+        runs.append(analyse(_run(config(name)), risk_free_rate=risk_free))
 
     _print_performance(runs)
-    contributions = attribute(subject.final_portfolio, subject.final_prices, subject.nav_points)
+    contributions = attribute(
+        subject.final_portfolio,
+        subject.final_prices,
+        subject.nav_points,
+        cash_pnl=subject.net_financing,
+    )
     if attribution:
         _print_attribution(contributions)
 
@@ -378,6 +414,7 @@ def _print_performance(runs: list[Performance]) -> None:
     row("fills", lambda r: f"{r.trading.fills:,}")
     row("turnover", lambda r: f"{r.trading.annual_turnover:.2f}x/yr")
     row("cost drag", lambda r: f"{r.trading.cost_drag:.3%}/yr")
+    row("net financing", lambda r: f"{r.trading.financing_return:+.3%}/yr")
     row("avg exposure", lambda r: f"{r.trading.average_exposure:.0%}")
     console.print(table)
 

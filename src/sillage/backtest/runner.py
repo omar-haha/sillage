@@ -36,6 +36,7 @@ from sillage.engine.journal import InMemoryJournal, NavPoint
 from sillage.engine.loop import DEFAULT_INITIAL_CASH, Engine
 from sillage.execution.broker import Rejection
 from sillage.execution.costs import CostModel
+from sillage.execution.financing import FinancingModel
 from sillage.execution.simulated import SimulatedBroker
 from sillage.portfolio.rebalance import Rebalancer
 from sillage.strategy.base import Strategy
@@ -60,6 +61,12 @@ class BacktestConfig:
     rebalancer: Rebalancer = field(default_factory=Rebalancer)
     data_root: Path = Path("data")
     calendar: Calendar | None = None
+    financing: FinancingModel | None = None
+    allow_margin: bool = False
+
+    def __post_init__(self) -> None:
+        if self.allow_margin and self.financing is None:
+            raise ValueError("margin requires a financing model")
 
 
 @dataclass(frozen=True, slots=True)
@@ -77,6 +84,8 @@ class BacktestResult:
     #: store and risking a different answer from a later data refresh.
     final_portfolio: Portfolio = field(default_factory=lambda: Portfolio(cash=ZERO))
     final_prices: dict[str, Decimal] = field(default_factory=dict)
+    #: Cash interest earned minus margin interest paid.
+    net_financing: Decimal = ZERO
 
     @property
     def name(self) -> str:
@@ -113,7 +122,8 @@ class BacktestResult:
 
     @property
     def total_costs(self) -> Decimal:
-        return self.total_commission + self.total_slippage
+        margin_interest = max(ZERO, -self.net_financing)
+        return self.total_commission + self.total_slippage + margin_interest
 
     @property
     def traded_notional(self) -> Decimal:
@@ -178,12 +188,17 @@ def run_backtest(
     engine = Engine(
         clock=BacktestClock(config.start, config.end, calendar),
         data=HistoricalFeed(bars),
-        broker=SimulatedBroker(MarketFeed(bars), config.costs),
+        broker=SimulatedBroker(
+            MarketFeed(bars),
+            config.costs,
+            enforce_buying_power=not config.allow_margin,
+        ),
         strategy=config.strategy,
         instruments=instruments,
         rebalancer=config.rebalancer,
         journal=journal,
         initial_cash=config.initial_cash,
+        financing=config.financing,
     )
     final = engine.run()
     last = journal.nav_points[-1].ts if journal.nav_points else None
@@ -198,6 +213,7 @@ def run_backtest(
         first_rebalance=engine.first_rebalance,
         final_portfolio=final,
         final_prices=prices,
+        net_financing=engine.net_financing,
     )
 
 

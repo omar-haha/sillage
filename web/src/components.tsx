@@ -105,6 +105,7 @@ export function EquityCurve({ points }: { points: NavPoint[] }) {
           strokeWidth={2}
           dot={false}
           name="NAV"
+          isAnimationActive={false}
         />
       </LineChart>
     </ResponsiveContainer>
@@ -134,6 +135,7 @@ export function Underwater({ points }: { points: NavPoint[] }) {
           strokeWidth={2}
           fill={theme.series[0]}
           fillOpacity={0.12}
+          isAnimationActive={false}
         />
       </AreaChart>
     </ResponsiveContainer>
@@ -160,7 +162,7 @@ export function Allocation({ positions, cash }: { positions: Position[]; cash: n
             {...tooltip}
             formatter={(v) => [`${Number(v).toFixed(1)}%`, "of fund"] as [string, string]}
           />
-          <Bar dataKey="weight" radius={[0, 4, 4, 0]} barSize={18}>
+          <Bar dataKey="weight" radius={[0, 4, 4, 0]} barSize={18} isAnimationActive={false}>
             {rows.map((row, index) => (
               <Cell
                 key={row.symbol}

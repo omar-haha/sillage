@@ -26,6 +26,7 @@ from sillage.engine.feed import DataSource, HistoricalFeed, MarketFeed
 from sillage.engine.journal import InMemoryJournal
 from sillage.engine.loop import Engine
 from sillage.execution.costs import FREE, CostModel
+from sillage.execution.financing import FinancingModel, RateCurve
 from sillage.execution.simulated import SimulatedBroker
 from sillage.portfolio.rebalance import Rebalancer
 from sillage.strategy.base import Daily, TargetWeights
@@ -43,6 +44,7 @@ def build(
     costs: CostModel = FREE,
     cash: Decimal | int = 10_000,
     journal: InMemoryJournal | None = None,
+    financing: FinancingModel | None = None,
 ) -> Engine:
     return Engine(
         clock=BacktestClock(DAYS[0], DAYS[-1]),
@@ -53,6 +55,7 @@ def build(
         rebalancer=Rebalancer(),
         journal=journal or InMemoryJournal(),
         initial_cash=dec(cash),
+        financing=financing,
     )
 
 
@@ -97,6 +100,20 @@ def test_costs_reduce_the_final_value() -> None:
     charged = build(costs=CostModel()).run()
     prices = {"AAA": dec(140)}
     assert charged.nav(prices) < free.nav(prices)
+
+
+def test_idle_cash_earns_interest_between_session_closes() -> None:
+    rate = RateCurve(((DAYS[0], dec("0.365")),))
+    journal = InMemoryJournal()
+    build(
+        strategy=StaticWeights({"AAA": "0.5"}),
+        journal=journal,
+        financing=FinancingModel(rate, rate),
+    ).run()
+
+    # Interest first appears after the first close and is included in every later NAV.
+    assert journal.nav_points[0].cash == dec("10000")
+    assert journal.nav_points[1].cash > dec("5050")
 
 
 # ------------------------------------------------------------------ no lookahead

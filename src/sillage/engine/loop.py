@@ -34,6 +34,7 @@ from sillage.engine.events import Event
 from sillage.engine.feed import DataSource
 from sillage.engine.journal import InMemoryJournal, Journal, NavPoint
 from sillage.execution.broker import Broker, Rejection
+from sillage.execution.financing import FinancingModel
 from sillage.portfolio.rebalance import Rebalancer
 from sillage.risk.limits import RiskLimits, filter_orders
 from sillage.strategy.base import Strategy
@@ -57,6 +58,7 @@ class Engine:
         initial_cash: Decimal = DEFAULT_INITIAL_CASH,
         limits: RiskLimits | None = None,
         high_water_mark: Decimal = ZERO,
+        financing: FinancingModel | None = None,
     ) -> None:
         if initial_cash <= ZERO:
             raise ValueError("initial cash must be positive")
@@ -76,6 +78,10 @@ class Engine:
         #: Highest NAV ever marked. Seeded from the journal on a live restart, so a
         #: drawdown kill-switch measures against the real peak and not this run's.
         self.high_water_mark = high_water_mark
+        self.financing = financing
+        self._last_financing_date: date | None = None
+        #: Signed: positive cash interest earned, negative margin interest paid.
+        self.net_financing = ZERO
         self.halted = ""
         self.first_rebalance: date | None = None
         #: Orders decided at the last close, waiting for the next open. Public so a
@@ -101,9 +107,11 @@ class Engine:
         nobody notices until money is involved.
         """
         if event.is_open:
+            self._accrue_financing(event.session)
             self._execute(self.pending.take(), event)
         else:
             self._mark(event)
+            self._last_financing_date = event.session
             if self._should_decide(event.session):
                 self.pending.put(self._decide(event))
 
@@ -200,6 +208,17 @@ class Engine:
             )
         )
         self.high_water_mark = max(self.high_water_mark, self.portfolio.nav(prices))
+
+    def _accrue_financing(self, session: date) -> None:
+        if self.financing is None or self._last_financing_date is None:
+            return
+        interest = self.financing.accrual(
+            self.portfolio.cash,
+            self._last_financing_date,
+            session,
+        )
+        self.portfolio = self.portfolio.apply_cash(interest)
+        self.net_financing += interest
 
     def _prices(self, event: Event) -> dict[str, Decimal]:
         """Last known close for everything tradable, as of this instant.

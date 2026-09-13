@@ -362,6 +362,7 @@ TRADING_ROWS: tuple[tuple[str, str], ...] = (
     ("Fills", "fills"),
     ("Turnover", "annual_turnover"),
     ("Cost drag", "cost_drag"),
+    ("Net financing", "financing_return"),
     ("Average exposure", "average_exposure"),
 )
 
@@ -376,7 +377,7 @@ def _format(field: str, value: float) -> str:
         return f"{value:.2f}"
     if field == "annual_turnover":
         return f"{value:.2f}x/yr"
-    if field == "cost_drag":
+    if field in {"cost_drag", "financing_return"}:
         return f"{value:.3%}/yr"
     if field == "volatility":
         return f"{value:.2%}"

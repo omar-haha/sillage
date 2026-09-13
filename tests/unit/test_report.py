@@ -47,6 +47,7 @@ def performance(label: str, seed: int = 1) -> Performance:
             slippage=dec(80),
             annual_turnover=0.4,
             cost_drag=0.0005,
+            financing_return=0.0,
             average_exposure=0.98,
         ),
         by_year=by_calendar_year(nav, label=label),
@@ -182,7 +183,7 @@ def test_a_run_too_short_to_have_months_still_renders() -> None:
     nav = pd.Series([100.0, 101.0], index=pd.date_range("2024-01-01", periods=2, freq="D"))
     short = Performance(
         metrics=from_nav(nav, label="brief"),
-        trading=Trading(0, 0, ZERO, ZERO, ZERO, 0.0, 0.0, 0.0),
+        trading=Trading(0, 0, ZERO, ZERO, ZERO, 0.0, 0.0, 0.0, 0.0),
         by_year=[],
         nav=nav,
         drawdown=drawdown_series(nav),

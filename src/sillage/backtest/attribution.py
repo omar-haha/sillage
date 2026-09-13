@@ -70,6 +70,8 @@ def attribute(
     portfolio: Portfolio,
     prices: dict[str, Decimal],
     nav_points: Sequence[NavPoint],
+    *,
+    cash_pnl: Decimal = ZERO,
 ) -> list[Contribution]:
     """Per-symbol profit and capital use, largest profit first.
 
@@ -88,6 +90,18 @@ def attribute(
             held[symbol] = held.get(symbol, 0) + 1
 
     contributions = []
+    if cash_pnl != ZERO:
+        contributions.append(
+            Contribution(
+                symbol="CASH",
+                realized=cash_pnl,
+                unrealized=ZERO,
+                commission=ZERO,
+                average_weight=0.0,
+                sessions_held=sessions,
+                time_held=1.0 if sessions else 0.0,
+            )
+        )
     for symbol in sorted(set(portfolio.positions) | set(exposure)):
         position = portfolio.positions.get(symbol)
         unrealized = ZERO

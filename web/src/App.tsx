@@ -89,7 +89,7 @@ export default function App() {
         <Tile label="Positions" value={String(fund.positions)} />
         {metrics.data && (
           <>
-            <Tile label="Sharpe (excess)" value={metrics.data.sharpe.toFixed(2)} />
+            <Tile label="Sharpe (zero-rate)" value={metrics.data.raw_sharpe.toFixed(2)} />
             <Tile label="Annualised" value={signedPercent(metrics.data.cagr, 2)} />
           </>
         )}
@@ -131,8 +131,10 @@ export default function App() {
                   ["Total return", signedPercent(metrics.data.total_return, 2)],
                   ["Annualised", signedPercent(metrics.data.cagr, 2)],
                   ["Volatility", percent(metrics.data.volatility)],
-                  ["Sharpe (excess)", metrics.data.sharpe.toFixed(2)],
                   ["Sharpe (zero-rate)", metrics.data.raw_sharpe.toFixed(2)],
+                  ...(Math.abs(metrics.data.sharpe - metrics.data.raw_sharpe) > 0.0001
+                    ? [["Sharpe (excess)", metrics.data.sharpe.toFixed(2)] as const]
+                    : []),
                   ["Sortino", metrics.data.sortino.toFixed(2)],
                   ["Max drawdown", percent(metrics.data.max_drawdown)],
                   ["Longest drawdown", `${metrics.data.longest_drawdown_days} days`],

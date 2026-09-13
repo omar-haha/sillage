@@ -370,6 +370,10 @@ class Portfolio:
             positions=positions,
         )
 
+    def apply_cash(self, amount: Decimal) -> Self:
+        """Apply interest or another external cash movement without inventing a fill."""
+        return replace(self, cash=quantize_cash(self.cash + amount))
+
     def market_value(self, prices: Mapping[str, Decimal]) -> Decimal:
         """Total value of holdings, excluding cash.
 

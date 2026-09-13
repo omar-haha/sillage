@@ -105,6 +105,8 @@ class Trading:
     #: deciding whether a strategy is real, because it is what disappears in live trading
     #: when the cost assumptions turn out to have been optimistic.
     cost_drag: float
+    #: Cash interest earned minus margin interest paid, annualised on average NAV.
+    financing_return: float
     average_exposure: float
 
     @property
@@ -400,6 +402,10 @@ def trading_stats(result: BacktestResult, nav: pd.Series) -> Trading:
     if average_nav > ZERO and years > 0:
         drag = float(safe_div(result.total_costs, average_nav)) / years
 
+    financing_return = 0.0
+    if average_nav > ZERO and years > 0:
+        financing_return = float(safe_div(result.net_financing, average_nav)) / years
+
     exposures = [float(p.gross_exposure) for p in result.nav_points]
 
     return Trading(
@@ -410,6 +416,7 @@ def trading_stats(result: BacktestResult, nav: pd.Series) -> Trading:
         slippage=result.total_slippage,
         annual_turnover=turnover,
         cost_drag=drag,
+        financing_return=financing_return,
         average_exposure=sum(exposures) / len(exposures) if exposures else 0.0,
     )
 

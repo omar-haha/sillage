@@ -215,6 +215,15 @@ little is left in cash and earns nothing. That drag is real — a live account h
 
 ## Watching it
 
+The dashboard below is the real application against a seeded 20-session simulated-live
+journal: 26 fills, nine positions and no refused orders. It is deliberately a short
+forward window rather than the twenty-year backtest dressed up as live history.
+
+[![Dashboard overview](docs/screenshots/dashboard-overview.png)](docs/screenshots/dashboard-overview.png)
+
+Two more export-ready views: [complete dashboard](docs/screenshots/dashboard-full.png) and
+[compact dashboard](docs/screenshots/dashboard-compact.png).
+
 ```bash
 uv run sillage serve          # http://127.0.0.1:8000, docs at /docs
 ```
