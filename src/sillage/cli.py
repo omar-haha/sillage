@@ -282,16 +282,23 @@ def backtest(
     reports_dir: Annotated[Path, typer.Option(help="Where tearsheets are written.")] = Path(
         "reports"
     ),
+    risk_free_file: Annotated[
+        Path | None,
+        typer.Option(
+            help="CSV with date,annual_rate columns for excess-return Sharpe and Sortino."
+        ),
+    ] = None,
 ) -> None:
     """Replay a strategy over stored history and report how it did."""
     from sillage.backtest.attribution import attribute
-    from sillage.backtest.metrics import analyse
+    from sillage.backtest.metrics import analyse, load_risk_free_rates
 
     options = (universe, root, start, end, cash, band, cost_scale)
+    risk_free = load_risk_free_rates(risk_free_file) if risk_free_file else 0.0
     subject = _run(_build_config(strategy, *options))
-    runs = [analyse(subject)]
+    runs = [analyse(subject, risk_free_rate=risk_free)]
     for name in benchmark or []:
-        runs.append(analyse(_run(_build_config(name, *options))))
+        runs.append(analyse(_run(_build_config(name, *options)), risk_free_rate=risk_free))
 
     _print_performance(runs)
     contributions = attribute(subject.final_portfolio, subject.final_prices, subject.nav_points)
@@ -360,7 +367,8 @@ def _print_performance(runs: list[Performance]) -> None:
     row("total return", lambda r: f"{r.metrics.total_return:+.1%}")
     row("annualised", lambda r: f"{r.metrics.cagr:+.2%}")
     row("volatility", lambda r: f"{r.metrics.volatility:.1%}")
-    row("Sharpe", lambda r: f"{r.metrics.sharpe:.2f}")
+    row("Sharpe (excess)", lambda r: f"{r.metrics.sharpe:.2f}")
+    row("Sharpe (zero-rate)", lambda r: f"{r.metrics.raw_sharpe:.2f}")
     row("Sortino", lambda r: f"{r.metrics.sortino:.2f}")
     row("max drawdown", lambda r: f"{r.metrics.max_drawdown:.1%}")
     row("longest drawdown", lambda r: f"{r.metrics.longest_drawdown_days:,}d")

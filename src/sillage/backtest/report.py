@@ -347,7 +347,8 @@ STAT_ROWS: tuple[tuple[str, str], ...] = (
     ("Total return", "total_return"),
     ("Annualised (CAGR)", "cagr"),
     ("Volatility", "volatility"),
-    ("Sharpe", "sharpe"),
+    ("Sharpe (excess)", "sharpe"),
+    ("Sharpe (zero-rate)", "raw_sharpe"),
     ("Sortino", "sortino"),
     ("Max drawdown", "max_drawdown"),
     ("Longest drawdown", "longest_drawdown_days"),
@@ -371,7 +372,7 @@ def _format(field: str, value: float) -> str:
         return f"{int(value):,}d" if value else "—"
     if field == "fills":
         return f"{int(value):,}"
-    if field in {"sharpe", "sortino", "calmar"}:
+    if field in {"sharpe", "raw_sharpe", "sortino", "calmar"}:
         return f"{value:.2f}"
     if field == "annual_turnover":
         return f"{value:.2f}x/yr"

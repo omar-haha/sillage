@@ -54,6 +54,7 @@ const metrics = {
   total_return: -0.0034,
   cagr: -0.0406,
   volatility: 0.0436,
+  raw_sharpe: -0.92,
   sharpe: -0.92,
   sortino: -1.29,
   max_drawdown: -0.0166,

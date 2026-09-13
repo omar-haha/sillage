@@ -23,6 +23,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from sillage.core.money import ZERO, safe_div
@@ -132,6 +133,27 @@ class Performance:
 
 
 # ------------------------------------------------------------------ series
+
+
+def load_risk_free_rates(path: str | Path) -> pd.Series:
+    """Read dated annual rates from a CSV with `date,annual_rate` columns.
+
+    Rates are decimals (0.05 means 5%). Keeping this input as a plain, committed CSV
+    makes a report reproducible without depending on whichever data vendor is reachable
+    when it is regenerated.
+    """
+    import pandas as pd
+
+    frame = pd.read_csv(path)
+    required = {"date", "annual_rate"}
+    missing = required - set(frame.columns)
+    if missing:
+        raise ValueError(f"risk-free CSV missing columns: {sorted(missing)}")
+    if frame.empty:
+        raise ValueError("risk-free CSV must not be empty")
+    dates = pd.to_datetime(frame["date"], errors="raise")
+    rates = pd.to_numeric(frame["annual_rate"], errors="raise").astype(float)
+    return pd.Series(rates.to_numpy(), index=pd.DatetimeIndex(dates), name="risk_free_rate")
 
 
 def exposure_series(points: Sequence[NavPoint]) -> pd.Series:

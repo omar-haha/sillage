@@ -319,6 +319,7 @@ def create_app(config: ApiConfig | None = None) -> FastAPI:
             total_return=computed.total_return,
             cagr=computed.cagr,
             volatility=computed.volatility,
+            raw_sharpe=computed.raw_sharpe,
             sharpe=computed.sharpe,
             sortino=computed.sortino,
             max_drawdown=computed.max_drawdown,

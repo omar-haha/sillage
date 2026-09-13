@@ -12,6 +12,7 @@ differing by a few percent, and a figure nobody else can reproduce is not eviden
 from __future__ import annotations
 
 import warnings
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -23,6 +24,7 @@ from sillage.backtest.metrics import (
     daily_returns,
     drawdown_series,
     from_nav,
+    load_risk_free_rates,
     monthly_returns,
     monthly_table,
     nav_series,
@@ -112,6 +114,24 @@ def test_monthly_table_is_years_by_months() -> None:
     table = monthly_table(random_walk(800))
     assert table.index.name == "year"
     assert set(table.columns) <= set(range(1, 13))
+
+
+def test_risk_free_csv_is_an_explicit_reproducible_input(tmp_path: Path) -> None:
+    path = tmp_path / "rates.csv"
+    path.write_text("date,annual_rate\n2020-01-01,0.015\n2020-01-02,0.0175\n")
+
+    rates = load_risk_free_rates(path)
+
+    assert list(rates) == [0.015, 0.0175]
+    assert rates.index[0] == pd.Timestamp("2020-01-01")
+
+
+def test_risk_free_csv_names_missing_columns(tmp_path: Path) -> None:
+    path = tmp_path / "rates.csv"
+    path.write_text("date,percent\n2020-01-01,1.5\n")
+
+    with pytest.raises(ValueError, match="annual_rate"):
+        load_risk_free_rates(path)
 
 
 # ------------------------------------------------------------------ hand-checkable

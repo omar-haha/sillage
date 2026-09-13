@@ -88,6 +88,7 @@ class Metrics(BaseModel):
     total_return: float
     cagr: float
     volatility: float
+    raw_sharpe: float
     sharpe: float
     sortino: float
     max_drawdown: float

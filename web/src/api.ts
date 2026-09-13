@@ -74,6 +74,7 @@ export interface Metrics {
   total_return: number;
   cagr: number;
   volatility: number;
+  raw_sharpe: number;
   sharpe: number;
   sortino: number;
   max_drawdown: number;
