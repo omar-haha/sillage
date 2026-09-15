@@ -352,6 +352,7 @@ STAT_ROWS: tuple[tuple[str, str], ...] = (
     ("Sortino", "sortino"),
     ("Max drawdown", "max_drawdown"),
     ("Longest drawdown", "longest_drawdown_days"),
+    ("Time underwater", "time_underwater"),
     ("Calmar", "calmar"),
     ("Best month", "best_month"),
     ("Worst month", "worst_month"),
@@ -420,6 +421,24 @@ def _years_table(runs: Sequence[Performance]) -> str:
     return (
         f"<table class='stats years'><thead><tr><th></th>{header}</tr></thead>"
         f"<tbody>{''.join(body)}</tbody></table>"
+    )
+
+
+def _drawdown_table(run: Performance) -> str:
+    rows = []
+    for episode in run.metrics.drawdowns:
+        recovery = episode.recovery.isoformat() if episode.recovery else "still open"
+        rows.append(
+            f"<tr><td>{episode.peak}</td><td>{episode.trough}</td><td>{recovery}</td>"
+            f"<td>{episode.depth:.1%}</td><td>{episode.days_to_trough:,}d</td>"
+            f"<td>{episode.recovery_days:,}d</td><td>{episode.total_days:,}d</td></tr>"
+        )
+    if not rows:
+        return "<p>No drawdowns in this period.</p>"
+    return (
+        "<table class='stats'><thead><tr><th>peak</th><th>trough</th><th>recovery</th>"
+        "<th>depth</th><th>to trough</th><th>to recover</th><th>total</th></tr></thead>"
+        f"<tbody>{''.join(rows)}</tbody></table>"
     )
 
 
@@ -529,6 +548,8 @@ volume-scaled market impact charged on every fill. Decisions are taken at the cl
 filled at the following open.</p>
 <h2>Statistics</h2>
 <div class="card">{_stats_table(runs)}</div>
+<h2>Largest drawdowns — {subject.label}</h2>
+<div class="card">{_drawdown_table(subject)}</div>
 {"".join(blocks)}
 <h2>Calendar years</h2>
 <div class="card">{_years_table(runs)}</div>

@@ -60,6 +60,19 @@ const metrics = {
   max_drawdown: -0.0166,
   calmar: -2.45,
   longest_drawdown_days: 8,
+  time_underwater: 0.4,
+  drawdowns: [
+    {
+      peak: "2026-09-03",
+      trough: "2026-09-10",
+      recovery: null,
+      depth: -0.0166,
+      days_to_trough: 7,
+      recovery_days: 1,
+      total_days: 8,
+      open: true,
+    },
+  ],
   positive_months: 0,
 };
 

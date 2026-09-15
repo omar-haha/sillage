@@ -408,6 +408,7 @@ def _print_performance(runs: list[Performance]) -> None:
     row("Sortino", lambda r: f"{r.metrics.sortino:.2f}")
     row("max drawdown", lambda r: f"{r.metrics.max_drawdown:.1%}")
     row("longest drawdown", lambda r: f"{r.metrics.longest_drawdown_days:,}d")
+    row("time underwater", lambda r: f"{r.metrics.time_underwater:.0%}")
     row("Calmar", lambda r: f"{r.metrics.calmar:.2f}")
     row("positive months", lambda r: f"{r.metrics.positive_months:.0%}")
     row("worst month", lambda r: f"{r.metrics.worst_month:.1%}")
@@ -417,6 +418,25 @@ def _print_performance(runs: list[Performance]) -> None:
     row("net financing", lambda r: f"{r.trading.financing_return:+.3%}/yr")
     row("avg exposure", lambda r: f"{r.trading.average_exposure:.0%}")
     console.print(table)
+
+    if subject.metrics.drawdowns:
+        episodes = Table(box=None, pad_edge=False, title="five largest drawdowns")
+        for label in ("peak", "trough", "recovery"):
+            episodes.add_column(label)
+        for label in ("depth", "to trough", "to recover", "total"):
+            episodes.add_column(label, justify="right")
+        for episode in subject.metrics.drawdowns:
+            episodes.add_row(
+                episode.peak.isoformat(),
+                episode.trough.isoformat(),
+                episode.recovery.isoformat() if episode.recovery else "still open",
+                f"{episode.depth:.1%}",
+                f"{episode.days_to_trough:,}d",
+                f"{episode.recovery_days:,}d",
+                f"{episode.total_days:,}d",
+            )
+        console.print()
+        console.print(episodes)
 
 
 @app.command("timing-luck")

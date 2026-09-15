@@ -80,7 +80,20 @@ export interface Metrics {
   max_drawdown: number;
   calmar: number;
   longest_drawdown_days: number;
+  time_underwater: number;
+  drawdowns: DrawdownEpisode[];
   positive_months: number;
+}
+
+export interface DrawdownEpisode {
+  peak: string;
+  trough: string;
+  recovery: string | null;
+  depth: number;
+  days_to_trough: number;
+  recovery_days: number;
+  total_days: number;
+  open: boolean;
 }
 
 export const api = {

@@ -731,6 +731,26 @@ would own — separately from when its prices begin, which the strategy already 
 refusing to rank what it cannot measure. The universe itself stays fixed: every instrument
 is declared up front, and nothing is added retroactively because it worked.
 
+## 2026-09-15 — A maximum drawdown was hiding four different experiences
+
+Phase 8's target is not merely a larger Sharpe ratio. It is a portfolio that spends less
+time in losses and gets back to its high-water mark sooner, neither of which can be read
+from maximum drawdown alone. The metric layer now identifies each distinct path from a
+peak through its trough to recovery, or to the end of the sample if it is still open.
+It reports the five deepest with dates, depth, time to trough, time after trough and total
+duration, plus the fraction of recorded sessions spent underwater.
+
+The distinction matters operationally. An open drawdown cannot truthfully have a recovery
+duration, so it is labelled `still open` and its current duration is measured only through
+the last observation. The same episode objects feed the terminal, HTML tearsheet, API and
+dashboard; there is no presentation-only implementation with subtly different boundaries.
+
+The first end-to-end check used the seeded simulated-live journal rather than a synthetic
+curve. Across its twenty sessions, 75% were below a previous peak. Its deepest episode was
+still open: peak 2026-09-03, trough 2026-09-10, down 1.05%, seven calendar days to the
+trough and eleven days elapsed through the last mark. The loss is small and the time
+underwater is high. That is exactly the difference the old headline could not express.
+
 ## 2026-09-12 — The position cap was needed, for the opposite reason
 
 The roadmap said crypto would need its own weight cap, "because crypto vol is 4–5x

@@ -325,6 +325,20 @@ def create_app(config: ApiConfig | None = None) -> FastAPI:
             max_drawdown=computed.max_drawdown,
             calmar=computed.calmar,
             longest_drawdown_days=computed.longest_drawdown_days,
+            time_underwater=computed.time_underwater,
+            drawdowns=[
+                models.DrawdownEpisode(
+                    peak=episode.peak,
+                    trough=episode.trough,
+                    recovery=episode.recovery,
+                    depth=episode.depth,
+                    days_to_trough=episode.days_to_trough,
+                    recovery_days=episode.recovery_days,
+                    total_days=episode.total_days,
+                    open=episode.open,
+                )
+                for episode in computed.drawdowns
+            ],
             positive_months=computed.positive_months,
         )
 

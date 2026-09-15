@@ -138,11 +138,46 @@ export default function App() {
                   ["Sortino", metrics.data.sortino.toFixed(2)],
                   ["Max drawdown", percent(metrics.data.max_drawdown)],
                   ["Longest drawdown", `${metrics.data.longest_drawdown_days} days`],
+                  ["Time underwater", percent(metrics.data.time_underwater)],
                 ] as const
               ).map(([label, value]) => (
                 <tr key={label}>
                   <th scope="row">{label}</th>
                   <td className="num">{value}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
+      )}
+
+      {metrics.data && metrics.data.drawdowns.length > 0 && (
+        <Card
+          title="Largest drawdowns"
+          note="Distinct falls from a high-water mark, deepest first. An open episode has not recovered yet."
+        >
+          <table>
+            <thead>
+              <tr>
+                <th>peak</th>
+                <th>trough</th>
+                <th>recovery</th>
+                <th className="num">depth</th>
+                <th className="num">to trough</th>
+                <th className="num">to recover</th>
+                <th className="num">total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {metrics.data.drawdowns.map((episode) => (
+                <tr key={`${episode.peak}-${episode.trough}`}>
+                  <td>{episode.peak}</td>
+                  <td>{episode.trough}</td>
+                  <td>{episode.recovery ?? "still open"}</td>
+                  <td className="num">{percent(episode.depth)}</td>
+                  <td className="num">{episode.days_to_trough}d</td>
+                  <td className="num">{episode.recovery_days}d</td>
+                  <td className="num">{episode.total_days}d</td>
                 </tr>
               ))}
             </tbody>

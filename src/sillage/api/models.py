@@ -79,6 +79,17 @@ class Rejection(BaseModel):
     reason: str
 
 
+class DrawdownEpisode(BaseModel):
+    peak: date
+    trough: date
+    recovery: date | None
+    depth: float
+    days_to_trough: int
+    recovery_days: int
+    total_days: int
+    open: bool
+
+
 class Metrics(BaseModel):
     """Risk and return of the live fund, on the same definitions the backtest uses."""
 
@@ -94,6 +105,8 @@ class Metrics(BaseModel):
     max_drawdown: float
     calmar: float
     longest_drawdown_days: int
+    time_underwater: float
+    drawdowns: list[DrawdownEpisode]
     positive_months: float
 
 

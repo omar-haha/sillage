@@ -12,6 +12,7 @@ differing by a few percent, and a figure nobody else can reproduce is not eviden
 from __future__ import annotations
 
 import warnings
+from datetime import date
 from pathlib import Path
 
 import numpy as np
@@ -22,6 +23,7 @@ from sillage.backtest.metrics import (
     SESSIONS_PER_YEAR,
     by_calendar_year,
     daily_returns,
+    drawdown_episodes,
     drawdown_series,
     from_nav,
     load_risk_free_rates,
@@ -172,6 +174,41 @@ def test_a_curve_that_never_falls_has_no_drawdown() -> None:
 def test_an_unrecovered_drawdown_runs_to_the_end() -> None:
     metrics = from_nav(curve([100, 90, 85, 80]))
     assert metrics.longest_drawdown_days == 3
+
+
+def test_drawdown_episodes_keep_peak_trough_and_recovery_dates() -> None:
+    nav = curve([100, 80, 90, 100, 120, 60, 90])
+
+    episodes = drawdown_episodes(nav)
+
+    assert len(episodes) == 2
+    deepest, recovered = episodes
+    assert deepest.peak == date(2020, 1, 5)
+    assert deepest.trough == date(2020, 1, 6)
+    assert deepest.recovery is None
+    assert deepest.depth == pytest.approx(-0.5)
+    assert deepest.days_to_trough == 1
+    assert deepest.recovery_days == 1
+    assert deepest.total_days == 2
+    assert recovered.peak == date(2020, 1, 1)
+    assert recovered.recovery == date(2020, 1, 4)
+    assert recovered.depth == pytest.approx(-0.2)
+
+
+def test_drawdown_episodes_are_limited_to_the_deepest_five() -> None:
+    nav = curve([100, 99, 101, 98, 102, 97, 103, 96, 104, 95, 105, 94, 106])
+
+    episodes = drawdown_episodes(nav)
+
+    assert len(episodes) == 5
+    assert [episode.depth for episode in episodes] == sorted(episode.depth for episode in episodes)
+
+
+def test_time_underwater_is_the_share_of_recorded_sessions_below_peak() -> None:
+    metrics = from_nav(curve([100, 90, 100, 110, 100]))
+
+    assert metrics.time_underwater == pytest.approx(2 / 5)
+    assert len(metrics.drawdowns) == 2
 
 
 def test_sortino_ignores_upside_volatility() -> None:

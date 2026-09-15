@@ -586,12 +586,14 @@ more weight than the full-sample headline.
 
 **8a — Repair the measuring stick.**
 
-1. Add a dated risk-free-rate input and cash accrual to both strategy and benchmark
-   accounting. Report raw and excess-return Sharpe explicitly.
-2. Add margin financing to the simulator by currency and balance; borrowed cash must
-   incur the rate that would have applied at the time.
-3. Extend drawdown reporting with the five largest episodes and total time underwater.
-4. Regenerate the frozen baselines: momentum, 60/40, balanced and SPY. These become the
+1. ✅ Add a dated risk-free-rate input and cash accrual to both strategy and benchmark
+   accounting. Raw and excess-return Sharpe are explicit. The reusable input contract is
+   complete; sourcing and committing the historical USD curve belongs with the baselines.
+2. ✅ Add margin financing to the simulator by currency and balance; borrowed cash incurs
+   the dated rate supplied for the run and weekends accrue as calendar days.
+3. ✅ Extend drawdown reporting with the five largest distinct peak/trough/recovery
+   episodes and total time underwater, across CLI, tearsheet, API and dashboard.
+4. ⏳ Regenerate the frozen baselines: momentum, 60/40, balanced and SPY. These become the
    controls for every new experiment.
 
 **8b — Test two complementary sleeves.** Specifications and rejection criteria are

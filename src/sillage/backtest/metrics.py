@@ -43,6 +43,23 @@ DAYS_PER_YEAR = 365.25
 
 
 @dataclass(frozen=True, slots=True)
+class DrawdownEpisode:
+    """One fall from a high-water mark, through its trough, to recovery or the end."""
+
+    peak: date
+    trough: date
+    recovery: date | None
+    depth: float
+    days_to_trough: int
+    recovery_days: int
+    total_days: int
+
+    @property
+    def open(self) -> bool:
+        return self.recovery is None
+
+
+@dataclass(frozen=True, slots=True)
 class Metrics:
     """Return and risk, computed from an equity curve alone.
 
@@ -74,6 +91,10 @@ class Metrics:
     #: the number that actually makes people abandon a strategy -- a 30% drawdown that
     #: recovers in four months is a different experience from one that takes five years.
     longest_drawdown_days: int
+    #: Share of recorded sessions strictly below the prior high-water mark.
+    time_underwater: float
+    #: The five deepest distinct peak-to-recovery episodes, deepest first.
+    drawdowns: tuple[DrawdownEpisode, ...]
 
     best_month: float
     worst_month: float
@@ -202,6 +223,61 @@ def drawdown_series(nav: pd.Series) -> pd.Series:
     return nav / nav.cummax() - 1.0
 
 
+def drawdown_episodes(nav: pd.Series, *, limit: int = 5) -> tuple[DrawdownEpisode, ...]:
+    """Find distinct peak-to-recovery episodes and return the deepest ones."""
+    import pandas as pd
+
+    if nav.empty or limit <= 0:
+        return ()
+
+    index = pd.DatetimeIndex(nav.index)
+    peak_value = float(nav.iloc[0])
+    peak_stamp = index[0]
+    trough_value = peak_value
+    trough_stamp = peak_stamp
+    under_water = False
+    episodes: list[DrawdownEpisode] = []
+
+    def finish(recovery: pd.Timestamp | None, end: pd.Timestamp) -> None:
+        depth = trough_value / peak_value - 1.0
+        episodes.append(
+            DrawdownEpisode(
+                peak=peak_stamp.date(),
+                trough=trough_stamp.date(),
+                recovery=recovery.date() if recovery is not None else None,
+                depth=depth,
+                days_to_trough=(trough_stamp - peak_stamp).days,
+                recovery_days=(end - trough_stamp).days,
+                total_days=(end - peak_stamp).days,
+            )
+        )
+
+    for stamp, raw_value in zip(index[1:], nav.iloc[1:], strict=True):
+        value = float(raw_value)
+        if value >= peak_value:
+            if under_water:
+                finish(stamp, stamp)
+                under_water = False
+            peak_value = value
+            peak_stamp = stamp
+            trough_value = value
+            trough_stamp = stamp
+            continue
+
+        if not under_water:
+            under_water = True
+            trough_value = value
+            trough_stamp = stamp
+        elif value < trough_value:
+            trough_value = value
+            trough_stamp = stamp
+
+    if under_water:
+        finish(None, index[-1])
+
+    return tuple(sorted(episodes, key=lambda episode: episode.depth)[:limit])
+
+
 def monthly_returns(nav: pd.Series) -> pd.Series:
     """Month-by-month returns, indexed by month end.
 
@@ -310,6 +386,7 @@ def from_nav(
 
     drawdown = drawdown_series(nav)
     max_drawdown = float(drawdown.min())
+    episodes = drawdown_episodes(nav)
     monthly = monthly_returns(nav)
 
     return Metrics(
@@ -328,6 +405,8 @@ def from_nav(
         max_drawdown=max_drawdown,
         calmar=cagr / abs(max_drawdown) if max_drawdown else 0.0,
         longest_drawdown_days=_longest_drawdown_days(nav),
+        time_underwater=float((drawdown < 0).mean()),
+        drawdowns=episodes,
         best_month=float(monthly.max()) if len(monthly) else 0.0,
         worst_month=float(monthly.min()) if len(monthly) else 0.0,
         positive_months=float((monthly > 0).mean()) if len(monthly) else 0.0,

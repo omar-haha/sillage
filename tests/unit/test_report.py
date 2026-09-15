@@ -101,6 +101,8 @@ def test_every_expected_section_is_present(page: str) -> None:
     for heading in ("Growth of 100", "Underwater", "Rolling 12-month", "Monthly returns"):
         assert heading in page
     assert "Calendar years" in page
+    assert "Largest drawdowns" in page
+    assert "to recover" in page
 
 
 def test_all_five_figures_carry_data(page: str) -> None:
