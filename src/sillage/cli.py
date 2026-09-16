@@ -792,6 +792,64 @@ def live_run_once(
         raise typer.Exit(3)
 
 
+@live_app.command("bootstrap")
+def live_bootstrap(
+    strategy: StrategyOpt = "balanced",
+    universe: UniverseOpt = "core",
+    root: RootOpt = Path("data"),
+    journal: JournalOpt = Path("state/ibkr.db"),
+    cash: Annotated[float, typer.Option(help="Capital assigned to this paper fund.")] = 25_000,
+    host: Annotated[str, typer.Option(help="Where TWS or IB Gateway is listening.")] = "127.0.0.1",
+    port: Annotated[int, typer.Option(help="7497 TWS paper, 4002 Gateway paper.")] = 7497,
+    client_id: Annotated[int, typer.Option(help="Must be unique per connection.")] = 17,
+    execute: Annotated[
+        bool, typer.Option("--execute", help="Submit the displayed allocation to IBKR paper.")
+    ] = False,
+) -> None:
+    """Preview or submit the one-time opening allocation for a fresh broker journal."""
+    from sillage.live.reconcile import ReconciliationError
+    from sillage.live.runner import (
+        FreshBrokerJournalError,
+        bootstrap,
+        bootstrap_plan,
+    )
+
+    config = _live_config(
+        strategy,
+        universe,
+        root,
+        journal,
+        cash,
+        0.25,
+        "ibkr",
+        host=host,
+        port=port,
+        client_id=client_id,
+    )
+    try:
+        plan = bootstrap_plan(config)  # type: ignore[arg-type]
+    except (FreshBrokerJournalError, FileNotFoundError) as exc:
+        console.print(f"[red]{exc}[/]")
+        raise typer.Exit(1) from None
+
+    table = Table("symbol", "quantity", "reason", box=None, pad_edge=False)
+    for order in plan.orders:
+        table.add_row(order.instrument.symbol, f"{float(order.quantity):,.4f}", order.reason)
+    console.print(f"[bold]bootstrap preview[/] — {plan.session}, ${cash:,.2f}")
+    console.print(table)
+    console.print(f"\n{len(plan.orders)} order(s); no broker orders sent yet.")
+    if not execute:
+        console.print("Re-run with [bold]--execute[/] to submit this allocation.")
+        return
+
+    try:
+        report = bootstrap(config)  # type: ignore[arg-type]
+    except (FreshBrokerJournalError, ReconciliationError) as exc:
+        console.print(f"[bold red]refused:[/] {exc}")
+        raise typer.Exit(2) from None
+    console.print(f"\n[green]submitted to IBKR paper.[/] {report}")
+
+
 @live_app.command("status")
 def live_status(
     strategy: StrategyOpt = "balanced",

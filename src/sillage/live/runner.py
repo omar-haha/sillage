@@ -39,13 +39,14 @@ from decimal import Decimal
 from pathlib import Path
 
 from sillage.core.calendar import TradingCalendar
-from sillage.core.money import dec
-from sillage.core.types import Bar, Portfolio
+from sillage.core.money import ZERO, dec
+from sillage.core.types import Bar, Order, Portfolio
 from sillage.data.store import BarStore
 from sillage.data.universe import Universe
 from sillage.engine.clock import LiveClock
 from sillage.engine.events import Event, EventKind
 from sillage.engine.feed import HistoricalFeed, MarketFeed, load_bars
+from sillage.engine.journal import InMemoryJournal, NavPoint
 from sillage.engine.loop import Engine
 from sillage.execution.broker import LiveBroker
 from sillage.execution.costs import CostModel
@@ -133,6 +134,120 @@ class LiveReport:
         return self.orders > 0 and self.fills == 0
 
 
+@dataclass(frozen=True, slots=True)
+class BootstrapPlan:
+    """The one current allocation a fresh broker journal will submit."""
+
+    session: date
+    orders: tuple[Order, ...]
+    shadow_nav: Decimal
+
+
+def bootstrap_plan(config: LiveConfig, *, now: datetime | None = None) -> BootstrapPlan:
+    """Build today's allocation in a shadow replay, without touching the broker."""
+    now = now or datetime.now(UTC)
+    if config.journal_path.exists():
+        journal = SqliteJournal(config.journal_path)
+        if journal.last_session() is not None or any(journal.counts().values()):
+            raise FreshBrokerJournalError(f"journal {config.journal_path} is not empty")
+
+    calendar = TradingCalendar()
+    instruments = {i.symbol: i for i in config.universe.all_instruments}
+    bars = load_bars(
+        BarStore(config.data_root), instruments.values(), calendar=calendar, end=now.date()
+    )
+    _require_fresh_data(bars, calendar, now, config.max_staleness_sessions)
+    clock = LiveClock(until=now, calendar=calendar, lookback_days=config.lookback_days)
+    shadow_journal = InMemoryJournal()
+    engine = Engine(
+        clock=clock,
+        data=HistoricalFeed(bars),
+        broker=SimulatedBroker(MarketFeed(bars), config.costs),
+        strategy=config.strategy,
+        instruments=instruments,
+        rebalancer=config.rebalancer,
+        initial_cash=config.initial_cash,
+        limits=config.limits,
+        journal=shadow_journal,
+    )
+    engine.run()
+    sessions = [point.session for point in shadow_journal.nav_points]
+    if not sessions:
+        raise FreshBrokerJournalError("no completed market session is available to bootstrap")
+
+    quantities = {
+        symbol: position.quantity
+        for symbol, position in engine.portfolio.positions.items()
+        if not position.is_flat
+    }
+    for order in engine.pending.peek():
+        quantities[order.instrument.symbol] = (
+            quantities.get(order.instrument.symbol, ZERO) + order.quantity
+        )
+
+    orders = tuple(
+        Order(
+            instrument=instruments[symbol],
+            quantity=quantity,
+            created_at=now,
+            reason=f"bootstrap {config.strategy.name}",
+        )
+        for symbol, quantity in sorted(quantities.items())
+        if quantity != ZERO
+    )
+    prices = HistoricalFeed(bars).closes(instruments, as_of=clock.now)
+    return BootstrapPlan(sessions[-1], orders, engine.portfolio.nav(prices))
+
+
+def bootstrap(config: LiveConfig, *, now: datetime | None = None) -> LiveReport:
+    """Submit one current allocation and seed a fresh broker journal."""
+    if config.broker is None:
+        raise FreshBrokerJournalError("bootstrap requires a live broker")
+    now = now or datetime.now(UTC)
+    plan = bootstrap_plan(config, now=now)
+    held = config.broker.positions()
+    if held:
+        raise ReconciliationError(str(reconcile({}, held)))
+
+    journal = SqliteJournal(config.journal_path)
+    portfolio = Portfolio(cash=config.initial_cash)
+    journal.record_nav(
+        NavPoint(
+            session=plan.session,
+            ts=now,
+            nav=config.initial_cash,
+            cash=config.initial_cash,
+            gross_exposure=ZERO,
+        )
+    )
+    for order in plan.orders:
+        journal.record_order(order)
+    next_session = TradingCalendar().next_session(plan.session)
+    report = config.broker.execute(
+        plan.orders,
+        portfolio=portfolio,
+        session=next_session,
+        ts=now,
+    )
+    for fill in report.fills:
+        portfolio = portfolio.apply_fill(fill)
+        journal.record_fill(fill)
+    for rejection in report.rejections:
+        journal.record_rejection(rejection)
+    journal.save_pending(report.outstanding)
+    return LiveReport(
+        sessions=(plan.session,),
+        fills=len(report.fills),
+        orders=len(plan.orders),
+        rejections=len(report.rejections),
+        nav=config.initial_cash,
+        cash=portfolio.cash,
+        positions=positions_of(portfolio),
+        pending=len(report.outstanding),
+        reconciliation=reconcile({}, held),
+    )
+
+
 def run_once(
     config: LiveConfig,
     *,
@@ -151,7 +266,32 @@ def run_once(
     journal = SqliteJournal(config.journal_path)
     instruments = {i.symbol: i for i in config.universe.all_instruments}
 
+    if config.broker is not None and journal.last_session() is None:
+        raise FreshBrokerJournalError(
+            "a fresh broker journal must be initialized with `sillage live bootstrap`; "
+            "historical catch-up is unsafe against a real venue"
+        )
+
     portfolio = journal.portfolio(instruments, initial_cash=config.initial_cash)
+
+    # A market-on-open order submitted by the previous evening's run may have filled
+    # while this process was offline. Import it before comparing our book with the
+    # broker's, otherwise a correct fill looks exactly like an unexplained position.
+    if config.broker is not None:
+        pending = journal.load_pending(instruments)
+        if pending:
+            report = config.broker.execute(
+                pending,
+                portfolio=portfolio,
+                session=journal.last_session() or now.date(),
+                ts=now,
+            )
+            for fill in report.fills:
+                portfolio = portfolio.apply_fill(fill)
+                journal.record_fill(fill)
+            for rejection in report.rejections:
+                journal.record_rejection(rejection)
+            journal.save_pending(report.outstanding)
 
     if broker_positions is None and config.broker is not None:
         broker_positions = config.broker.positions()
@@ -260,6 +400,10 @@ def _submit_ahead(engine: Engine, calendar: TradingCalendar, now: datetime) -> N
 
 class StaleDataError(RuntimeError):
     """Raised when the fund is asked to trade on prices that are out of date."""
+
+
+class FreshBrokerJournalError(RuntimeError):
+    """A real broker must be bootstrapped explicitly, never by historical replay."""
 
 
 def _require_fresh_data(

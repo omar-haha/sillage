@@ -19,7 +19,15 @@ from sillage.core.money import ZERO, dec
 from sillage.core.types import AssetClass, Instrument, Order
 from sillage.data.universe import Universe
 from sillage.live.reconcile import ReconciliationError, reconcile
-from sillage.live.runner import LiveConfig, StaleDataError, run_once, status
+from sillage.live.runner import (
+    FreshBrokerJournalError,
+    LiveConfig,
+    StaleDataError,
+    bootstrap,
+    bootstrap_plan,
+    run_once,
+    status,
+)
 from sillage.risk.limits import RiskLimits
 from sillage.state.journal import SqliteJournal
 from sillage.strategy.benchmarks import StaticWeights
@@ -303,10 +311,68 @@ def test_a_live_broker_gets_tonight_s_orders_before_tomorrow_s_open(
         limits=RiskLimits(max_weight=dec(1), max_drawdown=dec("0.9")),
         broker=venue,
     )
-    report = run_once(settings, now=AFTER_LAST_CLOSE)
+    report = bootstrap(settings, now=AFTER_LAST_CLOSE)
 
     assert venue.submitted, "the venue never saw tonight's orders"
     assert report.pending > 0, "orders the venue is holding must stay pending"
+
+
+def test_a_fresh_live_broker_cannot_replay_history(store: Path, tmp_path: Path) -> None:
+    class EmptyVenue:
+        name = "empty"
+
+        def execute(self, orders, *, portfolio, session, ts):  # type: ignore[no-untyped-def]
+            raise AssertionError("a fresh journal must fail before broker execution")
+
+        def positions(self) -> dict[str, Decimal]:
+            return {}
+
+    settings = config(store, tmp_path / "live.db", broker=EmptyVenue())
+    with pytest.raises(FreshBrokerJournalError, match="bootstrap"):
+        run_once(settings, now=AFTER_LAST_CLOSE)
+
+
+def test_bootstrap_preview_never_touches_the_broker(store: Path, tmp_path: Path) -> None:
+    class ExplodingVenue:
+        name = "exploding"
+
+        def execute(self, orders, *, portfolio, session, ts):  # type: ignore[no-untyped-def]
+            raise AssertionError("preview touched broker")
+
+        def positions(self) -> dict[str, Decimal]:
+            raise AssertionError("preview touched broker")
+
+    settings = config(store, tmp_path / "live.db", broker=ExplodingVenue())
+    plan = bootstrap_plan(settings, now=AFTER_LAST_CLOSE)
+    assert plan.orders
+    assert not settings.journal_path.exists()
+
+
+def test_an_overnight_fill_is_imported_before_reconciliation(store: Path, tmp_path: Path) -> None:
+    from sillage.core.types import Fill
+    from sillage.engine.journal import NavPoint
+    from sillage.execution.broker import ExecutionReport
+
+    order = Order(etf("AAA"), dec(10), created_at=LAST.close, reason="overnight")
+    journal_path = tmp_path / "live.db"
+    journal = SqliteJournal(journal_path)
+    journal.record_nav(NavPoint(LAST.day, LAST.close, dec(100_000), dec(100_000), ZERO))
+    journal.save_pending([order])
+
+    class FilledVenue:
+        name = "filled"
+
+        def execute(self, orders, *, portfolio, session, ts):  # type: ignore[no-untyped-def]
+            return ExecutionReport(
+                fills=[Fill(etf("AAA"), ts, dec(10), dec(100), order_id=order.client_order_id)]
+            )
+
+        def positions(self) -> dict[str, Decimal]:
+            return {"AAA": dec(10)}
+
+    report = run_once(config(store, journal_path, broker=FilledVenue()), now=AFTER_LAST_CLOSE)
+    assert report.reconciliation is not None and report.reconciliation.agreed
+    assert report.positions == {"AAA": dec(10)}
 
 
 def test_a_simulated_run_does_not_submit_ahead(store: Path, tmp_path: Path) -> None:

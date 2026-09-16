@@ -59,6 +59,25 @@ prints the checklist above.
 
 ## Running the fund against it
 
+Initialize a new broker journal explicitly. The first invocation is preview-only and
+does not connect to IBKR or place orders:
+
+```bash
+uv run sillage live bootstrap --cash 25000 --journal state/ibkr.db
+```
+
+Review every quantity, then submit that exact current allocation:
+
+```bash
+uv run sillage live bootstrap --cash 25000 --journal state/ibkr.db --execute
+```
+
+This explicit boundary is required. A normal live run deliberately refuses a fresh
+broker journal, because its historical catch-up window is useful for a simulator but
+must never be allowed to turn old decisions into real venue orders. On later runs,
+fills that arrived while the process was offline are imported before position
+reconciliation.
+
 ```bash
 uv run sillage live run-once --broker ibkr --port 7497 --journal state/ibkr.db
 ```

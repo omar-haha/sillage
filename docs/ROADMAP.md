@@ -641,6 +641,12 @@ and operations, not real execution quality. In parallel: verify Docker, publish 
 read-only demo and representative tearsheet, add dashboard screenshots, and make the
 README distinguish completed evidence from the Phase 8 research target.
 
+The paper connection is now verified. Fresh broker journals require an explicit,
+previewable bootstrap, historical catch-up cannot reach a real venue, and overnight
+fills are collected before reconciliation. The provisional balanced baseline may run
+at a $25,000 local NAV while the Phase 8 research proceeds; its forward record is
+operational evidence, not evidence that the final Sharpe target has been met.
+
 **Order of work:** measuring stick → frozen baselines → strategy specifications → sleeve
 research → broker feasibility → frozen blend → risk scaling → paper validation. The IBKR
 gateway check begins immediately when the account is available and does not wait for the
