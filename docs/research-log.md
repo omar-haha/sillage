@@ -804,3 +804,27 @@ survive its own analysis.
 If crypto earns a place on a defensible admission date, the broker follows. Right now the
 finding is that it does not, and building the plumbing anyway would be following a plan
 past the point where the plan was still right.
+## 2026-09-16 — The cash-rate correction lowers every headline
+
+The Phase 8 controls are now frozen through 2026-09-16 against the daily 3-month US
+Treasury yield, with cash accrual and the normal commission/slippage model included.
+These are the numbers new sleeves must beat:
+
+| strategy | CAGR | excess Sharpe | zero-rate Sharpe | max drawdown | longest drawdown |
+|---|---:|---:|---:|---:|---:|
+| Momentum | 7.36% | 0.64 | 0.84 | -21.83% | 698d |
+| 60/40 | 8.25% | 0.61 | 0.78 | -31.22% | 1,092d |
+| **Balanced** | **7.87%** | **0.71** | **0.92** | **-19.92%** | **759d** |
+| SPY | 10.81% | 0.54 | 0.64 | -55.14% | 1,773d |
+
+The balanced fund still does the job it was built for: a materially smoother ride than
+SPY, with roughly one third of the drawdown. But the dated opportunity cost of cash
+removes 0.21 from its headline Sharpe. The 1.10 objective is therefore not within
+rounding distance and cannot be reached honestly by polishing the existing long-only
+blend. A genuinely complementary sleeve is required.
+
+The cash series is Federal Reserve H.15 `DGS3MO`. The margin curve is explicitly a
+proxy, not reconstructed IBKR history: daily effective fed funds (`DFF`) plus IBKR
+Pro's published 1.5 percentage-point first-tier spread. None of these four controls
+borrows, so that approximation does not affect their rankings; it exists now so later
+leveraged comparisons use a declared cost rather than free leverage.

@@ -593,8 +593,9 @@ more weight than the full-sample headline.
    the dated rate supplied for the run and weekends accrue as calendar days.
 3. ✅ Extend drawdown reporting with the five largest distinct peak/trough/recovery
    episodes and total time underwater, across CLI, tearsheet, API and dashboard.
-4. ⏳ Regenerate the frozen baselines: momentum, 60/40, balanced and SPY. These become the
-   controls for every new experiment.
+4. ✅ Regenerate the frozen baselines: momentum, 60/40, balanced and SPY. The committed
+   rate inputs and machine-readable results in `research/` are now the controls for
+   every new experiment.
 
 **8b — Test two complementary sleeves.** Specifications and rejection criteria are
 written before implementation, and failed candidates stay in the research log.

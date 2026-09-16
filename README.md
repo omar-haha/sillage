@@ -277,12 +277,12 @@ thing that can be swept — and a bias you can size is a bias you can argue abou
 
 The honest list, in the order I would worry about them.
 
-1. **Nothing here has traded real money.** Every number is a simulation of the past.
-2. **The Interactive Brokers adapter has never met a gateway.** It is written against a
-   narrow protocol and tested against a fake that models partial fills, rejections,
-   timeouts and disconnects — which tests the adapter's logic and says nothing about
-   whether IB behaves as I assumed. Until it runs against a paper account, the cost model
-   is unvalidated and the divergence report that would validate it has no input.
+1. **Nothing here has traded real money.** Every research number is a simulation of the
+   past; the current balanced strategy has only just begun an IBKR paper run.
+2. **The Interactive Brokers adapter has passed connection and submission, not a full
+   lifecycle.** Nine market-on-open orders were accepted by paper TWS on 2026-09-16.
+   Fill import, reconciliation and restart behaviour still need evidence from subsequent
+   sessions, and paper execution cannot validate real fill quality.
 3. **The strategy's case rests on one crisis.** It beat the index in all three of the
    sample's down years, but 2008 supplies almost all of the margin and is the only genuine
    crash in the window. Post-2010, a plain 60/40 beats it on every measure. The 2000–02

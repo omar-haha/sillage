@@ -1,10 +1,9 @@
 # Trading it at Interactive Brokers
 
-> **Nothing in this document has been verified against a live gateway.** The adapter was
-> written before the account existed. Its logic is tested against a fake that models the
-> venue's behaviours, which catches design errors and cannot catch protocol errors. The
-> first thing to run is `sillage broker-check`, and until that succeeds treat everything
-> here as a plan rather than a report.
+> **Verified against IBKR paper TWS on 2026-09-16.** Connection, contract qualification,
+> order submission and persistence of nine working market-on-open orders succeeded. Fill
+> import and post-fill reconciliation remain the next live protocol checks; paper fills
+> still do not establish real execution quality.
 
 ## Why a second broker at all
 
