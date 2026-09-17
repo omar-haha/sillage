@@ -598,7 +598,9 @@ more weight than the full-sample headline.
    every new experiment.
 
 **8b — Test two complementary sleeves.** Specifications and rejection criteria are
-written before implementation, and failed candidates stay in the research log.
+written before implementation, and failed candidates stay in the research log. The
+rules, live-account sizing gates and fixed pair/contract candidates are now frozen in
+`docs/phase8-strategy-specs.md`; no candidate backtest has been run yet.
 
 1. **Diversified long/short time-series trend.** Combine predeclared 3/6/12-month signals
    across liquid equity-index, government-bond, currency and commodity markets; size by
@@ -647,6 +649,12 @@ previewable bootstrap, historical catch-up cannot reach a real venue, and overni
 fills are collected before reconciliation. The provisional balanced baseline may run
 at a $25,000 local NAV while the Phase 8 research proceeds; its forward record is
 operational evidence, not evidence that the final Sharpe target has been met.
+
+Operational follow-up: replace the manual laptop routine with a once-daily supervised
+job, missed-run/stale-data/reconciliation alerts and documented weekly IBKR
+reauthentication. This is intentionally pinned until the first paper lifecycle has
+completed manually; automation must not hide an execution path that has not yet been
+observed end to end.
 
 **Order of work:** measuring stick → frozen baselines → strategy specifications → sleeve
 research → broker feasibility → frozen blend → risk scaling → paper validation. The IBKR

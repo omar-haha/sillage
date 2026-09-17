@@ -828,3 +828,22 @@ proxy, not reconstructed IBKR history: daily effective fed funds (`DFF`) plus IB
 Pro's published 1.5 percentage-point first-tier spread. None of these four controls
 borrows, so that approximation does not affect their rankings; it exists now so later
 leveraged comparisons use a declared cost rather than free leverage.
+
+## 2026-09-17 — The $25K account changes the futures question
+
+Phase 8b's two candidate specifications and rejection criteria are frozen before either
+backtest exists. The contract screen immediately removed the tempting fiction that
+"micro" automatically means small enough: MES, MNQ, M2K, MGC and MCL remain too coarse
+to equal-risk comfortably inside one sleeve of a $25,000 portfolio.
+
+CME's E-nano equity contracts change that arithmetic, but they launched only on
+2026-08-24. Their multipliers fit the account; their liquidity, broker support and live
+history are unproven. They are conditional candidates, not a loophole for declaring the
+futures sleeve feasible. At least four markets across three asset classes must pass
+qualification, margin, liquidity, history and risk-granularity gates before a futures
+backtest is allowed to influence the portfolio plan.
+
+The alternative ETF relative-value experiment is also fixed now: five declared pairs,
+a trailing-only hedge model, explicit two-leg failure costs, and concentration and
+borrow stresses. It is operationally closer to the current adapter but still cannot be
+called executable until IBKR short-availability, fee, recall and buy-in handling exists.
