@@ -1,11 +1,9 @@
 # Trading it at Interactive Brokers
 
-> **Connection verified against IBKR paper TWS on 2026-09-16.** The first nine
-> market-on-open orders exposed a protocol bug: local `PendingSubmit` states were reported
-> as broker-held, but the orders never appeared in IBKR and did not survive disconnect.
-> That state is now treated as an acknowledgement failure. Actual submission, fill import
-> and post-fill reconciliation remain unverified; paper fills still would not establish
-> real execution quality.
+> **Full paper lifecycle verified against IBKR TWS on 2026-09-18.** Nine market-on-open
+> orders were acknowledged, survived disconnect, filled in the opening auction, imported
+> by execution id, and reconciled exactly against broker positions. Paper fills validate
+> the plumbing; they still do not establish real-money execution quality.
 
 ## Why a second broker at all
 

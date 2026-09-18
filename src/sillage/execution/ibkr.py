@@ -242,7 +242,12 @@ class IBKRBroker:
                 continue
             submitted[reference] = order
 
-        self._await_resolution(set(submitted))
+        # A completed order may no longer have a Trade/status object after reconnecting.
+        # Its execution is stronger evidence than any status callback, and waiting for
+        # a status that IBKR will never replay turns an overnight fill import into a
+        # full timeout for every run.
+        executed = {execution.order_ref for execution in self.client.executions(since=session)}
+        self._await_resolution(set(submitted) - executed)
 
         fills, outstanding = self._collect(submitted, session, ts, rejections)
         return ExecutionReport(fills=fills, rejections=rejections, outstanding=outstanding)
@@ -320,9 +325,24 @@ class IBKRBroker:
         ]
 
         filled = {execution.order_ref for execution in executions}
+        completed = {
+            reference
+            for reference, order in submitted.items()
+            if sum(
+                (
+                    execution.quantity
+                    for execution in executions
+                    if execution.order_ref == reference
+                ),
+                ZERO,
+            )
+            == order.quantity
+        }
         outstanding: list[Order] = []
         for reference, order in submitted.items():
             status = self.client.status(reference)
+            if reference in completed:
+                continue
             if status is not None and status.done:
                 if reference not in filled:
                     rejections.append(Rejection(order, _reason(status), ts))

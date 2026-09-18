@@ -891,3 +891,22 @@ because E-nanos launched only in August; this is appropriate for underlying risk
 evidence of tradable liquidity. NES and N2K still require observed spread and volume,
 and the futures candidate fails if either does not pass. The screen is reproducible with
 `sillage broker-contract-risk`, a read-only request that sends no orders.
+
+## 2026-09-18 — The first broker-held portfolio reconciles
+
+After enabling TWS's API precaution bypass, all nine $25,000 balanced-allocation orders
+reached IBKR as `PreSubmitted`, survived an API disconnect, and filled in the September
+18 opening auction. The journal imported nine executions and reconciled all nine
+positions exactly, with no working orders or pending local orders left. Fill notional
+was $23,256.13 and residual cash was $1,743.87 before subsequent marking.
+
+IBKR paper's execution reports supplied zero commission even after allowing time for
+commission callbacks, while its position average costs imply approximately $1 per
+position. The journal preserves the reported zero rather than fabricating a value; this
+is a known paper-data limitation to compare against live-account observations later.
+
+The reconnect also exposed a latency bug: completed executions may be replayed without
+a terminal Trade/status object. The adapter now treats a complete quantity matched by
+execution reference as resolved immediately instead of waiting for a status callback
+that IBKR will not replay. Partial quantities still require an acknowledged working or
+terminal status.

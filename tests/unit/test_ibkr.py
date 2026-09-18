@@ -177,6 +177,22 @@ def test_an_order_the_venue_already_filled_is_not_resubmitted() -> None:
     assert len(report.fills) == 1
 
 
+def test_an_execution_without_a_replayed_status_imports_without_waiting() -> None:
+    """IBKR keeps executions after the completed Trade object disappears on reconnect."""
+    venue = FakeVenue()
+    order = Order(A, dec(10))
+    venue.fill(order.client_order_id, "AAA", dec(10), dec(100))
+    slept: list[float] = []
+
+    report = IBKRBroker(venue, timeout=3, poll=1, sleeper=slept.append).execute(
+        [order], portfolio=Portfolio(cash=dec(100_000)), session=SESSION, ts=TS
+    )
+
+    assert venue.placed == []
+    assert len(report.fills) == 1
+    assert slept == []
+
+
 def test_an_order_the_venue_is_still_working_is_not_resubmitted() -> None:
     venue = FakeVenue()
     order = Order(A, dec(10))
