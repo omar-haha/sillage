@@ -222,6 +222,7 @@ def bootstrap(config: LiveConfig, *, now: datetime | None = None) -> LiveReport:
     )
     for order in plan.orders:
         journal.record_order(order)
+    journal.save_pending(plan.orders)
     next_session = TradingCalendar().next_session(plan.session)
     report = config.broker.execute(
         plan.orders,
@@ -346,6 +347,9 @@ def run_once(
             sessions.append(event.session)
 
     if config.broker is not None:
+        # Persist before crossing the network. If the process dies or IBKR never
+        # acknowledges the batch, the exact ids remain available for recovery.
+        journal.save_pending(engine.pending.peek())
         _submit_ahead(engine, calendar, clock.now)
 
     # Persisted last, so a crash mid-step leaves the previous pending set intact rather

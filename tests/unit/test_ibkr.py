@@ -20,7 +20,7 @@ from tests.support import etf
 
 from sillage.core.money import ZERO, dec
 from sillage.core.types import Order, Portfolio
-from sillage.execution.broker import LiveBroker
+from sillage.execution.broker import BrokerError, LiveBroker
 from sillage.execution.ibkr import Execution, IBClient, IBKRBroker, Placement
 
 A, B = etf("AAA"), etf("BBB")
@@ -56,6 +56,8 @@ class FakeVenue:
         behaviour = self.behaviour.get(symbol, "fill")
         if behaviour == "refuse":
             self._status[order_ref] = Placement(order_ref, "Inactive", message="contract is halted")
+        elif behaviour == "unacknowledged":
+            self._status[order_ref] = Placement(order_ref, "PendingSubmit", remaining=abs(quantity))
         elif behaviour == "working":
             self._status[order_ref] = Placement(order_ref, "Submitted", remaining=abs(quantity))
             self._open.add(order_ref)
@@ -261,6 +263,14 @@ def test_an_order_still_working_at_the_timeout_is_outstanding_not_lost() -> None
     assert not report.fills
     assert not report.rejections
     assert report.outstanding == [order]
+
+
+def test_pending_submit_is_not_claimed_as_broker_held() -> None:
+    """PendingSubmit can exist only in TWS and vanish when the session disconnects."""
+    venue = FakeVenue()
+    venue.behaviour["AAA"] = "unacknowledged"
+    with pytest.raises(BrokerError, match=r"never acknowledged.*PendingSubmit"):
+        run(venue, [Order(A, dec(10))])
 
 
 def test_waiting_gives_up_rather_than_blocking_forever() -> None:

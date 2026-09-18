@@ -348,6 +348,30 @@ def test_bootstrap_preview_never_touches_the_broker(store: Path, tmp_path: Path)
     assert not settings.journal_path.exists()
 
 
+def test_bootstrap_persists_orders_before_broker_acknowledgement(
+    store: Path, tmp_path: Path
+) -> None:
+    from sillage.execution.broker import BrokerError
+
+    class UncertainVenue:
+        name = "uncertain"
+
+        def execute(self, orders, *, portfolio, session, ts):  # type: ignore[no-untyped-def]
+            raise BrokerError("no acknowledgement")
+
+        def positions(self) -> dict[str, Decimal]:
+            return {}
+
+    journal_path = tmp_path / "live.db"
+    settings = config(store, journal_path, broker=UncertainVenue())
+    with pytest.raises(BrokerError, match="no acknowledgement"):
+        bootstrap(settings, now=AFTER_LAST_CLOSE)
+
+    journal = SqliteJournal(journal_path)
+    assert journal.load_pending({"AAA": etf("AAA"), "BBB": etf("BBB")})
+    assert journal.counts()["orders"] > 0
+
+
 def test_an_overnight_fill_is_imported_before_reconciliation(store: Path, tmp_path: Path) -> None:
     from sillage.core.types import Fill
     from sillage.engine.journal import NavPoint

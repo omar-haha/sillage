@@ -1,9 +1,11 @@
 # Trading it at Interactive Brokers
 
-> **Verified against IBKR paper TWS on 2026-09-16.** Connection, contract qualification,
-> order submission and persistence of nine working market-on-open orders succeeded. Fill
-> import and post-fill reconciliation remain the next live protocol checks; paper fills
-> still do not establish real execution quality.
+> **Connection verified against IBKR paper TWS on 2026-09-16.** The first nine
+> market-on-open orders exposed a protocol bug: local `PendingSubmit` states were reported
+> as broker-held, but the orders never appeared in IBKR and did not survive disconnect.
+> That state is now treated as an acknowledgement failure. Actual submission, fill import
+> and post-fill reconciliation remain unverified; paper fills still would not establish
+> real execution quality.
 
 ## Why a second broker at all
 
@@ -94,6 +96,11 @@ strategy and dates — that is what makes them comparable.
 `run-once` exits non-zero and explains itself on every refusal — stale data, a
 reconciliation mismatch, a tripped kill-switch — so a cron wrapper has something to page
 on. It is safe to run twice; the second call finds nothing outstanding.
+
+An order is not considered live merely because the local API created it. Sillage accepts
+only IBKR's `PreSubmitted` or `Submitted` working states (or a terminal fill). A lingering
+`PendingSubmit`, missing status or other unacknowledged state fails the run loudly and
+leaves the exact order ids pending in the journal for an operator to investigate.
 
 ## How the order flow actually works
 

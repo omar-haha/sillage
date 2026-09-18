@@ -738,6 +738,7 @@ def live_run_once(
     outstanding and does nothing. Intended for cron, once per evening after the close.
     """
     from sillage.core.money import dec
+    from sillage.execution.broker import BrokerError
     from sillage.live.reconcile import ReconciliationError
     from sillage.live.runner import StaleDataError, run_once
 
@@ -778,6 +779,9 @@ def live_run_once(
     except FileNotFoundError as exc:
         console.print(f"[red]{exc}[/]")
         raise typer.Exit(1) from None
+    except BrokerError as exc:
+        console.print(f"[bold red]broker acknowledgement failed:[/] {exc}")
+        raise typer.Exit(5) from None
 
     if report.reconciliation:
         console.print(f"[dim]{report.reconciliation}[/]")
@@ -807,6 +811,7 @@ def live_bootstrap(
     ] = False,
 ) -> None:
     """Preview or submit the one-time opening allocation for a fresh broker journal."""
+    from sillage.execution.broker import BrokerError
     from sillage.live.reconcile import ReconciliationError
     from sillage.live.runner import (
         FreshBrokerJournalError,
@@ -844,7 +849,7 @@ def live_bootstrap(
 
     try:
         report = bootstrap(config)  # type: ignore[arg-type]
-    except (FreshBrokerJournalError, ReconciliationError) as exc:
+    except (FreshBrokerJournalError, ReconciliationError, BrokerError) as exc:
         console.print(f"[bold red]refused:[/] {exc}")
         raise typer.Exit(2) from None
     console.print(f"\n[green]submitted to IBKR paper.[/] {report}")

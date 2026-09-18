@@ -49,10 +49,14 @@ from typing import Any, Protocol, runtime_checkable
 
 from sillage.core.money import ZERO, dec, quantize_price
 from sillage.core.types import Fill, Order, Portfolio
-from sillage.execution.broker import ExecutionReport, Rejection
+from sillage.execution.broker import BrokerError, ExecutionReport, Rejection
 
 #: IB's terminal order states. Anything else is still working.
 DONE_STATES = frozenset({"Filled", "Cancelled", "Inactive", "ApiCancelled"})
+#: States proving that IBKR, rather than only the local API client, is holding an order.
+#: PendingSubmit is deliberately absent: the first paper run showed that such orders can
+#: disappear when TWS disconnects without ever reaching IBKR's order history.
+ACKNOWLEDGED_STATES = frozenset({"PreSubmitted", "Submitted"})
 
 #: How long `execute` waits for an order to reach a terminal state before giving up and
 #: reporting it outstanding. Generous, because giving up early is free -- the order is
@@ -293,6 +297,14 @@ class IBKRBroker:
                 if reference not in filled:
                     rejections.append(Rejection(order, _reason(status), ts))
                 continue
+            if status is None or status.status not in ACKNOWLEDGED_STATES:
+                state = status.status if status is not None else "missing"
+                detail = f": {status.message}" if status is not None and status.message else ""
+                raise BrokerError(
+                    f"IBKR never acknowledged {order.instrument.symbol} order "
+                    f"{reference} (status {state!r}){detail}; its journal entry remains "
+                    "pending and must not be assumed live"
+                )
             # Not terminal, so the venue still has it -- including the case where part
             # of it filled and the rest is working. The whole order stays outstanding
             # because that is what the broker is holding; the adapter will recognise it

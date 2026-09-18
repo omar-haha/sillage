@@ -847,3 +847,21 @@ The alternative ETF relative-value experiment is also fixed now: five declared p
 a trailing-only hedge model, explicit two-leg failure costs, and concentration and
 borrow stresses. It is operationally closer to the current adapter but still cannot be
 called executable until IBKR short-availability, fee, recall and buy-in handling exists.
+
+## 2026-09-17 — “Pending” was local, not accepted
+
+The first IBKR paper bootstrap reported nine accepted, pending orders. The next session
+contained no positions, open orders, executions or completed API orders, and TWS showed
+nothing over the preceding seven days. The orders had never reached IBKR.
+
+The adapter had classified every non-terminal status as working. IBKR's `PendingSubmit`
+does not prove that: it may describe an order still local to TWS, and those orders can
+vanish on disconnect. Only `PreSubmitted` and `Submitted` now count as acknowledged
+working states. Anything else raises an operator-visible broker error, and the batch is
+persisted before transmission so an uncertain outcome remains recoverable under the
+same order ids.
+
+This is exactly why the paper phase exists. The fake venue modelled fills, partial fills,
+rejections and acknowledged working orders; it did not model a local order that never
+crossed the broker boundary. No performance observation was lost because the paper
+portfolio never opened.
