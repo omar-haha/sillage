@@ -9,9 +9,12 @@ failure ping.
 ## Broker constraint
 
 Use IB Gateway paper on port 4002. IBKR supports automatic daily restart during the
-week, but not permanently unattended authentication: log in through its GUI after the
-weekend reset. Do not store IBKR credentials in this repository or expose port 4002 to
-the internet. The API and Gateway should communicate over localhost.
+week, but not permanently unattended authentication. The supplied optional Docker
+deployment uses the community-maintained `gnzsnz/ib-gateway` image and IBC to drive the
+GUI login; this is useful for paper testing but is outside IBKR's officially supported
+headless model. It keeps passwords in mode-0600 Docker secret files rather than Compose
+environment variables. Do not expose ports 4002 or 5900 to the internet: both supplied
+port mappings bind to VPS localhost and should be reached only through SSH tunnels.
 
 ## Install layout
 
@@ -43,6 +46,30 @@ late catch-up from ambiguously queuing an opening order for the wrong session. S
 itself still refuses stale data, unexplained positions, unacknowledged orders, and
 drawdown-limit breaches. Backups are retained locally for 35 days; copy them to a separate
 host or object store before treating the VPS as durable.
+
+## Optional containerized Gateway
+
+Copy `deploy/ibgateway/.env.example` to `.env`, create the two files
+`secrets/tws_password` and `secrets/vnc_password`, and set all three files to mode 0600.
+The Compose project is deliberately fixed to paper mode. Start it with:
+
+```bash
+cd deploy/ibgateway
+docker compose pull
+docker compose up -d
+docker compose logs --tail=100
+```
+
+To inspect the GUI, create an SSH tunnel from the operator laptop and connect a local
+VNC client to `localhost:5900`:
+
+```bash
+ssh -L 5900:127.0.0.1:5900 deploy@your-vps
+```
+
+Second-factor approval is still controlled by IBKR and may require the registered mobile
+device. Never reuse this Compose file for live trading without a separate security and
+operational review.
 
 ## Weekly routine
 

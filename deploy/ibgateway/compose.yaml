@@ -1,0 +1,34 @@
+name: sillage-paper-gateway
+
+services:
+  ib-gateway:
+    image: ghcr.io/gnzsnz/ib-gateway:stable
+    restart: unless-stopped
+    environment:
+      TRADING_MODE: paper
+      TWS_USERID: ${TWS_USERID}
+      TWS_PASSWORD_FILE: /run/secrets/tws_password
+      VNC_SERVER_PASSWORD_FILE: /run/secrets/vnc_password
+      READ_ONLY_API: "no"
+      BYPASS_WARNING: "yes"
+      TWS_ACCEPT_INCOMING: accept
+      TWOFA_TIMEOUT_ACTION: restart
+      RELOGIN_AFTER_TWOFA_TIMEOUT: "yes"
+      AUTO_RESTART_TIME: "11:45 PM"
+      TIME_ZONE: America/Toronto
+      ALLOW_BLIND_TRADING: "yes"
+      TWS_SETTINGS_PATH: /home/ibgateway/Jts
+    ports:
+      - "127.0.0.1:4002:4004"
+      - "127.0.0.1:5900:5900"
+    volumes:
+      - ./settings:/home/ibgateway/Jts
+    secrets:
+      - tws_password
+      - vnc_password
+
+secrets:
+  tws_password:
+    file: ./secrets/tws_password
+  vnc_password:
+    file: ./secrets/vnc_password
