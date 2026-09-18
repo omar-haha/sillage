@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from datetime import UTC, date, datetime
 from decimal import Decimal
+from types import SimpleNamespace
 
 import pytest
 from tests.support import etf
@@ -332,3 +333,38 @@ def test_the_gateway_client_defaults_to_a_paper_port() -> None:
     from sillage.execution.ibkr import IBGatewayClient
 
     assert IBGatewayClient().port == 7497
+
+
+def test_future_check_selects_a_contract_past_the_expiry_buffer() -> None:
+    from sillage.execution.ibkr import IBGatewayClient
+
+    near = SimpleNamespace(
+        localSymbol="NESU6", lastTradeDateOrContractMonth="20260918", multiplier="0.5"
+    )
+    usable = SimpleNamespace(
+        localSymbol="NESZ6", lastTradeDateOrContractMonth="20261218", multiplier="0.5"
+    )
+
+    class FakeIB:
+        def isConnected(self) -> bool:  # noqa: N802 - third-party API shape
+            return True
+
+        def reqContractDetails(self, contract):  # type: ignore[no-untyped-def] # noqa: N802
+            return [SimpleNamespace(contract=near), SimpleNamespace(contract=usable)]
+
+        def whatIfOrder(self, contract, order):  # type: ignore[no-untyped-def] # noqa: N802
+            assert contract is usable
+            assert order.tif == "DAY"
+            return SimpleNamespace(
+                initMarginChange="484.48",
+                maintMarginChange="367.07",
+                commission=0.61,
+                status="PreSubmitted",
+                warningText="",
+            )
+
+    client = IBGatewayClient()
+    client._ib = FakeIB()
+    result = client.check_future("NES", "CME", as_of=date(2026, 9, 17))
+    assert result.local_symbol == "NESZ6"
+    assert result.initial_margin == dec("484.48")

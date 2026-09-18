@@ -865,3 +865,15 @@ This is exactly why the paper phase exists. The fake venue modelled fills, parti
 rejections and acknowledged working orders; it did not model a local order that never
 crossed the broker boundary. No performance observation was lost because the paper
 portfolio never opened.
+
+## 2026-09-17 — The paper account qualifies the futures, but size still decides
+
+A non-transmitting IBKR what-if screen qualified every declared futures family with no
+permission warnings. The new E-nanos require approximately $178–$913 initial margin per
+contract, M6E/10Y/1OZ roughly $512–$849, MCL about $3,027, and the larger MES/MGC about
+$4,846/$5,775. These values are a dated broker snapshot and will move.
+
+This clears broker availability, not strategy feasibility. Low margin is not low risk:
+whole-contract volatility, spreads and the E-nanos' few weeks of liquidity history still
+have to pass the frozen gates. The result is now reproducible with
+`sillage broker-contract-check`, which uses IBKR what-if orders and transmits nothing.

@@ -43,7 +43,7 @@ from __future__ import annotations
 import time
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from typing import Any, Protocol, runtime_checkable
 
@@ -84,6 +84,22 @@ class Execution:
     price: Decimal
     commission: Decimal
     ts: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class FuturesCheck:
+    """One non-transmitting IBKR contract and margin qualification result."""
+
+    symbol: str
+    local_symbol: str
+    exchange: str
+    expiry: date
+    multiplier: Decimal
+    initial_margin: Decimal
+    maintenance_margin: Decimal
+    commission: Decimal
+    status: str
+    warning: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -419,6 +435,50 @@ class IBGatewayClient:
                 held[position.contract.symbol] = dec(position.position)
         return held
 
+    def check_future(
+        self,
+        symbol: str,
+        exchange: str,
+        *,
+        as_of: date | None = None,
+        minimum_days: int = 30,
+    ) -> FuturesCheck:
+        """Qualify the next usable contract and request a non-transmitting margin check."""
+        from ib_async import Future, MarketOrder
+
+        ib = self._require()
+        cutoff = (as_of or date.today()) + timedelta(days=minimum_days)
+        details = ib.reqContractDetails(
+            Future(symbol=symbol, exchange=exchange, currency=self.currency)
+        )
+        candidates = [
+            item.contract
+            for item in details
+            if _contract_expiry(item.contract.lastTradeDateOrContractMonth) >= cutoff
+        ]
+        if not candidates:
+            raise ValueError(f"IBKR returned no {symbol} contract expiring after {cutoff}")
+        contract = min(
+            candidates, key=lambda item: _contract_expiry(item.lastTradeDateOrContractMonth)
+        )
+        # Explicit DAY avoids TWS applying an order preset, which turns the informational
+        # preset change into API error 10349 and suppresses the what-if response.
+        state = ib.whatIfOrder(contract, MarketOrder("BUY", 1, tif="DAY"))
+        if isinstance(state, list) or state is None:
+            raise RuntimeError(f"IBKR returned no what-if result for {contract.localSymbol}")
+        return FuturesCheck(
+            symbol=symbol,
+            local_symbol=str(contract.localSymbol),
+            exchange=exchange,
+            expiry=_contract_expiry(contract.lastTradeDateOrContractMonth),
+            multiplier=dec(contract.multiplier),
+            initial_margin=dec(state.initMarginChange),
+            maintenance_margin=dec(state.maintMarginChange),
+            commission=dec(state.commission),
+            status=str(state.status),
+            warning=str(state.warningText or ""),
+        )
+
     def _contract(self, symbol: str) -> object:
         from ib_async import Stock
 
@@ -449,3 +509,10 @@ def _placement(status: object, order_ref: str, log: Sequence[object] = ()) -> Pl
         average_price=dec(getattr(status, "avgFillPrice", 0.0) or 0.0),
         message=message,
     )
+
+
+def _contract_expiry(value: str) -> date:
+    """IBKR sometimes appends a time to the YYYYMMDD last-trade date."""
+    if len(value) < 8:
+        raise ValueError(f"IBKR returned an invalid contract expiry {value!r}")
+    return datetime.strptime(value[:8], "%Y%m%d").date()

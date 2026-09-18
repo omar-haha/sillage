@@ -608,6 +608,8 @@ rules, live-account sizing gates and fixed pair/contract candidates are now froz
    history, multiplier, minimum useful account size, margin, liquidity, expiry and roll.
    The sleeve proceeds only if whole micro contracts can express its risk budget and its
    drawdowns are sufficiently different from the existing long-only momentum sleeve.
+   ✅ IBKR paper qualification and what-if margin checks pass for all declared contract
+   families; historical data, liquidity and risk-granularity gates remain open.
 2. **Liquid ETF relative value.** Test a small, economically related and predeclared set
    of ETF pairs. Estimate hedge ratios from trailing data only, require evidence of a
    stable spread, and model borrow availability, borrow cost and both legs failing to

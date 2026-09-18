@@ -1034,6 +1034,68 @@ def broker_check(
         client.disconnect()
 
 
+@app.command("broker-contract-check")
+def broker_contract_check(
+    host: Annotated[str, typer.Option(help="Where TWS or IB Gateway is listening.")] = "127.0.0.1",
+    port: Annotated[int, typer.Option(help="7497 TWS paper, 4002 Gateway paper.")] = 7497,
+    client_id: Annotated[int, typer.Option(help="Must be unique per connection.")] = 18,
+) -> None:
+    """Qualify Phase 8 futures and request non-transmitting IBKR margin estimates."""
+    try:
+        from sillage.execution.ibkr import IBGatewayClient
+    except ImportError:
+        console.print("[red]ib_async is not installed[/]; run `uv sync --extra ibkr`")
+        raise typer.Exit(1) from None
+
+    candidates = (
+        ("NES", "CME"),
+        ("NNQ", "CME"),
+        ("N2K", "CME"),
+        ("M6E", "CME"),
+        ("10Y", "CBOT"),
+        ("1OZ", "COMEX"),
+        ("MCL", "NYMEX"),
+        ("MES", "CME"),
+        ("MGC", "COMEX"),
+    )
+    client = IBGatewayClient(host=host, port=port, client_id=client_id, readonly=False)
+    table = Table(
+        "family",
+        "contract",
+        "expiry",
+        "multiplier",
+        "initial",
+        "maintenance",
+        "commission",
+        "status",
+        box=None,
+        pad_edge=False,
+    )
+    try:
+        client.connect()
+        for symbol, exchange in candidates:
+            result = client.check_future(symbol, exchange)
+            table.add_row(
+                result.symbol,
+                result.local_symbol,
+                result.expiry.isoformat(),
+                f"{float(result.multiplier):,.4g}",
+                f"${float(result.initial_margin):,.2f}",
+                f"${float(result.maintenance_margin):,.2f}",
+                f"${float(result.commission):,.2f}",
+                result.status,
+            )
+            if result.warning:
+                console.print(f"[yellow]{result.local_symbol}:[/] {result.warning}")
+    except Exception as exc:
+        console.print(f"[bold red]contract check failed:[/] {exc}")
+        raise typer.Exit(1) from None
+    finally:
+        client.disconnect()
+    console.print(table)
+    console.print("\n[dim]All rows are IBKR what-if requests; no orders were transmitted.[/]")
+
+
 @app.command()
 def serve(
     journal: JournalOpt = Path("state/live.db"),

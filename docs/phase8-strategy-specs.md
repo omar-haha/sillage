@@ -35,6 +35,24 @@ existing long-only momentum/60-40 blend, especially during sustained equity decl
 The table is a gate, not yet a tradable universe. Margin is broker- and date-dependent
 and must be captured from IBKR immediately before paper deployment.
 
+The first account-level check completed on 2026-09-17 using IBKR paper what-if orders.
+Every family qualified without a permission warning; no order was transmitted.
+
+| Family | Selected contract | Multiplier | Initial margin | Maintenance | Est. commission |
+|---|---|---:|---:|---:|---:|
+| NES | NESZ6 | 0.5 | $484.68 | $367.09 | $0.61 |
+| NNQ | NNQZ6 | 0.2 | $913.05 | $599.13 | $0.61 |
+| N2K | N2KZ6 | 0.5 | $178.35 | $155.09 | $0.61 |
+| M6E | M6EZ6 | 12,500 | $512.37 | $445.54 | $0.40 |
+| 10Y | 10YV6 | 1,000 | $849.02 | $734.66 | $0.56 |
+| 1OZ | 1OZZ6 | 1 | $582.03 | $506.12 | $0.66 |
+| MCL | MCLX6 | 100 | $3,026.53 | $2,409.82 | $0.76 |
+| MES | MESZ6 | 5 | $4,845.74 | $3,670.39 | $0.61 |
+| MGC | MGCV6 | 10 | $5,774.68 | $5,021.61 | $0.96 |
+
+These are a dated feasibility snapshot, not constants. Regenerate with
+`sillage broker-contract-check`; IBKR can change house margin at any time.
+
 | Market | Candidate | Contract risk unit | History/roll issue | $25K verdict |
 |---|---|---|---|---|
 | US large equity | `NES` E-nano S&P 500 | $0.50 × index; $0.25 tick | Launched 2026-08-24; research must proxy the larger contract and execution has almost no history | Conditional: size works; require IBKR qualification and observed spread/volume |
@@ -160,4 +178,3 @@ distributions owed on shorts. Those are built only if the research passes.
 4. Run Candidate A and log it whether it passes or fails.
 5. Acquire historical borrow assumptions and run Candidate B.
 6. Only then compare combinations with the frozen controls in `research/baselines.json`.
-
