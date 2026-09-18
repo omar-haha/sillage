@@ -51,7 +51,8 @@ host or object store before treating the VPS as durable.
 
 Copy `deploy/ibgateway/.env.example` to `.env`, create the two files
 `secrets/tws_password` and `secrets/vnc_password`, and set all three files to mode 0600.
-The Compose project is deliberately fixed to paper mode. Start it with:
+Gateway settings persist in a Docker-managed volume initialized from the image. The
+Compose project is deliberately fixed to paper mode. Start it with:
 
 ```bash
 cd deploy/ibgateway

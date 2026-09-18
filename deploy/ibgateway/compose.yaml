@@ -22,7 +22,7 @@ services:
       - "127.0.0.1:4002:4004"
       - "127.0.0.1:5900:5900"
     volumes:
-      - ./settings:/home/ibgateway/Jts
+      - gateway-settings:/home/ibgateway/Jts
     secrets:
       - tws_password
       - vnc_password
@@ -32,3 +32,6 @@ secrets:
     file: ./secrets/tws_password
   vnc_password:
     file: ./secrets/vnc_password
+
+volumes:
+  gateway-settings:
