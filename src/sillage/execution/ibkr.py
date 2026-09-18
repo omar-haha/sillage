@@ -45,6 +45,8 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
+from math import sqrt
+from statistics import stdev
 from typing import Any, Protocol, runtime_checkable
 
 from sillage.core.money import ZERO, dec, quantize_price
@@ -100,6 +102,18 @@ class FuturesCheck:
     commission: Decimal
     status: str
     warning: str = ""
+
+
+@dataclass(frozen=True, slots=True)
+class FuturesRisk:
+    """A dated whole-contract volatility estimate from an IBKR continuous proxy."""
+
+    symbol: str
+    proxy: str
+    observations: int
+    last_price: Decimal
+    annualized_dollar_volatility: Decimal
+    nav_fraction: Decimal
 
 
 @dataclass(frozen=True, slots=True)
@@ -479,6 +493,52 @@ class IBGatewayClient:
             warning=str(state.warningText or ""),
         )
 
+    def check_future_risk(
+        self,
+        symbol: str,
+        proxy: str,
+        exchange: str,
+        multiplier: Decimal,
+        *,
+        nav: Decimal = Decimal("25000"),
+        window: int = 63,
+        yield_contract: bool = False,
+    ) -> FuturesRisk:
+        """Measure one contract's annualized risk using a continuous proxy series.
+
+        E-nanos and 1OZ have too little history, so their return volatility comes from
+        the mature contract on the same underlying and is applied to the smaller unit.
+        The 10Y contract is quoted as a yield: one full percentage-point move is 100
+        basis points, each worth the supplied DV01 multiplier.
+        """
+        from ib_async import ContFuture
+
+        ib = self._require()
+        contracts = ib.qualifyContracts(ContFuture(proxy, exchange))
+        if not contracts:
+            raise ValueError(f"IBKR could not resolve continuous future {proxy!r}")
+        bars = ib.reqHistoricalData(
+            contracts[0],
+            endDateTime="",
+            durationStr="1 Y",
+            barSizeSetting="1 day",
+            whatToShow="TRADES",
+            useRTH=False,
+            formatDate=2,
+        )
+        closes = [dec(bar.close) for bar in bars]
+        risk = annualized_contract_risk(
+            closes, multiplier, window=window, yield_contract=yield_contract
+        )
+        return FuturesRisk(
+            symbol=symbol,
+            proxy=proxy,
+            observations=len(closes),
+            last_price=closes[-1],
+            annualized_dollar_volatility=risk,
+            nav_fraction=risk / nav,
+        )
+
     def _contract(self, symbol: str) -> object:
         from ib_async import Stock
 
@@ -516,3 +576,23 @@ def _contract_expiry(value: str) -> date:
     if len(value) < 8:
         raise ValueError(f"IBKR returned an invalid contract expiry {value!r}")
     return datetime.strptime(value[:8], "%Y%m%d").date()
+
+
+def annualized_contract_risk(
+    closes: Sequence[Decimal],
+    multiplier: Decimal,
+    *,
+    window: int = 63,
+    yield_contract: bool = False,
+) -> Decimal:
+    """Return annualized dollar volatility for one indivisible contract."""
+    if len(closes) < window + 1:
+        raise ValueError(f"need at least {window + 1} closes, received {len(closes)}")
+    sample = closes[-(window + 1) :]
+    if yield_contract:
+        changes = [float(sample[i] - sample[i - 1]) for i in range(1, len(sample))]
+        dollars = stdev(changes) * sqrt(252) * 100 * float(multiplier)
+    else:
+        returns = [float(sample[i] / sample[i - 1] - 1) for i in range(1, len(sample))]
+        dollars = stdev(returns) * sqrt(252) * float(sample[-1] * multiplier)
+    return dec(dollars)

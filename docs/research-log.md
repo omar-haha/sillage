@@ -877,3 +877,17 @@ This clears broker availability, not strategy feasibility. Low margin is not low
 whole-contract volatility, spreads and the E-nanos' few weeks of liquidity history still
 have to pass the frozen gates. The result is now reproducible with
 `sillage broker-contract-check`, which uses IBKR what-if orders and transmits nothing.
+
+## 2026-09-18 — Four contracts barely clear the risk-unit gate
+
+IBKR continuous-proxy history supplied 252–253 daily observations for the declared
+markets. Using the frozen 63-session estimate, one NES contributed 1.72% annualized
+volatility to $25,000 NAV, N2K 0.74%, M6E 2.58%, and 10Y 2.29%. Those four pass the 3%
+gate. NNQ failed at 4.90%, 1OZ at 4.00%, and MCL at 19.32%.
+
+This provisionally leaves four markets across three asset classes—the exact minimum,
+with no redundancy. The E-nano equity estimates use the mature MES/M2K return histories
+because E-nanos launched only in August; this is appropriate for underlying risk, not
+evidence of tradable liquidity. NES and N2K still require observed spread and volume,
+and the futures candidate fails if either does not pass. The screen is reproducible with
+`sillage broker-contract-risk`, a read-only request that sends no orders.

@@ -1096,6 +1096,56 @@ def broker_contract_check(
     console.print("\n[dim]All rows are IBKR what-if requests; no orders were transmitted.[/]")
 
 
+@app.command("broker-contract-risk")
+def broker_contract_risk(
+    host: Annotated[str, typer.Option(help="Where TWS or IB Gateway is listening.")] = "127.0.0.1",
+    port: Annotated[int, typer.Option(help="7497 TWS paper, 4002 Gateway paper.")] = 7497,
+    client_id: Annotated[int, typer.Option(help="Must be unique per connection.")] = 19,
+    nav: Annotated[float, typer.Option(help="Portfolio NAV used for the risk gate.")] = 25_000,
+) -> None:
+    """Measure Phase 8 whole-contract risk from read-only IBKR history."""
+    from sillage.core.money import dec
+    from sillage.execution.ibkr import IBGatewayClient
+
+    candidates = (
+        ("NES", "MES", "CME", "0.5", False),
+        ("NNQ", "MNQ", "CME", "0.2", False),
+        ("N2K", "M2K", "CME", "0.5", False),
+        ("M6E", "M6E", "CME", "12500", False),
+        ("10Y", "10Y", "CBOT", "10", True),
+        ("1OZ", "GC", "COMEX", "1", False),
+        ("MCL", "CL", "NYMEX", "100", False),
+    )
+    client = IBGatewayClient(host=host, port=port, client_id=client_id, readonly=True)
+    table = Table(
+        "family", "proxy", "observations", "last", "annual $ vol", "% NAV", "gate", box=None
+    )
+    try:
+        client.connect()
+        for symbol, proxy, exchange, multiplier, is_yield in candidates:
+            result = client.check_future_risk(
+                symbol, proxy, exchange, dec(multiplier), nav=dec(nav), yield_contract=is_yield
+            )
+            passes = result.nav_fraction <= dec("0.03")
+            table.add_row(
+                symbol,
+                proxy,
+                str(result.observations),
+                f"{float(result.last_price):,.4f}",
+                f"${float(result.annualized_dollar_volatility):,.2f}",
+                f"{float(result.nav_fraction):.2%}",
+                "PASS" if passes else "FAIL",
+                style=None if passes else "red",
+            )
+    except Exception as exc:
+        console.print(f"[bold red]contract risk check failed:[/] {exc}")
+        raise typer.Exit(1) from None
+    finally:
+        client.disconnect()
+    console.print(table)
+    console.print("\n[dim]Read-only history request; no orders were transmitted.[/]")
+
+
 @app.command()
 def serve(
     journal: JournalOpt = Path("state/live.db"),

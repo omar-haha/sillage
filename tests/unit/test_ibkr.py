@@ -368,3 +368,20 @@ def test_future_check_selects_a_contract_past_the_expiry_buffer() -> None:
     result = client.check_future("NES", "CME", as_of=date(2026, 9, 17))
     assert result.local_symbol == "NESZ6"
     assert result.initial_margin == dec("484.48")
+
+
+def test_contract_risk_uses_returns_for_price_contracts() -> None:
+    from sillage.execution.ibkr import annualized_contract_risk
+
+    closes = [dec(100) * dec("1.01") ** index for index in range(64)]
+    risk = annualized_contract_risk(closes, dec("0.5"))
+    assert risk >= 0
+
+
+def test_contract_risk_requires_a_full_window() -> None:
+    import pytest
+
+    from sillage.execution.ibkr import annualized_contract_risk
+
+    with pytest.raises(ValueError, match="at least 64"):
+        annualized_contract_risk([dec(100)] * 63, dec(1))

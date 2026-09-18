@@ -178,3 +178,6 @@ distributions owed on shorts. Those are built only if the research passes.
 4. Run Candidate A and log it whether it passes or fails.
 5. Acquire historical borrow assumptions and run Candidate B.
 6. Only then compare combinations with the frozen controls in `research/baselines.json`.
+
+The dated whole-contract screen is reproducible with `sillage broker-contract-risk`.
+It reads IBKR history and transmits no orders.
