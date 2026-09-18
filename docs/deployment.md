@@ -47,6 +47,21 @@ itself still refuses stale data, unexplained positions, unacknowledged orders, a
 drawdown-limit breaches. Backups are retained locally for 35 days; copy them to a separate
 host or object store before treating the VPS as durable.
 
+### No-sudo cron alternative
+
+When the deployment user cannot enable systemd lingering, use the host's existing cron
+daemon. On a UTC server, 10:00 UTC is 05:00 EST or 06:00 EDT, both before the wrapper's
+08:30 Toronto cutoff. Variables must be exported (`set -a`); merely sourcing the file
+does not pass shell variables to the child process.
+
+```cron
+0 10 * * 1-5 set -a; . /home/deploy/.config/sillage/paper.env; set +a; /home/deploy/sillage/deploy/run-paper.sh >> /home/deploy/sillage/state/paper-cron.log 2>&1
+```
+
+Install without replacing unrelated entries: inspect `crontab -l`, append the line once,
+then inspect it again. A Healthchecks-compatible URL in `SILLAGE_HEALTHCHECK_URL` receives
+success or `/fail` pings.
+
 ## Optional containerized Gateway
 
 Copy `deploy/ibgateway/.env.example` to `.env`, create the two files

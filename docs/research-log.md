@@ -910,3 +910,18 @@ a terminal Trade/status object. The adapter now treats a complete quantity match
 execution reference as resolved immediately instead of waiting for a status callback
 that IBKR will not replay. Partial quantities still require an acknowledged working or
 terminal status.
+
+## 2026-09-18 — Paper operation moves off the laptop
+
+The verified $25,000 journal and its nine positions were moved to an isolated deployment
+on an Ubuntu Hetzner VPS. Sillage maintains its own data store, runs from a dedicated
+virtual environment, and connects over localhost to a paper-only IB Gateway container.
+The API and VNC ports bind only to `127.0.0.1`; broker and VNC passwords are mode-0600
+Docker secret files and never enter the repository.
+
+The existing website containers and cron jobs were left unchanged. A third deploy-user
+cron entry runs Sillage at 10:00 UTC on weekdays (05:00 EST / 06:00 EDT), before the
+08:30 Toronto hard cutoff. Each cycle syncs and validates data, reconciles the broker,
+runs the strategy, retains a dated journal backup, and sends a success/failure heartbeat.
+The first scheduled cycle is intentionally left to the next weekday rather than bypassing
+the post-open safety cutoff for a deployment demonstration.
