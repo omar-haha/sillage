@@ -460,7 +460,7 @@ data sync is not an error — the reads succeed, with last week's numbers. None 
 by tests; all three were found by running it once and reading the output.
 
 **5b — IBKR paper account (Week 9).** Same engine, `IBKRBroker` swapped for
-`SimulatedBroker`. **Code done 2026-09-09; unverified against a gateway.**
+`SimulatedBroker`. **Full paper lifecycle verified 2026-09-18.**
 - `execution/ibkr.py`: the adapter, behind a narrow client protocol so its reasoning is
   testable against a fake and `ib_async`'s types never reach the rest of the system.
 - Handles what a real venue does and a simulator does not: orders that are accepted and
@@ -481,9 +481,9 @@ by tests; all three were found by running it once and reading the output.
   live run submits tonight's decisions immediately against tomorrow's open, and the next
   run recognises its own references at the venue and collects rather than resubmitting.
 
-- ⏳ **Milestone blocked on the account**: the divergence report needs real fills. The
-  machinery is built and tested end to end on seeded journals; the numbers it will
-  produce do not exist yet, and a monthly-rebalanced fund needs months to reach the
+- ✅ **Milestone:** nine opening-auction fills survived disconnect, imported by execution
+  id and reconciled exactly against the broker. The divergence report still needs time:
+  a monthly-rebalanced fund needs months to reach the
   thirty paired fills below which the report declines to suggest a correction.
 
 See `docs/ibkr.md` for gateway setup and the list of things that will go wrong.
@@ -654,9 +654,8 @@ operational evidence, not evidence that the final Sharpe target has been met.
 
 Operational follow-up: replace the manual laptop routine with a once-daily supervised
 job, missed-run/stale-data/reconciliation alerts and documented weekly IBKR
-reauthentication. This is intentionally pinned until the first paper lifecycle has
-completed manually; automation must not hide an execution path that has not yet been
-observed end to end.
+reauthentication. The first lifecycle has now completed manually, so VPS automation is
+the active deployment task rather than a pinned future task.
 
 **Order of work:** measuring stick → frozen baselines → strategy specifications → sleeve
 research → broker feasibility → frozen blend → risk scaling → paper validation. The IBKR

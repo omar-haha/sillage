@@ -1,0 +1,21 @@
+[Unit]
+Description=Sillage IBKR paper trading cycle
+After=network-online.target ibgateway.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=sillage
+Group=sillage
+EnvironmentFile=/etc/sillage/paper.env
+ExecStart=/opt/sillage/deploy/run-paper.sh
+TimeoutStartSec=20min
+Nice=10
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/sillage/data /opt/sillage/state
+
+[Install]
+WantedBy=multi-user.target

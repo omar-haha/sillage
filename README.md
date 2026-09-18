@@ -31,13 +31,15 @@ Dotted edges are the only things that change between a twenty-year replay and th
 afternoon. Everything on the solid path runs identically in both, because it is the same
 `Engine.step` in one file.
 
-Status: **all seven phases built.** A point-in-time data layer, an event-driven backtest
-engine, risk metrics validated against an independent implementation, the strategy, a
-battery that spends seventy-one backtests trying to prove the strategy is an illusion, a
-restart-safe live runner with a durable journal and a kill-switch, an Interactive Brokers
-adapter, a read-only API with a dashboard, and a multi-asset sleeve. Two things are
-genuinely unfinished and named as such in *Limitations* below: the broker adapter has
-never met a real gateway, and nothing here has traded a real pound.
+Status: **the research and paper-execution platform is built and operating.** A
+point-in-time data layer, an event-driven backtest engine, risk metrics validated against
+an independent implementation, the strategy, a battery that spends seventy-one
+backtests trying to prove the strategy is an illusion, a restart-safe live runner with a
+durable journal and a kill-switch, an Interactive Brokers adapter verified through a
+complete paper-trading lifecycle, a read-only API with a dashboard, and a multi-asset
+sleeve. The current research objective is an after-cost Sharpe above 1.10, followed by
+controlled risk scaling; that target has not been met and nothing here has traded real
+money.
 See [docs/ROADMAP.md](docs/ROADMAP.md) for the full plan and
 [docs/research-log.md](docs/research-log.md) for findings along the way, including the
 ones that went nowhere.
@@ -133,8 +135,10 @@ estimates will always agree with itself. `sillage live divergence` pairs each in
 trade across the two journals and reports the gap in basis points against the trader,
 ending with a suggested `--cost-scale` for re-running the backtest on measured
 assumptions. Phase 4 established the strategy survives 5x its modelled costs, so that
-number is the bar. See [docs/ibkr.md](docs/ibkr.md) — and note the adapter is written and
-tested against a fake, not yet verified against a live gateway.
+number is the bar. On 2026-09-18 the adapter completed its first full IBKR paper lifecycle:
+nine market-on-open orders were acknowledged by the broker, survived disconnect, filled
+in the opening auction, imported by execution id, and reconciled exactly against nine
+broker positions. See [docs/ibkr.md](docs/ibkr.md).
 
 State lives in an append-only SQLite journal. Orders are written *before* they are sent
 and keyed on an idempotency id, so a crash between the two is recoverable rather than
@@ -146,6 +150,10 @@ Before it trades it refuses on three grounds: the broker disagreeing with the jo
 about what is held, prices being stale, or the fund being too far below its high-water
 mark. The first live run found three quiet failures within a minute — all in
 [docs/research-log.md](docs/research-log.md).
+
+For unattended paper operation, [docs/deployment.md](docs/deployment.md) supplies a
+systemd service and weekday timer, journal backups, optional failure heartbeats, and the
+weekly IB Gateway authentication routine.
 
 ## Does it survive being attacked?
 
@@ -279,10 +287,10 @@ The honest list, in the order I would worry about them.
 
 1. **Nothing here has traded real money.** Every research number is a simulation of the
    past; the current balanced strategy has only just begun an IBKR paper run.
-2. **The Interactive Brokers adapter has passed connection and submission, not a full
-   lifecycle.** Nine market-on-open orders were accepted by paper TWS on 2026-09-16.
-   Fill import, reconciliation and restart behaviour still need evidence from subsequent
-   sessions, and paper execution cannot validate real fill quality.
+2. **The Interactive Brokers sample is operationally valid but statistically tiny.** One
+   nine-order paper lifecycle has passed submission, disconnect, opening-auction fill,
+   import and exact reconciliation. Paper execution still cannot establish real-money
+   fill quality, and the forward record needs time rather than more code.
 3. **The strategy's case rests on one crisis.** It beat the index in all three of the
    sample's down years, but 2008 supplies almost all of the margin and is the only genuine
    crash in the window. Post-2010, a plain 60/40 beats it on every measure. The 2000–02
@@ -295,17 +303,17 @@ The honest list, in the order I would worry about them.
 5. **Turnover of roughly 7x a year is inherent, not a setting.** Costs are immaterial at
    this size in liquid ETFs and would not be at scale or in anything wider than an ETF
    spread. That is the first thing that would break.
-6. **The dashboard is unreviewed as a visual object.** It is verified to render and to say
-   the right things; nobody has checked whether it looks right at 900 pixels.
+6. **Deployment still requires weekly broker authentication.** IB Gateway can restart
+   itself during the week, but IBKR requires a manual login after its weekend reset.
 7. **`docker compose up` is untested.** Docker was not installed on the machine this was
    written on.
 8. **No point-in-time fundamentals, and no survivorship-safe single-stock universe.** The
    ETF universe is fixed and declared, which sidesteps the problem rather than solving it.
 
-What I would build next, in order: the IBKR paper run and the divergence report it feeds,
-because everything about execution cost is currently an assumption. Then the market-neutral
-sleeve, because it is the only route past the correlation ceiling. Then point-in-time
-constituents, because that is what would let this look at single stocks honestly.
+What comes next: accumulate the unattended IBKR paper record while testing the frozen
+futures-trend and ETF relative-value candidates. Only robust, executable sleeves may enter
+the blend; only after that does risk scaling attempt to exceed SPY's return with smaller
+drawdowns.
 
 ## Why this exists
 

@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Sillage before each US market open
+
+[Timer]
+OnCalendar=Mon..Fri *-*-* 05:00:00 America/Toronto
+Persistent=true
+RandomizedDelaySec=2min
+Unit=sillage-paper.service
+
+[Install]
+WantedBy=timers.target
