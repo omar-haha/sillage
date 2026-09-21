@@ -62,6 +62,20 @@ Install without replacing unrelated entries: inspect `crontab -l`, append the li
 then inspect it again. A Healthchecks-compatible URL in `SILLAGE_HEALTHCHECK_URL` receives
 success or `/fail` pings.
 
+## Weekend operations and reporting
+
+`deploy/restart-gateway.sh` removes IBKR's short-lived automatic-restart token every
+Sunday, restarts the paper Gateway, and retries a read-only broker check for three
+minutes. It sends a Healthchecks failure signal if credential login or API startup does
+not succeed. This replaces relying on the token across IBKR's weekend reset.
+
+`deploy/run-weekly-report.sh` runs early Saturday, processes Friday's completed session,
+requires successful broker reconciliation, and only then sends a compact paper-portfolio
+summary through Resend. The Resend key, sender and recipient live in the protected runtime
+environment as `SILLAGE_RESEND_API_KEY`, `SILLAGE_REPORT_FROM`, and
+`SILLAGE_REPORT_TO`; none belong in Git. Healthchecks remains failure-only, while Resend
+owns the informational report.
+
 ## Optional containerized Gateway
 
 Copy `deploy/ibgateway/.env.example` to `.env`, create the two files
