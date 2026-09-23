@@ -23,8 +23,11 @@ existing long-only momentum/60-40 blend, especially during sustained equity decl
   the most recent five sessions.
 - Position direction is the sign of the equally weighted three-signal vote. A tied vote
   is flat.
-- Volatility is a 63-session exponentially weighted estimate, using only data available
-  at the decision time and floored at 5% annualized.
+- Volatility is estimated from the most recent 63 daily returns with finite
+  exponentially weighted observations using the standard span convention
+  (`alpha = 2 / (63 + 1)`). The same weighting estimates portfolio covariance. Both use
+  only data available at the decision time; standalone volatility is floored at 5%
+  annualized.
 - Equal risk by market, then scale the sleeve to 10% ex-ante volatility. Gross leverage
   is capped at 2.0x before whole-contract rounding.
 - No parameter search in round one. The only permitted comparison is single-horizon
@@ -181,3 +184,9 @@ distributions owed on shorts. Those are built only if the research passes.
 
 The dated whole-contract screen is reproducible with `sillage broker-contract-risk`.
 It reads IBKR history and transmits no orders.
+
+The 2026-09-23 screen passed `NES` (1.75% of NAV), `N2K` (0.75%), `M6E` (2.56%)
+and `10Y` (2.36%). `NNQ` (5.02%), `1OZ` (3.70%) and `MCL` (18.67%) failed the
+3%-of-NAV contract-risk gate. This is exactly four markets across three asset classes,
+so Candidate A remains conditional on direct liquidity/history checks; the failed
+contracts do not enter the $25K backtest.
