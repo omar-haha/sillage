@@ -943,3 +943,27 @@ rebalance without erasing the existing book. The yield-contract economic sign is
 mapped back to the executable contract direction instead of stopping at the signal.
 
 This is infrastructure, not a result: all tests use synthetic chains. Candidate A still
+had no historical Sharpe at this point; the next task was to test whether the actual
+small contracts had enough direct history to justify acquiring a dataset.
+
+## 2026-09-24 — The futures candidate fails before the backtest
+
+The direct IBKR screen was run after freezing a minimum of 756 actual-product sessions,
+a 20-session median volume of 100 contracts and no more than 10% zero-volume sessions.
+It returned:
+
+| family | first session | observations | 20-day median volume | zero-volume days |
+|---|---:|---:|---:|---:|
+| NES | 2026-08-11 | 31 | 3,318 | 25.8% |
+| N2K | 2026-08-11 | 31 | 1,694 | 25.8% |
+| M6E | 2025-06-17 | 322 | 12,920 | 0.0% |
+| 10Y | 2025-08-01 | 290 | 852 | 0.0% |
+
+Recent volume is better than feared, but none has three years of direct history. The two
+E-nanos have barely one month and also fail the sparse-session gate. Under the frozen
+specification, failure of the static history gate rejects Candidate A regardless of what
+a proxy backtest might earn. Buying ES, M2K, 6E and ZN history now would answer whether
+managed-futures trend worked in mature larger contracts, not whether this $25,000 account
+could have traded the proposed sleeve. No data was purchased. Candidate B, liquid ETF
+relative value, becomes the active research lane; Candidate A can be reconsidered after
+the small contracts accumulate a defensible record.

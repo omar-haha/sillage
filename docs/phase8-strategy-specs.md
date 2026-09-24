@@ -194,3 +194,10 @@ and `10Y` (2.36%). `NNQ` (5.02%), `1OZ` (3.70%) and `MCL` (18.67%) failed the
 3%-of-NAV contract-risk gate. This is exactly four markets across three asset classes,
 so Candidate A remains conditional on direct liquidity/history checks; the failed
 contracts do not enter the $25K backtest.
+
+The 2026-09-24 direct-product screen rejected Candidate A before performance testing.
+NES and N2K each supplied 31 sessions, M6E 322 and 10Y 290, below the frozen
+756-session minimum. Recent median volume passed for all four, but NES and N2K also
+recorded 25.8% zero-volume sessions in their short histories. Mature ES, M2K, 6E or ZN
+history may study the economic idea, but cannot satisfy this executability gate. No paid
+historical dataset is acquired for a candidate that already fails gates 1--3.

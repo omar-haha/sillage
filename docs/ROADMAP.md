@@ -603,7 +603,7 @@ rules, live-account sizing gates and fixed pair/contract candidates are now froz
 `docs/phase8-strategy-specs.md`; no candidate backtest has been run yet. The futures
 research path now has a contract-level simulator with causal next-open decisions,
 whole-contract sizing, variation margin, two-leg rolls, explicit commissions/spreads,
-cash interest and the frozen margin gate; acquiring defensible history remains next.
+cash interest and the frozen margin gate. The direct-product history screen has now rejected this candidate for the current account.
 
 1. **Diversified long/short time-series trend.** Combine predeclared 3/6/12-month signals
    across liquid equity-index, government-bond, currency and commodity markets; size by
@@ -611,8 +611,10 @@ cash interest and the frozen margin gate; acquiring defensible history remains n
    history, multiplier, minimum useful account size, margin, liquidity, expiry and roll.
    The sleeve proceeds only if whole micro contracts can express its risk budget and its
    drawdowns are sufficiently different from the existing long-only momentum sleeve.
-   ✅ IBKR paper qualification and what-if margin checks pass for all declared contract
-   families; historical data, liquidity and risk-granularity gates remain open.
+   ✅ IBKR paper qualification and what-if margin checks passed for all declared contract
+   families; the subsequent direct history gate did not.
+   **Rejected for the current account, 2026-09-24:** all four surviving products fail
+   the frozen 756-session direct-history gate; NES and N2K have only 31 sessions.
 2. **Liquid ETF relative value.** Test a small, economically related and predeclared set
    of ETF pairs. Estimate hedge ratios from trailing data only, require evidence of a
    stable spread, and model borrow availability, borrow cost and both legs failing to
