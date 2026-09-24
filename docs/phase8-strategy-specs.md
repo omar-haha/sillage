@@ -156,7 +156,11 @@ point-in-time data is removed and counted as a failed trial, not replaced.
 - Enter beyond an absolute 2.0 residual z-score, exit inside 0.5, hard-stop beyond 4.0,
   and close after 42 sessions regardless.
 - Dollar-neutral at the estimated hedge ratio; maximum 20% gross portfolio exposure per
-  pair and 60% across all pairs.
+  pair and 60% across all pairs. Whole-share rounding is toward zero; exposure drift after entry is measured and the next decision may reduce it.
+- Base research borrow is a declared 1.0% annual flat proxy on each short market value,
+  accrued over calendar days; the frozen +300bp stress therefore runs at 4.0%. This is
+  not described as historical IBKR borrow. Adjusted prices carry distributions owed on
+  shorts through total-return accounting.
 - Signal at close, execute both legs at the next open. If either leg fails, immediately
   flatten the filled leg; charge both attempted legs and the emergency exit.
 

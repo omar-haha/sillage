@@ -967,3 +967,21 @@ managed-futures trend worked in mature larger contracts, not whether this $25,00
 could have traded the proposed sleeve. No data was purchased. Candidate B, liquid ETF
 relative value, becomes the active research lane; Candidate A can be reconsidered after
 the small contracts accumulate a defensible record.
+
+
+## 2026-09-24 — The ETF relative-value sleeve gets a real lifecycle
+
+Candidate B now moves beyond a z-score function into a stateful research book. A close
+signal enters both whole-share legs at the next open, holds the hedge across overnight
+gaps, and exits at the next open after convergence, a 4.0 stop, model invalidation or
+42 sessions. Pair targets use at most 20% gross and the portfolio admits at most 60%;
+when four pairs signal together, the three largest absolute divergences get capacity.
+
+Every fill crosses the existing commission, spread and volume-impact model. Short market
+value pays a declared 1% annual borrow proxy over calendar days, cash earns the dated
+risk-free input when supplied, and P&L is retained by pair so a single relationship cannot
+hide inside an aggregate result. Adjusted OHLC data carries distributions owed by shorts
+through total-return prices. The borrow number is an assumption for research, not an IBKR
+history; the predeclared stress adds 300bp. Synthetic lifecycle tests cover causality,
+paired entry and exit, whole shares, gross admission, borrow, cash interest and costs.
+Real results still wait on downloading the five counterpart ETF histories.
