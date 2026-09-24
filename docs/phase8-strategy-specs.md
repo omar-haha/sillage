@@ -104,6 +104,10 @@ Proceed only if all are true:
 
 1. At least four markets across three asset classes pass IBKR qualification, permission,
    liquidity, history and whole-contract sizing checks.
+   Before querying the venue, direct product history is defined as at least 756 sessions,
+   recent liquidity as a 20-session median of at least 100 contracts, and sparse trading
+   as no more than 10% zero-volume sessions. All four markets must pass; mature proxy
+   contracts do not satisfy this gate.
 2. One contract contributes no more than 3% annualized volatility to the total $25K
    portfolio under its trailing estimate.
 3. Expected initial margin stays below 35% of NAV and a doubled-margin stress below 70%.

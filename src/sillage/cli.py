@@ -1146,6 +1146,62 @@ def broker_contract_risk(
     console.print("\n[dim]Read-only history request; no orders were transmitted.[/]")
 
 
+@app.command("broker-contract-history")
+def broker_contract_history(
+    host: Annotated[str, typer.Option(help="Where TWS or IB Gateway is listening.")] = "127.0.0.1",
+    port: Annotated[int, typer.Option(help="7497 TWS paper, 4002 Gateway paper.")] = 7497,
+    client_id: Annotated[int, typer.Option(help="Must be unique per connection.")] = 20,
+) -> None:
+    """Screen direct history and volume for the four surviving futures families."""
+    from sillage.core.money import dec
+    from sillage.execution.ibkr import IBGatewayClient
+
+    candidates = (("NES", "CME"), ("N2K", "CME"), ("M6E", "CME"), ("10Y", "CBOT"))
+    client = IBGatewayClient(host=host, port=port, client_id=client_id, readonly=True)
+    table = Table(
+        "family",
+        "first",
+        "last",
+        "sessions",
+        "latest vol",
+        "20d median",
+        "zero days",
+        "gate",
+        box=None,
+        pad_edge=False,
+    )
+    try:
+        client.connect()
+        for symbol, exchange in candidates:
+            result = client.check_future_history(symbol, exchange)
+            passes = (
+                result.observations >= 756
+                and result.median_recent_volume >= dec(100)
+                and result.zero_volume_fraction <= dec("0.10")
+            )
+            table.add_row(
+                result.symbol,
+                result.first_session.isoformat(),
+                result.last_session.isoformat(),
+                str(result.observations),
+                f"{float(result.latest_volume):,.0f}",
+                f"{float(result.median_recent_volume):,.0f}",
+                f"{float(result.zero_volume_fraction):.1%}",
+                "PASS" if passes else "FAIL",
+                style=None if passes else "red",
+            )
+    except Exception as exc:
+        console.print(f"[bold red]contract history check failed:[/] {exc}")
+        raise typer.Exit(1) from None
+    finally:
+        client.disconnect()
+    console.print(table)
+    console.print(
+        "\n[dim]Frozen gate: 756 sessions, 20-day median volume 100, "
+        "and no more than 10% zero-volume sessions. Read-only; no orders transmitted.[/]"
+    )
+
+
 @app.command()
 def serve(
     journal: JournalOpt = Path("state/live.db"),

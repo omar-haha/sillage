@@ -386,6 +386,36 @@ def test_future_check_selects_a_contract_past_the_expiry_buffer() -> None:
     assert result.initial_margin == dec("484.48")
 
 
+def test_direct_future_history_uses_the_candidate_not_the_proxy() -> None:
+    from sillage.execution.ibkr import IBGatewayClient
+
+    bars = [
+        SimpleNamespace(date=date(2026, 9, day), volume=volume)
+        for day, volume in ((1, 0), (2, 100), (3, 200), (4, 300))
+    ]
+
+    class FakeIB:
+        def isConnected(self) -> bool:  # noqa: N802 - third-party API shape
+            return True
+
+        def qualifyContracts(self, contract):  # type: ignore[no-untyped-def] # noqa: N802
+            assert contract.symbol == "NES"
+            return [contract]
+
+        def reqHistoricalData(self, contract, **kwargs):  # type: ignore[no-untyped-def] # noqa: N802
+            assert contract.symbol == "NES"
+            assert kwargs["durationStr"] == "5 Y"
+            return bars
+
+    client = IBGatewayClient()
+    client._ib = FakeIB()
+    result = client.check_future_history("NES", "CME", recent_sessions=3)
+    assert result.observations == 4
+    assert result.first_session == date(2026, 9, 1)
+    assert result.median_recent_volume == dec(200)
+    assert result.zero_volume_fraction == dec("0.25")
+
+
 def test_contract_risk_uses_returns_for_price_contracts() -> None:
     from sillage.execution.ibkr import annualized_contract_risk
 

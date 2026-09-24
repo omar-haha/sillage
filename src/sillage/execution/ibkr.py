@@ -46,7 +46,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from math import sqrt
-from statistics import stdev
+from statistics import median, stdev
 from typing import Any, Protocol, runtime_checkable
 
 from sillage.core.money import ZERO, dec, quantize_price
@@ -114,6 +114,19 @@ class FuturesRisk:
     last_price: Decimal
     annualized_dollar_volatility: Decimal
     nav_fraction: Decimal
+
+
+@dataclass(frozen=True, slots=True)
+class FuturesHistory:
+    """Direct product-history and volume evidence for one candidate family."""
+
+    symbol: str
+    observations: int
+    first_session: date
+    last_session: date
+    latest_volume: Decimal
+    median_recent_volume: Decimal
+    zero_volume_fraction: Decimal
 
 
 @dataclass(frozen=True, slots=True)
@@ -559,6 +572,53 @@ class IBGatewayClient:
             nav_fraction=risk / nav,
         )
 
+    def check_future_history(
+        self,
+        symbol: str,
+        exchange: str,
+        *,
+        duration: str = "5 Y",
+        recent_sessions: int = 20,
+    ) -> FuturesHistory:
+        """Measure history and traded volume on the candidate itself, not a proxy.
+
+        A continuous contract is valid for this screen because it asks whether the
+        product family existed and traded. It remains forbidden as an execution price
+        in the candidate backtest, which consumes dated contracts and causal roll maps.
+        """
+        from ib_async import ContFuture
+
+        if recent_sessions < 1:
+            raise ValueError("recent sessions must be positive")
+        ib = self._require()
+        contracts = ib.qualifyContracts(ContFuture(symbol, exchange))
+        if not contracts:
+            raise ValueError(f"IBKR could not resolve continuous future {symbol!r}")
+        bars = ib.reqHistoricalData(
+            contracts[0],
+            endDateTime="",
+            durationStr=duration,
+            barSizeSetting="1 day",
+            whatToShow="TRADES",
+            useRTH=False,
+            formatDate=2,
+        )
+        if not bars:
+            raise ValueError(f"IBKR returned no direct history for {symbol!r}")
+        sessions = [_bar_date(bar.date) for bar in bars]
+        volumes = [dec(bar.volume) for bar in bars]
+        recent = volumes[-recent_sessions:]
+        zero_count = sum(value == ZERO for value in volumes)
+        return FuturesHistory(
+            symbol=symbol,
+            observations=len(bars),
+            first_session=sessions[0],
+            last_session=sessions[-1],
+            latest_volume=volumes[-1],
+            median_recent_volume=dec(median(recent)),
+            zero_volume_fraction=dec(zero_count) / dec(len(volumes)),
+        )
+
     def _contract(self, symbol: str) -> object:
         from ib_async import Stock
 
@@ -596,6 +656,18 @@ def _contract_expiry(value: str) -> date:
     if len(value) < 8:
         raise ValueError(f"IBKR returned an invalid contract expiry {value!r}")
     return datetime.strptime(value[:8], "%Y%m%d").date()
+
+
+def _bar_date(value: object) -> date:
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+    text = str(value)
+    try:
+        return datetime.fromisoformat(text.replace("Z", "+00:00")).date()
+    except ValueError as exc:
+        raise ValueError(f"IBKR returned an invalid bar date {value!r}") from exc
 
 
 def annualized_contract_risk(
