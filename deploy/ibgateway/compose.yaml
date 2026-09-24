@@ -21,6 +21,11 @@ services:
     ports:
       - "127.0.0.1:4002:4004"
       - "127.0.0.1:5900:5900"
+    # Compose bind-mounts local secret files with their host ownership. Grant only the
+    # host secret-file group to the unprivileged container user; this keeps the files
+    # at 0640 when the deploy user's gid differs between hosts.
+    group_add:
+      - "${SECRET_GID:-1000}"
     volumes:
       - gateway-settings:/home/ibgateway/Jts
     secrets:
