@@ -925,3 +925,21 @@ cron entry runs Sillage at 10:00 UTC on weekdays (05:00 EST / 06:00 EDT), before
 runs the strategy, retains a dated journal backup, and sends a success/failure heartbeat.
 The first scheduled cycle is intentionally left to the next weekday rather than bypassing
 the post-open safety cutoff for a deployment demonstration.
+
+## 2026-09-24 — The futures candidate can now fail honestly
+
+The frozen trend signal and causal roll map now feed a contract-level research simulator.
+It does not reuse the share ledger: futures spend no purchase notional, settle profit and
+loss through variation margin, carry multipliers, consume margin and change delivery
+months through two real trades. Treating them as ETFs would have produced a simpler and
+wrong result.
+
+A Friday-close decision reaches only the next session's open. Targets round toward zero
+to whole contracts, each roll closes the old dated contract and opens the new one with
+commission and half-spread charged on both legs, and the simulator marks the two contracts
+on their own prices rather than booking the continuous-series roll gap as profit. Cash
+interest spans weekends; expected initial margin above 35% of current NAV rejects the
+rebalance without erasing the existing book. The yield-contract economic sign is also
+mapped back to the executable contract direction instead of stopping at the signal.
+
+This is infrastructure, not a result: all tests use synthetic chains. Candidate A still

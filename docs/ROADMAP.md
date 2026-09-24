@@ -600,7 +600,10 @@ more weight than the full-sample headline.
 **8b — Test two complementary sleeves.** Specifications and rejection criteria are
 written before implementation, and failed candidates stay in the research log. The
 rules, live-account sizing gates and fixed pair/contract candidates are now frozen in
-`docs/phase8-strategy-specs.md`; no candidate backtest has been run yet.
+`docs/phase8-strategy-specs.md`; no candidate backtest has been run yet. The futures
+research path now has a contract-level simulator with causal next-open decisions,
+whole-contract sizing, variation margin, two-leg rolls, explicit commissions/spreads,
+cash interest and the frozen margin gate; acquiring defensible history remains next.
 
 1. **Diversified long/short time-series trend.** Combine predeclared 3/6/12-month signals
    across liquid equity-index, government-bond, currency and commodity markets; size by
