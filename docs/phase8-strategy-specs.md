@@ -150,7 +150,9 @@ point-in-time data is removed and counted as a failed trial, not replaced.
 - Daily adjusted closes; trailing 252-session log-price regression with intercept,
   estimated strictly through the previous close.
 - Trade only if the trailing residual passes a predeclared stationarity threshold and
-  the hedge ratio is positive and stable across the two preceding half-windows.
+  the hedge ratio is positive and stable across the two preceding half-windows. The
+  frozen thresholds are an ADF(0) residual t-statistic at or below -3.34 and no more
+  than a 25% relative change between the two 126-session hedge ratios.
 - Enter beyond an absolute 2.0 residual z-score, exit inside 0.5, hard-stop beyond 4.0,
   and close after 42 sessions regardless.
 - Dollar-neutral at the estimated hedge ratio; maximum 20% gross portfolio exposure per
