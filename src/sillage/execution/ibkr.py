@@ -66,6 +66,7 @@ ACKNOWLEDGED_STATES = frozenset({"PreSubmitted", "Submitted"})
 #: cron job.
 DEFAULT_TIMEOUT = 45.0
 DEFAULT_POLL = 1.0
+DEFAULT_REQUEST_TIMEOUT = 20.0
 
 #: Market-on-open. The faithful translation of this system's semantics: decisions are
 #: made at a close and are supposed to execute at the next open, which is precisely what
@@ -271,6 +272,44 @@ class IBKRBroker:
             self.client.connect()
         return self.client.positions()
 
+    def recover(
+        self,
+        orders: Sequence[Order],
+        *,
+        session: date,
+        ts: datetime,
+    ) -> ExecutionReport:
+        """Collect venue evidence for persisted orders without submitting anything.
+
+        IBKR only replays executions for a limited window. An old fill can therefore
+        be absent from both the open-order and execution lists after a reconnect. Such
+        an order must remain pending until position reconciliation explains it; treating
+        absence as permission to submit is how a filled order becomes a duplicate.
+        """
+        if not self.client.connected:
+            self.client.connect()
+
+        executions = self.client.executions(since=session)
+        executed = {execution.order_ref for execution in executions}
+        open_refs = self.client.open_order_refs()
+        known: dict[str, Order] = {}
+        unknown: list[Order] = []
+        for order in orders:
+            reference = order.client_order_id
+            if reference in executed or reference in open_refs or self.client.status(reference):
+                known[reference] = order
+            else:
+                unknown.append(order)
+
+        self._await_resolution(set(known) - executed)
+        rejections: list[Rejection] = []
+        fills, outstanding = self._collect(known, session, ts, rejections)
+        return ExecutionReport(
+            fills=fills,
+            rejections=rejections,
+            outstanding=[*outstanding, *unknown],
+        )
+
     # ------------------------------------------------------------------ the pieces
 
     def _already_submitted(self, session: date) -> set[str]:
@@ -405,6 +444,7 @@ class IBGatewayClient:
     readonly: bool = False
     exchange: str = "SMART"
     currency: str = "USD"
+    request_timeout: float = DEFAULT_REQUEST_TIMEOUT
     _ib: object | None = field(default=None, init=False, repr=False)
 
     @property
@@ -416,6 +456,7 @@ class IBGatewayClient:
 
         if self._ib is None:
             self._ib = IB()
+        self._ib.RequestTimeout = self.request_timeout  # type: ignore[attr-defined]
         self._ib.connect(  # type: ignore[attr-defined]
             self.host,
             self.port,
@@ -641,9 +682,18 @@ def _placement(status: object, order_ref: str, log: Sequence[object] = ()) -> Pl
         if text:
             message = str(text)
             break
+    raw_status = str(getattr(status, "status", ""))
+    # Warning 399 means an opening order is held until the auction, not rejected.
+    # ib_async temporarily exposes it as ValidationError even though IBKR later fills it.
+    if raw_status == "ValidationError" and any(
+        getattr(entry, "errorCode", None) == 399
+        or "Warning 399" in str(getattr(entry, "message", ""))
+        for entry in log
+    ):
+        raw_status = "PreSubmitted"
     return Placement(
         order_ref=order_ref,
-        status=str(getattr(status, "status", "")),
+        status=raw_status,
         filled=dec(getattr(status, "filled", 0.0)),
         remaining=dec(getattr(status, "remaining", 0.0)),
         average_price=dec(getattr(status, "avgFillPrice", 0.0) or 0.0),

@@ -13,11 +13,9 @@ failed() {
 }
 trap failed ERR
 
-# Process Friday's close and reconcile the broker before reporting. Suppress the normal
-# success heartbeat because Healthchecks expects it only Monday-Friday.
-SILLAGE_HEALTHCHECK_URL= "$SILLAGE_ROOT/deploy/run-paper.sh"
-
 cd "$SILLAGE_ROOT"
+# Reporting is deliberately read-only. The weekday broker cycle owns all trading;
+# running it here used to let a Saturday email retry ambiguous Friday orders.
 .venv/bin/python deploy/weekly-report.py \
     --journal state/ibkr.db \
     --cash "${SILLAGE_CASH:-25000}"

@@ -22,7 +22,7 @@ from tests.support import etf
 from sillage.core.money import ZERO, dec
 from sillage.core.types import Order, Portfolio
 from sillage.execution.broker import BrokerError, LiveBroker
-from sillage.execution.ibkr import Execution, IBClient, IBKRBroker, Placement
+from sillage.execution.ibkr import Execution, IBClient, IBKRBroker, Placement, _placement
 
 A, B = etf("AAA"), etf("BBB")
 SESSION = date(2026, 3, 12)
@@ -210,6 +210,26 @@ def test_submitting_the_same_batch_twice_places_it_once() -> None:
     run(venue, orders)
     run(venue, orders)
     assert len(venue.placed) == 1
+
+
+def test_recovery_never_submits_an_order_missing_from_broker_history() -> None:
+    venue = FakeVenue()
+    order = Order(A, dec(10))
+
+    report = broker(venue).recover([order], session=SESSION, ts=TS)
+
+    assert venue.placed == []
+    assert report.outstanding == [order]
+
+
+def test_warning_399_is_normalized_as_broker_held() -> None:
+    status = SimpleNamespace(status="ValidationError", filled=0, remaining=10, avgFillPrice=0)
+    log = [SimpleNamespace(errorCode=399, message="Warning 399: order held until 09:30")]
+
+    placement = _placement(status, "order-1", log)
+
+    assert placement.status == "PreSubmitted"
+    assert not placement.refused
 
 
 # ------------------------------------------------------------------ partial fills

@@ -281,11 +281,20 @@ def run_once(
     if config.broker is not None:
         pending = journal.load_pending(instruments)
         if pending:
-            report = config.broker.execute(
-                pending,
-                portfolio=portfolio,
-                session=journal.last_session() or now.date(),
-                ts=now,
+            recover = getattr(config.broker, "recover", None)
+            report = (
+                recover(
+                    pending,
+                    session=journal.last_session() or now.date(),
+                    ts=now,
+                )
+                if recover is not None
+                else config.broker.execute(
+                    pending,
+                    portfolio=portfolio,
+                    session=journal.last_session() or now.date(),
+                    ts=now,
+                )
             )
             for fill in report.fills:
                 portfolio = portfolio.apply_fill(fill)

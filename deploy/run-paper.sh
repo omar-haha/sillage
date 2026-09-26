@@ -8,6 +8,7 @@ set -Eeuo pipefail
 : "${SILLAGE_CASH:=25000}"
 : "${SILLAGE_STRATEGY:=balanced}"
 : "${SILLAGE_UNIVERSE:=core}"
+: "${SILLAGE_RUN_TIMEOUT:=10m}"
 
 healthcheck() {
     if [[ -n "${SILLAGE_HEALTHCHECK_URL:-}" ]]; then
@@ -39,7 +40,8 @@ if ((10#$toronto_time >= 830)); then
     exit 6
 fi
 
-.venv/bin/sillage live run-once \
+timeout --signal=TERM --kill-after=30s "$SILLAGE_RUN_TIMEOUT" \
+  .venv/bin/sillage live run-once \
     --strategy "$SILLAGE_STRATEGY" \
     --universe "$SILLAGE_UNIVERSE" \
     --root data \
