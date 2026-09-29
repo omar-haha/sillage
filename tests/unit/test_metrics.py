@@ -244,6 +244,19 @@ def test_dated_risk_free_rate_cannot_be_backfilled_from_the_future() -> None:
         from_nav(curve([100, 101, 102]), risk_free_rate=rates)
 
 
+def test_naive_rate_dates_match_utc_rate_dates() -> None:
+    """Mixed timezone awareness must not carry the final rate into the past."""
+    nav = curve([100, 101, 102])
+    nav.index = nav.index.tz_localize("UTC")
+    naive = pd.Series([0.01, 0.02, 0.09], index=nav.index.tz_localize(None))
+    aware = naive.copy()
+    aware.index = aware.index.tz_localize("UTC")
+
+    assert from_nav(nav, risk_free_rate=naive).sharpe == pytest.approx(
+        from_nav(nav, risk_free_rate=aware).sharpe
+    )
+
+
 def test_dated_risk_free_rate_rejects_duplicate_observations() -> None:
     rates = pd.Series([0.04, 0.05], index=pd.to_datetime(["2019-12-31", "2019-12-31"]))
 

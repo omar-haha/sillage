@@ -620,6 +620,9 @@ cash interest and the frozen margin gate. The direct-product history screen has 
    stable spread, and model borrow availability, borrow cost and both legs failing to
    fill together. Reject it if realistic costs consume the edge or results depend on a
    few pairs or thresholds.
+   **Rejected, 2026-09-29:** the frozen base case produced -1.39 excess Sharpe; even
+   free execution with no borrow reached only 0.20. All five pairs lost after realistic
+   costs, both chronological halves failed, and adjacent entry thresholds stayed negative.
 
 Individual-stock pairs, options selling and intraday reversal are outside the first
 round. They require materially better point-in-time, borrow, quote or option-chain data

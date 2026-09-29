@@ -189,7 +189,7 @@ distributions owed on shorts. Those are built only if the research passes.
 3. Acquire a contract-level futures dataset with an explicit roll map; do not use Yahoo
    continuous tickers as execution history.
 4. Run Candidate A and log it whether it passes or fails.
-5. Acquire historical borrow assumptions and run Candidate B.
+5. ✅ Run Candidate B with the frozen 1% borrow proxy and stress assumptions. Rejected: realistic costs consume an already weak gross edge.
 6. Only then compare combinations with the frozen controls in `research/baselines.json`.
 
 The dated whole-contract screen is reproducible with `sillage broker-contract-risk`.

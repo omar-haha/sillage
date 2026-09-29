@@ -425,16 +425,19 @@ def _excess_returns(returns: pd.Series, risk_free_rate: float | pd.Series) -> pd
         raise ValueError("dated risk-free rate must not be empty")
 
     rates = risk_free_rate.astype(float).sort_index()
-    rates.index = pd.DatetimeIndex(rates.index)
+    # CSV rate dates are naive while market data is often UTC-aware. A mixed-index
+    # union can carry the final rate backward through the entire sample. Normalize
+    # both solely for lookup, then subtract by position to preserve the caller index.
+    rates.index = pd.to_datetime(rates.index, utc=True).normalize()
     if rates.index.has_duplicates:
         raise ValueError("dated risk-free rate contains duplicate dates")
 
-    return_index = pd.DatetimeIndex(returns.index)
+    return_index = pd.to_datetime(returns.index, utc=True).normalize()
     aligned = rates.reindex(rates.index.union(return_index)).ffill().reindex(return_index)
     if aligned.isna().any():
         first = returns.index[aligned.isna()][0]
         raise ValueError(f"no risk-free rate known on or before {first.date()}")
-    return returns - aligned / SESSIONS_PER_YEAR
+    return returns - aligned.to_numpy() / SESSIONS_PER_YEAR
 
 
 def by_calendar_year(

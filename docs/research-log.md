@@ -985,3 +985,35 @@ through total-return prices. The borrow number is an assumption for research, no
 history; the predeclared stress adds 300bp. Synthetic lifecycle tests cover causality,
 paired entry and exit, whole shares, gross admission, borrow, cash interest and costs.
 Real results still wait on downloading the five counterpart ETF histories.
+
+
+## 2026-09-29 — ETF relative value fails its first acceptance gate
+
+The five frozen counterpart histories were downloaded from Yahoo through 2026-09-28,
+with the common sample beginning at VTWO inception on 2010-09-22. No pair was added or
+removed after viewing results. The base case used the declared 1% borrow proxy, normal
+execution costs, whole shares and the 20%/60% gross caps.
+
+| variant | CAGR | excess Sharpe | max drawdown | pair P&L | leg fills |
+|---|---:|---:|---:|---:|---:|
+| frozen base | 1.25% | **-1.39** | -2.17% | -$1,473 | 2,024 |
+| free execution, no borrow | 1.66% | **0.20** | -0.42% | +$177 | 2,024 |
+| 2x execution costs | 0.88% | -2.63 | -4.56% | -$2,872 | 2,016 |
+| 4% borrow | 1.02% | -2.29 | -3.37% | -$2,400 | 2,016 |
+| entry z = 1.75 | 1.12% | -1.88 | -2.85% | -$1,990 | 2,730 |
+| entry z = 2.25 | 1.36% | -0.98 | -1.54% | -$1,018 | 1,500 |
+
+The positive CAGR is mostly interest on idle collateral, not spread alpha. Every pair
+lost after costs: SPY/IVV -$331, IWM/VTWO -$314, EFA/VEA -$63, LQD/VCIT -$97
+and GLD/IAU -$669. The first chronological half lost 0.31%; the second gained in
+absolute terms but remained negative against cash. Candidate B therefore fails the
+0.75 excess-Sharpe gate, the positive-both-halves gate and the three-profitable-pairs
+gate before correlation or venue plumbing could matter. Delayed-entry and IBKR short
+availability work are not built for a rejected sleeve.
+
+The run also exposed a shared measurement bug: CSV rate dates were timezone-naive while
+this NAV series was UTC-aware. A mixed pandas index union carried the final 4.11% rate
+backward across the sample and initially reported -11.27 Sharpe. Rate lookup now
+normalizes both indexes to UTC and has a regression test; the corrected -1.39 is the
+number above. This correction does not change the frozen baseline results, whose NAV
+indexes and rate dates were both timezone-naive.
