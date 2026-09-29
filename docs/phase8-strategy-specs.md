@@ -181,6 +181,45 @@ This candidate cannot go live through the current adapter: it still needs pre-tr
 short availability/fee checks, paired-order failure handling, recalls, buy-ins and
 distributions owed on shorts. Those are built only if the research passes.
 
+## Candidate C — beta-neutral US sector momentum
+
+### Hypothesis
+
+Medium-term leadership and weakness persist within economically distinct US sectors. A
+book that owns leaders and shorts laggards may retain momentum alpha while removing most
+of the broad equity direction already dominating the balanced sleeve.
+
+### Frozen universe and model
+
+- The nine original Select Sector SPDRs: `XLB XLE XLF XLI XLK XLP XLU XLV XLY`.
+  `XLC` is excluded because its 2018 launch would discard most of the common history.
+- Decide only at month-end from adjusted daily closes and trade at the next open.
+- Rank the sum of 6-1 and 12-1 total returns. Long the top two and short the bottom two.
+- Estimate each selected ETF.s beta to SPY from the trailing 252 daily log returns.
+  Split 100% gross between the two sides so estimated market beta is zero, equal-weight
+  inside each side, cap any ETF at 35%, and round shares toward zero.
+- Base borrow is 1% annualized on short market value over calendar days; stress is 4%.
+  Use the existing commission, spread and volume-impact model. Adjusted prices include
+  distributions owed on shorts. No short-sale-proceeds interest is assumed below $100K.
+- Current gross is intentionally 100%, not levered: a $25K Reg-T margin account should
+  have substantial room under ordinary liquid-ETF requirements, but IBKR what-if margin
+  and live short availability remain mandatory before paper entry.
+
+### Acceptance gates
+
+1. After-cost excess Sharpe at least 0.60, maximum drawdown below 20%, and positive
+   results in both chronological halves.
+2. Correlation with balanced below 0.40 and positive aggregate return during at least
+   three of its five deepest drawdowns.
+3. Survive 2x costs, 4% borrow, one-month delayed entry and adjacent top/bottom counts
+   of one and three without changing sign.
+4. No sector supplies more than 35% of total profit; estimated realized beta stays
+   between -0.15 and +0.15.
+5. IBKR paper confirms shortable shares, fee rate and account-level what-if margin before
+   every rebalance. A missing locate cancels the whole rebalance rather than leaving an
+   unintended directional book.
+
+
 ## Experiment order
 
 1. Query IBKR paper for qualification, current margin and permissions on the conditional

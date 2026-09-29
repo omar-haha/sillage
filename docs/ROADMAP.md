@@ -623,6 +623,9 @@ cash interest and the frozen margin gate. The direct-product history screen has 
    **Rejected, 2026-09-29:** the frozen base case produced -1.39 excess Sharpe; even
    free execution with no borrow reached only 0.20. All five pairs lost after realistic
    costs, both chronological halves failed, and adjacent entry thresholds stayed negative.
+   **Candidate C active:** beta-neutral momentum across the nine original liquid US
+   sector ETFs; its universe, signal, sizing and rejection gates are frozen before the
+   first backtest.
 
 Individual-stock pairs, options selling and intraday reversal are outside the first
 round. They require materially better point-in-time, borrow, quote or option-chain data
