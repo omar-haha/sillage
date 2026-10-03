@@ -1,0 +1,68 @@
+name: Diagnose Sillage incident
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  diagnose:
+    if: github.event.label.name == 'sillage-incident'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ask OpenHands for a read-only diagnosis
+        id: openhands
+        uses: All-Hands-AI/openhands-github-action@v1
+        with:
+          openhands-api-key: ${{ secrets.OPENHANDS_API_KEY }}
+          repository: ${{ github.repository }}
+          selected-branch: ${{ github.event.repository.default_branch }}
+          timeout-seconds: '1200'
+          prompt: |
+            Diagnose GitHub issue #${{ github.event.issue.number }} as an on-call engineer.
+            Read the attached redacted evidence and repository code. Do not edit files,
+            open a pull request, execute against any external host, or suggest bypassing
+            reconciliation. Post one issue comment containing: probable cause, evidence,
+            confidence, safe next action, and exactly one approval label if applicable:
+            approve:restart-gateway, approve:rerun-cycle, or needs-human.
+      - name: Email diagnosis and approval request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE: ${{ github.event.issue.number }}
+          ISSUE_URL: ${{ github.event.issue.html_url }}
+          CONVERSATION_URL: ${{ steps.openhands.outputs.conversation-url }}
+          RESEND_API_KEY: ${{ secrets.SILLAGE_RESEND_API_KEY }}
+          REPORT_FROM: ${{ secrets.SILLAGE_REPORT_FROM }}
+          REPORT_TO: ${{ secrets.SILLAGE_REPORT_TO }}
+        run: |
+          diagnosis=$(gh issue view "$ISSUE" --json comments --jq \
+            '.comments[-1].body // "OpenHands returned without a diagnosis comment."')
+          body=$(jq -n \
+            --arg from "${REPORT_FROM:-onboarding@resend.dev}" \
+            --arg to "$REPORT_TO" \
+            --arg subject "Sillage diagnosis - approval may be required" \
+            --arg text "$diagnosis
+
+          Incident: $ISSUE_URL
+          OpenHands: $CONVERSATION_URL
+
+          Apply only the recommended approve:* label on the incident issue." \
+            '{from:$from,to:[$to],subject:$subject,text:$text}')
+          curl --fail --silent --show-error --max-time 20 \
+            -X POST https://api.resend.com/emails \
+            -H "Authorization: Bearer $RESEND_API_KEY" \
+            -H 'Content-Type: application/json' \
+            --data "$body"
+      - name: Attach OpenHands conversation
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE: ${{ github.event.issue.number }}
+          URL: ${{ steps.openhands.outputs.conversation-url }}
+          STATUS: ${{ steps.openhands.outputs.status }}
+        run: |
+          gh issue comment "$ISSUE" --body "OpenHands status: **$STATUS** - [conversation]($URL)"

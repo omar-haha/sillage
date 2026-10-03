@@ -1,0 +1,50 @@
+name: Approve Sillage recovery
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  recover:
+    if: >-
+      contains(fromJSON('["approve:restart-gateway","approve:rerun-cycle"]'), github.event.label.name)
+      && contains(github.event.issue.labels.*.name, 'sillage-incident')
+    runs-on: ubuntu-latest
+    environment: sillage-paper-recovery
+    steps:
+      - name: Validate approver
+        env:
+          ASSOCIATION: ${{ github.event.sender.type }}
+          LOGIN: ${{ github.event.sender.login }}
+          OWNER: ${{ github.repository_owner }}
+        run: test "$ASSOCIATION" = User && test "$LOGIN" = "$OWNER"
+      - name: Install SSH key
+        env:
+          KEY: ${{ secrets.SILLAGE_RECOVERY_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "${{ secrets.SILLAGE_RECOVERY_HOST }}" >> ~/.ssh/known_hosts
+      - name: Run allow-listed recovery
+        env:
+          ACTION: ${{ github.event.label.name }}
+          HOST: ${{ secrets.SILLAGE_RECOVERY_HOST }}
+        run: |
+          case "$ACTION" in
+            approve:restart-gateway) command=restart-gateway ;;
+            approve:rerun-cycle) command=rerun-cycle ;;
+            *) exit 64 ;;
+          esac
+          ssh "deploy@$HOST" "/home/deploy/sillage/deploy/approved-recovery.sh $command"
+      - name: Record result
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE: ${{ github.event.issue.number }}
+          ACTION: ${{ github.event.label.name }}
+        run: |
+          gh issue comment "$ISSUE" --body "Approved recovery completed: **$ACTION**. Review the next Healthchecks signal before closing this incident."

@@ -18,7 +18,14 @@ healthcheck() {
 
 failed() {
     status=$?
+    trap - ERR
     healthcheck "${SILLAGE_HEALTHCHECK_URL:-}/fail"
+    if [[ -n "${SILLAGE_GITHUB_TOKEN:-}" && -n "${SILLAGE_RESEND_API_KEY:-}" && -n "${SILLAGE_REPORT_TO:-}" ]]; then
+        timeout 90s .venv/bin/python deploy/incident-report.py \
+            --root "$SILLAGE_ROOT" \
+            --trigger "paper cycle exited $status" \
+            --dispatch >>state/incident-report.log 2>&1 || true
+    fi
     exit "$status"
 }
 trap failed ERR
