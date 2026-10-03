@@ -44,6 +44,8 @@ jobs:
           fi
           prompt="Diagnose incident #$ISSUE. Read repository code at the deployed commit recorded in the evidence (use git show for that revision). Read-only commands and GitHub reads are allowed. Do not mutate repository, infrastructure, broker or journal state, bypass reconciliation, post comments, or apply labels. Write your final report to /workspace/project/comment_body.md with these headings: Probable cause, Evidence, Confidence, Safe next action. Include exactly one line Recommendation: needs-human or Recommendation: approve:restart-gateway or Recommendation: approve:rerun-cycle. Approval labels are recommendations for the human only. Finish after writing the file. Incident evidence follows:
           $evidence"
+          prompt="$prompt
+          Delivery requirement: return the complete report inline in your final response as well as writing the file. Use all four required headings and the exact plain Recommendation line. The workflow reads your final response through the Cloud events API."
           payload=$(jq -n --arg prompt "$prompt" --arg repository "$REPOSITORY" \
             '{initial_message:{content:[{type:"text",text:$prompt}]},selected_repository:$repository}')
           if [ -z "$EXISTING_CONVERSATION" ]; then
