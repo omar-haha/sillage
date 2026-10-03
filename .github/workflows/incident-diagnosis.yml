@@ -1,5 +1,14 @@
 name: Diagnose Sillage incident
 on:
+  workflow_dispatch:
+    inputs:
+      conversation:
+        required: true
+        description: Existing completed OpenHands conversation ID
+      issue:
+        required: true
+        default: '1'
+        description: Incident issue number
   issues:
     types: [labeled]
 
@@ -8,12 +17,12 @@ permissions:
   issues: write
 
 concurrency:
-  group: sillage-diagnosis-${{ github.event.issue.number }}
+  group: sillage-diagnosis-${{ github.event.issue.number || inputs.issue }}
   cancel-in-progress: false
 
 jobs:
   diagnose:
-    if: github.event.label.name == 'sillage-incident'
+    if: github.event.label.name == 'sillage-incident' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
@@ -24,7 +33,8 @@ jobs:
           OPENHANDS_API_KEY: ${{ secrets.OPENHANDS_API_KEY }}
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
-          ISSUE: ${{ github.event.issue.number }}
+          ISSUE: ${{ github.event.issue.number || inputs.issue }}
+          EXISTING_CONVERSATION: ${{ inputs.conversation }}
         run: |
           evidence=$(gh issue view "$ISSUE" --repo "$REPOSITORY" --json body --jq .body)
           delivered=$(gh issue view "$ISSUE" --repo "$REPOSITORY" --json comments --jq '[.comments[] | select(.author.login == "github-actions" and (.body | contains("<!-- sillage-diagnosis-v1 -->")))] | length')
@@ -36,6 +46,7 @@ jobs:
           $evidence"
           payload=$(jq -n --arg prompt "$prompt" --arg repository "$REPOSITORY" \
             '{initial_message:{content:[{type:"text",text:$prompt}]},selected_repository:$repository}')
+          if [ -z "$EXISTING_CONVERSATION" ]; then
           start=$(curl --fail --silent --show-error --max-time 30 \
             -X POST https://app.all-hands.dev/api/v1/app-conversations \
             -H "Authorization: Bearer $OPENHANDS_API_KEY" \
@@ -53,6 +64,9 @@ jobs:
             conversation_id=$(jq -r '(if type == "array" then .[0] else . end) | .app_conversation_id // empty' <<<"$task")
           done
           [ -n "$conversation_id" ] || { echo 'Timed out starting OpenHands'; exit 1; }
+          else
+            conversation_id="$EXISTING_CONVERSATION"
+          fi
           conversation_url="https://app.all-hands.dev/conversations/$conversation_id"
           echo "conversation-url=$conversation_url" >> "$GITHUB_OUTPUT"
           saw_running=false
@@ -73,11 +87,12 @@ jobs:
           done
           case "$status" in idle|finished) ;; *) echo 'Timed out waiting for OpenHands'; exit 1 ;; esac
           echo "status=$status" >> "$GITHUB_OUTPUT"
-          diagnosis=$(curl --fail --silent --show-error --get --max-time 20 \
+          artifact=$(curl --fail --silent --show-error --get --max-time 20 \
             "https://app.all-hands.dev/api/v1/app-conversations/$conversation_id/file" \
             -H "Authorization: Bearer $OPENHANDS_API_KEY" \
-            --data-urlencode 'file_path=/workspace/project/comment_body.md' | jq -er \
-            'if type == "string" then . else .content // .text // empty end | select(length > 0)')
+            --data-urlencode 'file_path=/workspace/project/comment_body.md')
+          echo "Artifact response type: $(jq -r type <<< "$artifact")"
+          diagnosis=$(jq -er 'if type == "string" then . else .content // .text // empty end | select(length > 0)' <<< "$artifact")
           test "$(printf '%s\n' "$diagnosis" | grep -Ec '^Recommendation: (needs-human|approve:restart-gateway|approve:rerun-cycle)$')" = 1
           for heading in 'Probable cause' Evidence Confidence 'Safe next action'; do
             printf '%s' "$diagnosis" | grep -Fqi "$heading"
@@ -88,8 +103,8 @@ jobs:
         if: steps.openhands.outputs.status != ''
         env:
           GH_TOKEN: ${{ github.token }}
-          ISSUE: ${{ github.event.issue.number }}
-          ISSUE_URL: ${{ github.event.issue.html_url }}
+          ISSUE: ${{ github.event.issue.number || inputs.issue }}
+          ISSUE_URL: https://github.com/${{ github.repository }}/issues/${{ github.event.issue.number || inputs.issue }}
           CONVERSATION_URL: ${{ steps.openhands.outputs.conversation-url }}
           RESEND_API_KEY: ${{ secrets.SILLAGE_RESEND_API_KEY }}
           REPORT_FROM: ${{ secrets.SILLAGE_REPORT_FROM }}
@@ -116,7 +131,7 @@ jobs:
         if: failure()
         env:
           GH_TOKEN: ${{ github.token }}
-          ISSUE: ${{ github.event.issue.number }}
+          ISSUE: ${{ github.event.issue.number || inputs.issue }}
           URL: ${{ steps.openhands.outputs.conversation-url }}
           STATUS: ${{ steps.openhands.outputs.status }}
           RESEND_API_KEY: ${{ secrets.SILLAGE_RESEND_API_KEY }}
