@@ -66,12 +66,16 @@ jobs:
           [ -n "$conversation_id" ] || { echo 'Timed out starting OpenHands'; exit 1; }
           else
             conversation_id="$EXISTING_CONVERSATION"
+            followup=$(jq -n --arg text 'Return the full completed diagnosis inline in your final message. Include headings Probable cause, Evidence, Confidence, Safe next action and exactly one plain line Recommendation: needs-human or Recommendation: approve:restart-gateway or Recommendation: approve:rerun-cycle. Read the existing report if available. Do not merely summarize or refer to the file. Do not mutate external state or repeat the investigation.' '{content:[{type:"text",text:$text}],run:true}')
+            curl --fail --silent --show-error --max-time 30 \
+              -X POST "https://app.all-hands.dev/api/v1/app-conversations/$conversation_id/send-message" \
+              -H "Authorization: Bearer $OPENHANDS_API_KEY" -H 'Content-Type: application/json' --data "$followup" >/dev/null
           fi
           conversation_url="https://app.all-hands.dev/conversations/$conversation_id"
           echo "conversation-url=$conversation_url" >> "$GITHUB_OUTPUT"
           saw_running=false
           for attempt in {1..40}; do
-            if [ -z "$EXISTING_CONVERSATION" ]; then sleep 30; fi
+            sleep 10
             conversation=$(curl --fail --silent --show-error --max-time 20 \
               "https://app.all-hands.dev/api/v1/app-conversations?ids=$conversation_id" \
               -H "Authorization: Bearer $OPENHANDS_API_KEY")
