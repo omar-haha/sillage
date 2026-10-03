@@ -62,13 +62,11 @@ jobs:
           done
           case "$status" in idle|finished) ;; *) echo 'Timed out waiting for OpenHands'; exit 1 ;; esac
           echo "status=$status" >> "$GITHUB_OUTPUT"
-          events=$(curl --fail --silent --show-error --max-time 20 \
-            "https://app.all-hands.dev/api/v1/conversation/$conversation_id/events/search?kind__eq=MessageEvent&sort_order=TIMESTAMP_DESC&limit=20" \
-            -H "Authorization: Bearer $OPENHANDS_API_KEY")
-          diagnosis=$(jq -er '
-            [.items[] | select(.source == "agent")][0].llm_message.content
-            | if type == "array" then map(.text // empty) | join("\n") else . end
-            | select(length > 0)' <<<"$events")
+          diagnosis=$(curl --fail --silent --show-error --get --max-time 20 \
+            "https://app.all-hands.dev/api/v1/app-conversations/$conversation_id/file" \
+            -H "Authorization: Bearer $OPENHANDS_API_KEY" \
+            --data-urlencode 'file_path=/workspace/project/comment_body.md' | jq -er \
+            'if type == "string" then . else .content // .text // empty end | select(length > 0)')
           gh issue comment "$ISSUE" --repo "$REPOSITORY" --body "$diagnosis"
       - name: Email diagnosis and approval request
         env:
