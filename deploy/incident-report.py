@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import os
 import re
+import sqlite3
 import subprocess
 import sys
 from datetime import UTC, datetime
@@ -15,11 +16,24 @@ import httpx
 
 COMMANDS = {
     "clock": ["date", "--iso-8601=seconds"],
+    "uptime": ["uptime"],
     "disk": ["df", "-h", "/"],
+    "inodes": ["df", "-i", "/"],
     "memory": ["free", "-h"],
     "api_port": ["ss", "-ltn"],
+    "processes": ["ps", "-eo", "pid,ppid,stat,etimes,comm"],
+    "cron": ["crontab", "-l"],
     "gateway": ["docker", "compose", "-f", "deploy/ibgateway/compose.yaml", "ps"],
+    "gateway_logs": [
+        "docker",
+        "compose",
+        "-f",
+        "deploy/ibgateway/compose.yaml",
+        "logs",
+        "--tail=120",
+    ],
     "commit": ["git", "rev-parse", "--short", "HEAD"],
+    "worktree": ["git", "status", "--short", "--branch"],
 }
 LOGS = ("state/paper-cron.log", "state/gateway-restart.log", "state/weekly-report.log")
 REDACTIONS = (
@@ -52,8 +66,38 @@ def run(command: list[str], root: Path) -> str:
     return f"exit={result.returncode}\n{output}"[-12_000:]
 
 
+def journal_summary(path: Path) -> str:
+    """Return counts and cursor state, never holdings, orders, or account data."""
+    try:
+        connection = sqlite3.connect(f"file:{path}?mode=ro", uri=True, timeout=2)
+        counts = {
+            table: connection.execute(f"SELECT count(*) FROM {table}").fetchone()[0]
+            for table in ("orders", "fills", "rejections", "nav")
+        }
+        latest = connection.execute("SELECT max(session) FROM nav").fetchone()[0]
+        pending = connection.execute(
+            "SELECT value FROM meta WHERE key = ?", ("pending_orders",)
+        ).fetchone()
+        connection.close()
+        import json
+
+        pending_count = len(json.loads(pending[0])) if pending else 0
+        return f"counts={counts}\nlatest_nav_session={latest}\npending_orders={pending_count}"
+    except (OSError, sqlite3.Error, ValueError, TypeError) as exc:
+        return f"unavailable: {type(exc).__name__}: {exc}"
+
+
 def collect(root: Path, trigger: str) -> dict[str, object]:
     evidence = {name: redact(run(command, root)) for name, command in COMMANDS.items()}
+    evidence["journal"] = journal_summary(root / "state/ibkr.db")
+    bars = root / "data/bars/daily"
+    try:
+        files = list(bars.glob("*.parquet"))
+        newest = max(files, key=lambda path: path.stat().st_mtime)
+        stamp = datetime.fromtimestamp(newest.stat().st_mtime, UTC).isoformat()
+        evidence["data_store"] = f"symbols={len(files)}\nnewest_file_mtime={stamp}"
+    except (OSError, ValueError) as exc:
+        evidence["data_store"] = f"unavailable: {type(exc).__name__}: {exc}"
     for relative in LOGS:
         path = root / relative
         try:
