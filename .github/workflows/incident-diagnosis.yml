@@ -92,7 +92,15 @@ jobs:
             -H "Authorization: Bearer $OPENHANDS_API_KEY" \
             --data-urlencode 'file_path=/workspace/project/comment_body.md')
           echo "Artifact response type: $(jq -r type <<< "$artifact")"
-          diagnosis=$(jq -er 'if type == "string" then . else .content // .text // empty end | select(length > 0)' <<< "$artifact")
+          diagnosis=$(jq -r 'if type == "string" then . else .content // .text // empty end' <<< "$artifact")
+          if [ -z "$diagnosis" ]; then
+            events=$(curl --fail --silent --show-error --max-time 20 \
+              "https://app.all-hands.dev/api/v1/conversation/$conversation_id/events/search?kind__eq=MessageEvent&sort_order=TIMESTAMP_DESC&limit=20" \
+              -H "Authorization: Bearer $OPENHANDS_API_KEY")
+            echo "Message event count: $(jq '.items | length' <<< "$events")"
+            diagnosis=$(jq -r '[.items[] | select(.source == "agent") | (.llm_message.content // .content // []) | if type == "array" then map(.text // empty) | join("\n") else . end | select(contains("Recommendation:"))][0] // empty' <<< "$events")
+          fi
+          test -n "$diagnosis"
           test "$(printf '%s\n' "$diagnosis" | grep -Ec '^Recommendation: (needs-human|approve:restart-gateway|approve:rerun-cycle)$')" = 1
           for heading in 'Probable cause' Evidence Confidence 'Safe next action'; do
             printf '%s' "$diagnosis" | grep -Fqi "$heading"
