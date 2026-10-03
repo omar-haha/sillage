@@ -36,9 +36,9 @@ jobs:
             task=$(curl --fail --silent --show-error --max-time 20 \
               "https://app.all-hands.dev/api/v1/app-conversations/start-tasks?ids=$task_id" \
               -H "Authorization: Bearer $OPENHANDS_API_KEY")
-            status=$(jq -r '.[0].status // .status // "UNKNOWN"' <<<"$task")
+            status=$(jq -r '(if type == "array" then .[0] else . end) | .status // "UNKNOWN"' <<<"$task")
             [ "$status" = ERROR ] && { jq . <<<"$task"; exit 1; }
-            conversation_id=$(jq -r '.[0].app_conversation_id // .app_conversation_id // empty' <<<"$task")
+            conversation_id=$(jq -r '(if type == "array" then .[0] else . end) | .app_conversation_id // empty' <<<"$task")
           done
           [ -n "$conversation_id" ] || { echo 'Timed out starting OpenHands'; exit 1; }
           conversation_url="https://app.all-hands.dev/conversations/$conversation_id"
