@@ -14,27 +14,48 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
-      - name: Build OpenHands prompt
-        env:
-          ISSUE: ${{ github.event.issue.number }}
-        run: |
-          cat > "$RUNNER_TEMP/openhands-incident-prompt.md" <<EOF
-          Diagnose GitHub issue #$ISSUE as an on-call engineer.
-          Read the attached redacted evidence and repository code. Do not edit files,
-          open a pull request, execute against any external host, or suggest bypassing
-          reconciliation. Post one issue comment containing: probable cause, evidence,
-          confidence, safe next action, and exactly one approval label if applicable:
-          approve:restart-gateway, approve:rerun-cycle, or needs-human.
-          EOF
       - name: Ask OpenHands for a read-only diagnosis
         id: openhands
-        uses: All-Hands-AI/openhands-github-action@v1
-        with:
-          openhands-api-key: ${{ secrets.OPENHANDS_API_KEY }}
-          repository: ${{ github.repository }}
-          selected-branch: ${{ github.event.repository.default_branch }}
-          timeout-seconds: '1200'
-          prompt: ${{ runner.temp }}/openhands-incident-prompt.md
+        env:
+          OPENHANDS_API_KEY: ${{ secrets.OPENHANDS_API_KEY }}
+          REPOSITORY: ${{ github.repository }}
+          ISSUE: ${{ github.event.issue.number }}
+        run: |
+          prompt="Diagnose GitHub issue #$ISSUE as an on-call engineer. Read the attached redacted evidence and repository code. Do not edit files, open a pull request, execute against any external host, or suggest bypassing reconciliation. Post one issue comment containing: probable cause, evidence, confidence, safe next action, and exactly one approval label if applicable: approve:restart-gateway, approve:rerun-cycle, or needs-human."
+          payload=$(jq -n --arg prompt "$prompt" --arg repository "$REPOSITORY" \
+            '{initial_message:{content:[{type:"text",text:$prompt}]},selected_repository:$repository}')
+          start=$(curl --fail --silent --show-error --max-time 30 \
+            -X POST https://app.all-hands.dev/api/v1/app-conversations \
+            -H "Authorization: Bearer $OPENHANDS_API_KEY" \
+            -H 'Content-Type: application/json' --data "$payload")
+          task_id=$(jq -er '.id' <<<"$start")
+          conversation_id=$(jq -r '.app_conversation_id // empty' <<<"$start")
+          for _ in {1..60}; do
+            [ -n "$conversation_id" ] && break
+            sleep 5
+            task=$(curl --fail --silent --show-error --max-time 20 \
+              "https://app.all-hands.dev/api/v1/app-conversations/start-tasks?ids=$task_id" \
+              -H "Authorization: Bearer $OPENHANDS_API_KEY")
+            status=$(jq -r '.[0].status // .status // "UNKNOWN"' <<<"$task")
+            [ "$status" = ERROR ] && { jq . <<<"$task"; exit 1; }
+            conversation_id=$(jq -r '.[0].app_conversation_id // .app_conversation_id // empty' <<<"$task")
+          done
+          [ -n "$conversation_id" ] || { echo 'Timed out starting OpenHands'; exit 1; }
+          conversation_url="https://app.all-hands.dev/conversations/$conversation_id"
+          echo "conversation-url=$conversation_url" >> "$GITHUB_OUTPUT"
+          for _ in {1..40}; do
+            sleep 30
+            conversation=$(curl --fail --silent --show-error --max-time 20 \
+              "https://app.all-hands.dev/api/v1/app-conversations?ids=$conversation_id" \
+              -H "Authorization: Bearer $OPENHANDS_API_KEY")
+            status=$(jq -r '.[0].execution_status // "unknown"' <<<"$conversation")
+            case "$status" in
+              finished) echo "status=$status" >> "$GITHUB_OUTPUT"; break ;;
+              error|stuck|waiting_for_confirmation)
+                echo "status=$status" >> "$GITHUB_OUTPUT"; exit 1 ;;
+            esac
+          done
+          [ "$status" = finished ] || { echo 'Timed out waiting for OpenHands'; exit 1; }
       - name: Email diagnosis and approval request
         env:
           GH_TOKEN: ${{ github.token }}
