@@ -74,7 +74,7 @@ jobs:
           conversation_url="https://app.all-hands.dev/conversations/$conversation_id"
           echo "conversation-url=$conversation_url" >> "$GITHUB_OUTPUT"
           saw_running=false
-          for attempt in {1..40}; do
+          for attempt in {1..120}; do
             sleep 10
             conversation=$(curl --fail --silent --show-error --max-time 20 \
               "https://app.all-hands.dev/api/v1/app-conversations?ids=$conversation_id" \
@@ -106,12 +106,16 @@ jobs:
             echo "Report path $report_path length: ${#diagnosis}"
           done
           if [ -z "$diagnosis" ]; then
+            for delivery_attempt in {1..6}; do
+            sleep 10
             events=$(curl --fail --silent --show-error --max-time 20 \
               "https://app.all-hands.dev/api/v1/conversation/$conversation_id/events/search?kind__eq=MessageEvent&sort_order=TIMESTAMP_DESC&limit=20" \
               -H "Authorization: Bearer $OPENHANDS_API_KEY")
             echo "Message event count: $(jq '.items | length' <<< "$events")"
             jq '[.items[] | select(.source == "agent") | {content_type:(.llm_message.content|type),blocks:[.llm_message.content[] | {fields:keys,text_type:(.text|type)}]}]' <<< "$events"
             diagnosis=$(jq -r '[.items[] | select(.source == "agent") | (.llm_message.content // .content // []) | if type == "array" then map(.text // empty) | join("\n") else . end | select(contains("Recommendation:"))][0] // empty' <<< "$events")
+            [ -n "$diagnosis" ] && break
+            done
           fi
           test -n "$diagnosis"
           test "$(printf '%s\n' "$diagnosis" | grep -Ec '^Recommendation: (needs-human|approve:restart-gateway|approve:rerun-cycle)$')" = 1
