@@ -71,7 +71,7 @@ jobs:
           echo "conversation-url=$conversation_url" >> "$GITHUB_OUTPUT"
           saw_running=false
           for attempt in {1..40}; do
-            sleep 30
+            if [ -z "$EXISTING_CONVERSATION" ]; then sleep 30; fi
             conversation=$(curl --fail --silent --show-error --max-time 20 \
               "https://app.all-hands.dev/api/v1/app-conversations?ids=$conversation_id" \
               -H "Authorization: Bearer $OPENHANDS_API_KEY")
@@ -93,12 +93,20 @@ jobs:
             --data-urlencode 'file_path=/workspace/project/comment_body.md')
           echo "Artifact response type: $(jq -r type <<< "$artifact")"
           diagnosis=$(jq -r 'if type == "string" then . else .content // .text // empty end' <<< "$artifact")
+          for report_path in /workspace/project/sillage/comment_body.md /workspace/comment_body.md comment_body.md; do
+            [ -n "$diagnosis" ] && break
+            artifact=$(curl --fail --silent --show-error --get --max-time 20 \
+              "https://app.all-hands.dev/api/v1/app-conversations/$conversation_id/file" \
+              -H "Authorization: Bearer $OPENHANDS_API_KEY" --data-urlencode "file_path=$report_path")
+            diagnosis=$(jq -r 'if type == "string" then . else .content // .text // empty end' <<< "$artifact")
+            echo "Report path $report_path length: ${#diagnosis}"
+          done
           if [ -z "$diagnosis" ]; then
             events=$(curl --fail --silent --show-error --max-time 20 \
               "https://app.all-hands.dev/api/v1/conversation/$conversation_id/events/search?kind__eq=MessageEvent&sort_order=TIMESTAMP_DESC&limit=20" \
               -H "Authorization: Bearer $OPENHANDS_API_KEY")
             echo "Message event count: $(jq '.items | length' <<< "$events")"
-            jq '[.items[] | {source,fields:keys,message_fields:(.llm_message // {} | keys)}]' <<< "$events"
+            jq '[.items[] | select(.source == "agent") | {content_type:(.llm_message.content|type),blocks:[.llm_message.content[] | {fields:keys,text_type:(.text|type)}]}]' <<< "$events"
             diagnosis=$(jq -r '[.items[] | select(.source == "agent") | (.llm_message.content // .content // []) | if type == "array" then map(.text // empty) | join("\n") else . end | select(contains("Recommendation:"))][0] // empty' <<< "$events")
           fi
           test -n "$diagnosis"
