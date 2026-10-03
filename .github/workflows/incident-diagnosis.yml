@@ -1,5 +1,4 @@
 name: Diagnose Sillage incident
-
 on:
   issues:
     types: [labeled]
@@ -15,6 +14,18 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+      - name: Build OpenHands prompt
+        env:
+          ISSUE: ${{ github.event.issue.number }}
+        run: |
+          cat > "$RUNNER_TEMP/openhands-incident-prompt.md" <<EOF
+          Diagnose GitHub issue #$ISSUE as an on-call engineer.
+          Read the attached redacted evidence and repository code. Do not edit files,
+          open a pull request, execute against any external host, or suggest bypassing
+          reconciliation. Post one issue comment containing: probable cause, evidence,
+          confidence, safe next action, and exactly one approval label if applicable:
+          approve:restart-gateway, approve:rerun-cycle, or needs-human.
+          EOF
       - name: Ask OpenHands for a read-only diagnosis
         id: openhands
         uses: All-Hands-AI/openhands-github-action@v1
@@ -23,13 +34,7 @@ jobs:
           repository: ${{ github.repository }}
           selected-branch: ${{ github.event.repository.default_branch }}
           timeout-seconds: '1200'
-          prompt: |
-            Diagnose GitHub issue #${{ github.event.issue.number }} as an on-call engineer.
-            Read the attached redacted evidence and repository code. Do not edit files,
-            open a pull request, execute against any external host, or suggest bypassing
-            reconciliation. Post one issue comment containing: probable cause, evidence,
-            confidence, safe next action, and exactly one approval label if applicable:
-            approve:restart-gateway, approve:rerun-cycle, or needs-human.
+          prompt: ${{ runner.temp }}/openhands-incident-prompt.md
       - name: Email diagnosis and approval request
         env:
           GH_TOKEN: ${{ github.token }}
