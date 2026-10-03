@@ -98,6 +98,7 @@ jobs:
               "https://app.all-hands.dev/api/v1/conversation/$conversation_id/events/search?kind__eq=MessageEvent&sort_order=TIMESTAMP_DESC&limit=20" \
               -H "Authorization: Bearer $OPENHANDS_API_KEY")
             echo "Message event count: $(jq '.items | length' <<< "$events")"
+            jq '[.items[] | {source,fields:keys,message_fields:(.llm_message // {} | keys)}]' <<< "$events"
             diagnosis=$(jq -r '[.items[] | select(.source == "agent") | (.llm_message.content // .content // []) | if type == "array" then map(.text // empty) | join("\n") else . end | select(contains("Recommendation:"))][0] // empty' <<< "$events")
           fi
           test -n "$diagnosis"
