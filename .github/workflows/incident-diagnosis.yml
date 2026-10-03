@@ -7,11 +7,15 @@ permissions:
   contents: read
   issues: write
 
+concurrency:
+  group: sillage-diagnosis-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
 jobs:
   diagnose:
     if: github.event.label.name == 'sillage-incident'
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - name: Ask OpenHands for a read-only diagnosis
@@ -22,7 +26,14 @@ jobs:
           REPOSITORY: ${{ github.repository }}
           ISSUE: ${{ github.event.issue.number }}
         run: |
-          prompt="Diagnose GitHub issue #$ISSUE as an on-call engineer. Read the attached redacted evidence and repository code. Do not edit files, open a pull request, execute against any external host, or suggest bypassing reconciliation. Post one issue comment containing: probable cause, evidence, confidence, safe next action, and exactly one approval label if applicable: approve:restart-gateway, approve:rerun-cycle, or needs-human."
+          evidence=$(gh issue view "$ISSUE" --repo "$REPOSITORY" --json body --jq .body)
+          delivered=$(gh issue view "$ISSUE" --repo "$REPOSITORY" --json comments --jq '[.comments[] | select(.author.login == "github-actions" and (.body | contains("<!-- sillage-diagnosis-v1 -->")))] | length')
+          if [ "$delivered" -gt 0 ]; then
+            echo 'A validated diagnosis already exists for this incident.'
+            exit 0
+          fi
+          prompt="Diagnose incident #$ISSUE. Read repository code at the deployed commit recorded in the evidence (use git show for that revision). Read-only commands and GitHub reads are allowed. Do not mutate repository, infrastructure, broker or journal state, bypass reconciliation, post comments, or apply labels. Write your final report to /workspace/project/comment_body.md with these headings: Probable cause, Evidence, Confidence, Safe next action. Include exactly one line Recommendation: needs-human or Recommendation: approve:restart-gateway or Recommendation: approve:rerun-cycle. Approval labels are recommendations for the human only. Finish after writing the file. Incident evidence follows:
+          $evidence"
           payload=$(jq -n --arg prompt "$prompt" --arg repository "$REPOSITORY" \
             '{initial_message:{content:[{type:"text",text:$prompt}]},selected_repository:$repository}')
           start=$(curl --fail --silent --show-error --max-time 30 \
@@ -55,7 +66,7 @@ jobs:
             [ "$status" = running ] && saw_running=true
             case "$status" in
               finished) break ;;
-              idle) $saw_running || [ "$attempt" -ge 3 ] && break ;;
+              idle) if $saw_running; then break; fi ;;
               error|stuck|paused|waiting_for_confirmation|deleting)
                 echo "status=$status" >> "$GITHUB_OUTPUT"; exit 1 ;;
             esac
@@ -67,8 +78,14 @@ jobs:
             -H "Authorization: Bearer $OPENHANDS_API_KEY" \
             --data-urlencode 'file_path=/workspace/project/comment_body.md' | jq -er \
             'if type == "string" then . else .content // .text // empty end | select(length > 0)')
-          gh issue comment "$ISSUE" --repo "$REPOSITORY" --body "$diagnosis"
+          test "$(printf '%s\n' "$diagnosis" | grep -Ec '^Recommendation: (needs-human|approve:restart-gateway|approve:rerun-cycle)$')" = 1
+          for heading in 'Probable cause' Evidence Confidence 'Safe next action'; do
+            printf '%s' "$diagnosis" | grep -Fqi "$heading"
+          done
+          printf '<!-- sillage-diagnosis-v1 -->\n%s\n\nIncident: %s\nOpenHands: %s\n' "$diagnosis" "$ISSUE" "$conversation_url" > "$RUNNER_TEMP/diagnosis.md"
+          gh issue comment "$ISSUE" --repo "$REPOSITORY" --body-file "$RUNNER_TEMP/diagnosis.md"
       - name: Email diagnosis and approval request
+        if: steps.openhands.outputs.status != ''
         env:
           GH_TOKEN: ${{ github.token }}
           ISSUE: ${{ github.event.issue.number }}
@@ -78,8 +95,7 @@ jobs:
           REPORT_FROM: ${{ secrets.SILLAGE_REPORT_FROM }}
           REPORT_TO: ${{ secrets.SILLAGE_REPORT_TO }}
         run: |
-          diagnosis=$(gh issue view "$ISSUE" --json comments --jq \
-            '.comments[-1].body // "OpenHands returned without a diagnosis comment."')
+          diagnosis=$(< "$RUNNER_TEMP/diagnosis.md")
           body=$(jq -n \
             --arg from "${REPORT_FROM:-onboarding@resend.dev}" \
             --arg to "$REPORT_TO" \
@@ -96,11 +112,21 @@ jobs:
             -H "Authorization: Bearer $RESEND_API_KEY" \
             -H 'Content-Type: application/json' \
             --data "$body"
-      - name: Attach OpenHands conversation
+      - name: Report diagnosis delivery failure
+        if: failure()
         env:
           GH_TOKEN: ${{ github.token }}
           ISSUE: ${{ github.event.issue.number }}
           URL: ${{ steps.openhands.outputs.conversation-url }}
           STATUS: ${{ steps.openhands.outputs.status }}
+          RESEND_API_KEY: ${{ secrets.SILLAGE_RESEND_API_KEY }}
+          REPORT_FROM: ${{ secrets.SILLAGE_REPORT_FROM }}
+          REPORT_TO: ${{ secrets.SILLAGE_REPORT_TO }}
         run: |
-          gh issue comment "$ISSUE" --body "OpenHands status: **$STATUS** - [conversation]($URL)"
+          gh issue comment "$ISSUE" --body "Diagnosis delivery failed. Review this workflow run and OpenHands conversation: $URL. No recovery is approved."
+          body=$(jq -n --arg from "$REPORT_FROM" --arg to "$REPORT_TO" \
+            --arg text "Diagnosis delivery failed for incident #$ISSUE. Review https://github.com/$GITHUB_REPOSITORY/issues/$ISSUE and $URL. Human investigation is required; no recovery is approved." \
+            '{from:$from,to:[$to],subject:"Sillage diagnosis delivery failed",text:$text}')
+          curl --fail --silent --show-error --max-time 20 \
+            -X POST https://api.resend.com/emails -H "Authorization: Bearer $RESEND_API_KEY" \
+            -H 'Content-Type: application/json' --data "$body"

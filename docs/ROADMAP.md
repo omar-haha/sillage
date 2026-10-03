@@ -702,3 +702,15 @@ not the goal.
 
 This document is a plan, not financial advice. Nothing here should be traded with real
 money until it has run on paper long enough to surprise you at least twice.
+# Incident recovery hardening — October 3, 2026
+
+- Implemented bounded retries for IBKR execution-history timeouts with explicit
+  evidence-unavailable errors; no position-derived fills or reconciliation bypass.
+- Hardened evidence redaction, sanitized public incident #1, and pinned recovery
+  SSH host verification.
+- Corrected OpenHands report-file contract, validation, duplicate delivery guard,
+  failure email, workflow concurrency, and conflicting approval-label checks.
+- Recovery scripts load the deployment environment and use consistent root paths.
+- Historical-fill repair procedure: see [incident-recovery.md](incident-recovery.md).
+- Still required: successful live diagnosis delivery and broker-confirmed historical
+  fill import for incident #1. Paper reconciliation remains blocked until explained.

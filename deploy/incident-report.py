@@ -37,14 +37,19 @@ COMMANDS = {
 }
 LOGS = ("state/paper-cron.log", "state/gateway-restart.log", "state/weekly-report.log")
 REDACTIONS = (
-    (re.compile(r"\bDU\d+\b", re.I), "[ACCOUNT]"),
+    (re.compile(r"\b(?:DU[T]?|U)\d+\b", re.I), "[ACCOUNT]"),
     (re.compile(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}"), "[EMAIL]"),
     (re.compile(r"https://hc-ping\.com/[\w-]+(?:/\w+)?"), "[HEALTHCHECK_URL]"),
-    (re.compile(r"\b(?:re|ghp|github_pat)_[A-Za-z0-9_\-]{12,}\b"), "[TOKEN]"),
+    (re.compile(r"\b(?:re|gh[pousr]|github_pat)_[A-Za-z0-9_\-]{12,}\b"), "[TOKEN]"),
+    (re.compile(r"(?im)(\b(?:jxBrowserKey|TWS_USERID|password|api_key|token)\s*[=:]\s*)[^\s,;]+"), r"\1[REDACTED]"),
 )
 
 
 def redact(value: str) -> str:
+    for name in ("TWS_USERID", "TWS_PASSWORD", "SILLAGE_IB_ACCOUNT"):
+        secret = os.environ.get(name)
+        if secret:
+            value = value.replace(secret, "[REDACTED]")
     for pattern, replacement in REDACTIONS:
         value = pattern.sub(replacement, value)
     return value

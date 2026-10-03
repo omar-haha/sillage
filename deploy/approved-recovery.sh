@@ -2,6 +2,10 @@
 set -Eeuo pipefail
 
 : "${SILLAGE_ROOT:=/home/deploy/sillage}"
+set -a
+. /home/deploy/.config/sillage/paper.env
+set +a
+export SILLAGE_ROOT
 case "${1:-}" in
   restart-gateway)
     exec "$SILLAGE_ROOT/deploy/restart-gateway.sh"

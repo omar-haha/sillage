@@ -31,3 +31,11 @@ def test_markdown_explicitly_forbids_mutation(tmp_path: Path) -> None:
     assert "Read-only" in rendered
     assert "do not modify" in rendered
     assert "test failure" in rendered
+
+
+def test_redacts_gateway_secrets_and_extended_accounts(monkeypatch) -> None:
+    monkeypatch.setenv("TWS_USERID", "private_login")
+    raw = "DUT138047 U123456 private_login jxBrowserKey = abc123 ghu_abcdefghijklmnop ghs_abcdefghijklmnop"
+    cleaned = incident_report.redact(raw)
+    for secret in ("DUT138047", "U123456", "private_login", "abc123", "abcdefghijklmnop"):
+        assert secret not in cleaned

@@ -260,7 +260,7 @@ class IBKRBroker:
         # Its execution is stronger evidence than any status callback, and waiting for
         # a status that IBKR will never replay turns an overnight fill import into a
         # full timeout for every run.
-        executed = {execution.order_ref for execution in self.client.executions(since=session)}
+        executed = {execution.order_ref for execution in self._executions(session)}
         self._await_resolution(set(submitted) - executed)
 
         fills, outstanding = self._collect(submitted, session, ts, rejections)
@@ -289,7 +289,7 @@ class IBKRBroker:
         if not self.client.connected:
             self.client.connect()
 
-        executions = self.client.executions(since=session)
+        executions = self._executions(session)
         executed = {execution.order_ref for execution in executions}
         open_refs = self.client.open_order_refs()
         known: dict[str, Order] = {}
@@ -312,6 +312,21 @@ class IBKRBroker:
 
     # ------------------------------------------------------------------ the pieces
 
+    def _executions(self, session: date) -> list[Execution]:
+        """Retry transient evidence timeouts; never infer fills from positions."""
+        for attempt in range(3):
+            try:
+                return self.client.executions(since=session)
+            except TimeoutError as exc:
+                if attempt == 2:
+                    raise BrokerError(
+                        "IBKR execution evidence unavailable after 3 attempts; "
+                        "pending orders remain unresolved. Restore Gateway connectivity "
+                        "and recover broker fills before submitting new orders."
+                    ) from exc
+                self._sleep(2 ** attempt)
+        raise AssertionError("unreachable")
+
     def _already_submitted(self, session: date) -> set[str]:
         """Order references the venue has already seen, from either direction.
 
@@ -320,7 +335,7 @@ class IBKRBroker:
         anything that filled while the process was dead, which is the expensive mistake.
         """
         return self.client.open_order_refs() | {
-            execution.order_ref for execution in self.client.executions(since=session)
+            execution.order_ref for execution in self._executions(session)
         }
 
     def _await_resolution(self, references: set[str]) -> None:
@@ -356,7 +371,7 @@ class IBKRBroker:
         pieces, and flattening that would discard exactly what the divergence report
         wants to look at.
         """
-        executions = [e for e in self.client.executions(since=session) if e.order_ref in submitted]
+        executions = [e for e in self._executions(session) if e.order_ref in submitted]
 
         fills = [
             Fill(

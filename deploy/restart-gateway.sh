@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-: "${SILLAGE_ROOT:=/opt/sillage}"
+: "${SILLAGE_ROOT:=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 : "${SILLAGE_IB_HOST:=127.0.0.1}"
 : "${SILLAGE_IB_PORT:=4002}"
 : "${SILLAGE_IB_CLIENT_ID:=17}"

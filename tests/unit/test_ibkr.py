@@ -29,6 +29,38 @@ SESSION = date(2026, 3, 12)
 TS = datetime(2026, 3, 12, 14, 30, tzinfo=UTC)
 
 
+def test_execution_evidence_retries_timeout_without_submission(monkeypatch) -> None:
+    venue = FakeVenue()
+    attempts = []
+
+    def executions(*, since=None):
+        attempts.append(since)
+        if len(attempts) < 3:
+            raise TimeoutError()
+        return []
+
+    monkeypatch.setattr(venue, "executions", executions)
+    report = IBKRBroker(venue, sleeper=lambda _: None).recover([], session=SESSION, ts=TS)
+    assert not report.fills
+    assert not venue.placed
+    assert len(attempts) >= 3
+
+
+def test_execution_evidence_failure_preserves_no_submission(monkeypatch) -> None:
+    venue = FakeVenue()
+    attempts = []
+
+    def executions(*, since=None):
+        attempts.append(since)
+        raise TimeoutError()
+
+    monkeypatch.setattr(venue, "executions", executions)
+    with pytest.raises(BrokerError, match="execution evidence unavailable after 3 attempts"):
+        IBKRBroker(venue, sleeper=lambda _: None).recover([], session=SESSION, ts=TS)
+    assert len(attempts) == 3
+    assert not venue.placed
+
+
 class FakeVenue:
     """A broker that can do the things a simulator cannot."""
 

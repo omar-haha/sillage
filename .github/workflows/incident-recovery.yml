@@ -8,6 +8,10 @@ permissions:
   contents: read
   issues: write
 
+concurrency:
+  group: sillage-paper-recovery
+  cancel-in-progress: false
+
 jobs:
   recover:
     if: >-
@@ -21,15 +25,24 @@ jobs:
           ASSOCIATION: ${{ github.event.sender.type }}
           LOGIN: ${{ github.event.sender.login }}
           OWNER: ${{ github.repository_owner }}
-        run: test "$ASSOCIATION" = User && test "$LOGIN" = "$OWNER"
+          GH_TOKEN: ${{ github.token }}
+          ISSUE: ${{ github.event.issue.number }}
+          ACTION: ${{ github.event.label.name }}
+        run: |
+          test "$ASSOCIATION" = User && test "$LOGIN" = "$OWNER"
+          labels=$(gh issue view "$ISSUE" --repo "$GITHUB_REPOSITORY" --json labels --jq '[.labels[].name | select(startswith("approve:"))]')
+          test "$(jq length <<< "$labels")" = 1
+          test "$(jq -r '.[0]' <<< "$labels")" = "$ACTION"
       - name: Install SSH key
         env:
           KEY: ${{ secrets.SILLAGE_RECOVERY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.SILLAGE_RECOVERY_KNOWN_HOSTS }}
         run: |
           install -d -m 700 ~/.ssh
           printf '%s\n' "$KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H "${{ secrets.SILLAGE_RECOVERY_HOST }}" >> ~/.ssh/known_hosts
+          test -n "$KNOWN_HOSTS"
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
       - name: Run allow-listed recovery
         env:
           ACTION: ${{ github.event.label.name }}
@@ -42,9 +55,11 @@ jobs:
           esac
           ssh "deploy@$HOST" "/home/deploy/sillage/deploy/approved-recovery.sh $command"
       - name: Record result
+        if: always()
         env:
           GH_TOKEN: ${{ github.token }}
           ISSUE: ${{ github.event.issue.number }}
           ACTION: ${{ github.event.label.name }}
+          RESULT: ${{ job.status }}
         run: |
-          gh issue comment "$ISSUE" --body "Approved recovery completed: **$ACTION**. Review the next Healthchecks signal before closing this incident."
+          gh issue comment "$ISSUE" --body "Recovery $ACTION result: $RESULT. Gateway restart verifies API readiness; cycle rerun retains reconciliation and cutoff guards. Review broker reconciliation and the next Healthchecks signal before closing."
