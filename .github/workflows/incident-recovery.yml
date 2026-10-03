@@ -63,4 +63,4 @@ jobs:
           ACTION: ${{ github.event.label.name }}
           RESULT: ${{ job.status }}
         run: |
-          gh issue comment "$ISSUE" --body "Recovery $ACTION result: $RESULT. Gateway restart verifies API readiness; cycle rerun retains reconciliation and cutoff guards. Review broker reconciliation and the next Healthchecks signal before closing."
+          gh issue comment "$ISSUE" --repo "$GITHUB_REPOSITORY" --body "Recovery $ACTION result: $RESULT. Gateway restart verifies API readiness; cycle rerun retains reconciliation and cutoff guards. Review broker reconciliation and the next Healthchecks signal before closing."
