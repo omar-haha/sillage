@@ -18,6 +18,7 @@ jobs:
         id: openhands
         env:
           OPENHANDS_API_KEY: ${{ secrets.OPENHANDS_API_KEY }}
+          GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
           ISSUE: ${{ github.event.issue.number }}
         run: |
@@ -43,19 +44,32 @@ jobs:
           [ -n "$conversation_id" ] || { echo 'Timed out starting OpenHands'; exit 1; }
           conversation_url="https://app.all-hands.dev/conversations/$conversation_id"
           echo "conversation-url=$conversation_url" >> "$GITHUB_OUTPUT"
-          for _ in {1..40}; do
+          saw_running=false
+          for attempt in {1..40}; do
             sleep 30
             conversation=$(curl --fail --silent --show-error --max-time 20 \
               "https://app.all-hands.dev/api/v1/app-conversations?ids=$conversation_id" \
               -H "Authorization: Bearer $OPENHANDS_API_KEY")
             status=$(jq -r '.[0].execution_status // "unknown"' <<<"$conversation")
+            echo "OpenHands execution status: $status"
+            [ "$status" = running ] && saw_running=true
             case "$status" in
-              finished) echo "status=$status" >> "$GITHUB_OUTPUT"; break ;;
-              error|stuck|waiting_for_confirmation)
+              finished) break ;;
+              idle) $saw_running || [ "$attempt" -ge 3 ] && break ;;
+              error|stuck|paused|waiting_for_confirmation|deleting)
                 echo "status=$status" >> "$GITHUB_OUTPUT"; exit 1 ;;
             esac
           done
-          [ "$status" = finished ] || { echo 'Timed out waiting for OpenHands'; exit 1; }
+          case "$status" in idle|finished) ;; *) echo 'Timed out waiting for OpenHands'; exit 1 ;; esac
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          events=$(curl --fail --silent --show-error --max-time 20 \
+            "https://app.all-hands.dev/api/v1/conversation/$conversation_id/events/search?kind__eq=MessageEvent&sort_order=TIMESTAMP_DESC&limit=20" \
+            -H "Authorization: Bearer $OPENHANDS_API_KEY")
+          diagnosis=$(jq -er '
+            [.items[] | select(.source == "agent")][0].llm_message.content
+            | if type == "array" then map(.text // empty) | join("\n") else . end
+            | select(length > 0)' <<<"$events")
+          gh issue comment "$ISSUE" --repo "$REPOSITORY" --body "$diagnosis"
       - name: Email diagnosis and approval request
         env:
           GH_TOKEN: ${{ github.token }}
