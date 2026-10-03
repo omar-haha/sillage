@@ -15,7 +15,7 @@ concurrency:
 jobs:
   recover:
     if: >-
-      contains(fromJSON('["approve:restart-gateway","approve:rerun-cycle"]'), github.event.label.name)
+      contains(fromJSON('["approve:restart-gateway","approve:rerun-cycle","approve:check-gateway"]'), github.event.label.name)
       && contains(github.event.issue.labels.*.name, 'sillage-incident')
     runs-on: ubuntu-latest
     environment: sillage-paper-recovery
@@ -49,6 +49,7 @@ jobs:
           HOST: ${{ secrets.SILLAGE_RECOVERY_HOST }}
         run: |
           case "$ACTION" in
+            approve:check-gateway) command=check-gateway ;;
             approve:restart-gateway) command=restart-gateway ;;
             approve:rerun-cycle) command=rerun-cycle ;;
             *) exit 64 ;;

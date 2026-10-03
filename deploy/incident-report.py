@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import fcntl
 import os
 import re
 import sqlite3
@@ -138,6 +139,15 @@ def markdown(report: dict[str, object]) -> str:
 def create_issue(body: str) -> str:
     token = os.environ["SILLAGE_GITHUB_TOKEN"]
     repository = os.environ.get("SILLAGE_GITHUB_REPOSITORY", "omar-haha/sillage")
+    existing = httpx.get(
+        f"https://api.github.com/repos/{repository}/issues",
+        headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"},
+        params={"state": "open", "labels": "sillage-incident", "per_page": 100},
+        timeout=20,
+    )
+    existing.raise_for_status()
+    if any("pull_request" not in issue for issue in existing.json()):
+        return ""
     response = httpx.post(
         f"https://api.github.com/repos/{repository}/issues",
         headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"},
@@ -177,8 +187,15 @@ def main() -> int:
     if not args.dispatch:
         print(body)
         return 0
-    issue_url = create_issue(body)
-    email(body, issue_url)
+    state = args.root.resolve() / "state"
+    state.mkdir(exist_ok=True)
+    with (state / "incident-dispatch.lock").open("a") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        issue_url = create_issue(body)
+        if not issue_url:
+            print("Existing open incident: duplicate issue and email suppressed.")
+            return 0
+        email(body, issue_url)
     print(issue_url)
     return 0
 

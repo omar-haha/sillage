@@ -155,7 +155,7 @@ jobs:
             -H 'Content-Type: application/json' \
             --data "$body"
       - name: Report diagnosis delivery failure
-        if: failure()
+        if: failure() && github.event_name != 'workflow_dispatch'
         env:
           GH_TOKEN: ${{ github.token }}
           ISSUE: ${{ github.event.issue.number || inputs.issue }}

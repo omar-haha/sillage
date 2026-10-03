@@ -2,6 +2,9 @@
 set -Eeuo pipefail
 
 case "${SSH_ORIGINAL_COMMAND:-}" in
+  "/home/deploy/sillage/deploy/approved-recovery.sh check-gateway")
+    exec /home/deploy/sillage/deploy/approved-recovery.sh check-gateway
+    ;;
   "/home/deploy/sillage/deploy/approved-recovery.sh restart-gateway")
     exec /home/deploy/sillage/deploy/approved-recovery.sh restart-gateway
     ;;

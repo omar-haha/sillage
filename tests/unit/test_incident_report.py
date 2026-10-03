@@ -39,3 +39,17 @@ def test_redacts_gateway_secrets_and_extended_accounts(monkeypatch) -> None:
     cleaned = incident_report.redact(raw)
     for secret in ("DUT138047", "U123456", "private_login", "abc123", "abcdefghijklmnop"):
         assert secret not in cleaned
+
+
+def test_existing_incident_suppresses_new_issue(monkeypatch) -> None:
+    import httpx
+
+    monkeypatch.setenv("SILLAGE_GITHUB_TOKEN", "test")
+    response = httpx.Response(200, json=[{"number": 1}], request=httpx.Request("GET", "https://api.github.com"))
+    monkeypatch.setattr(incident_report.httpx, "get", lambda *args, **kwargs: response)
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Must not create a second incident")
+
+    monkeypatch.setattr(incident_report.httpx, "post", forbidden)
+    assert incident_report.create_issue("evidence") == ""

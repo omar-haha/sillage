@@ -1,5 +1,19 @@
 # Paper incident recovery
 
+Duplicate alerts: while a `sillage-incident` issue remains open, subsequent paper
+failures and missed-cycle checks do not create another issue or initial email.
+Close the incident after resolution to rearm diagnosis for a new incident.
+Manual diagnosis delivery retries do not email on failure; normal incidents do.
+
+Missed-cycle checks run weekdays at 12:15 UTC and require today's local success
+marker. They capture evidence even when the paper cron job never started. They
+depend on the VPS and cron being available: a whole-host outage still relies on
+Healthchecks' independent down email and cannot collect evidence from that host.
+
+`approve:check-gateway` tests owner approval, pinned SSH, the forced-command key,
+environment loading and broker API readiness without restarting Gateway. It does
+not establish that a future restart will complete without interactive IBKR 2FA.
+
 An unavailable executions API and a position mismatch are different failures. The
 adapter retries execution timeouts three times with bounded backoff. If evidence
 remains unavailable, keep pending orders and restore Gateway connectivity. Never

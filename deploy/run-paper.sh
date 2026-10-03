@@ -63,3 +63,4 @@ backup="state/backups/ibkr-$(date -u +%Y%m%dT%H%M%SZ).db"
 cp --reflink=auto state/ibkr.db "$backup"
 find state/backups -type f -name 'ibkr-*.db' -mtime +35 -delete
 healthcheck "${SILLAGE_HEALTHCHECK_URL:-}"
+date -u +%Y-%m-%d > state/paper-last-success
