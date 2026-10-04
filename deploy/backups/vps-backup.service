@@ -1,0 +1,26 @@
+[Unit]
+Description=Off-site logical backups for RCCA, PizzaRoma and Sillage
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=deploy
+Group=deploy
+UMask=0077
+Environment=HOME=/home/deploy
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+Environment=AWS_PAGER=
+ExecStart=/usr/bin/python3 /home/deploy/sillage/deploy/backups/vps-backup.py
+TimeoutStartSec=90min
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/deploy/.local/state/vps-backup
+# SQLite WAL readers may need to update shared-memory read marks.
+ReadWritePaths=/home/deploy/sillage/state
+MemoryMax=512M

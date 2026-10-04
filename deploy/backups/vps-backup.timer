@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily off-site production backups
+
+[Timer]
+OnCalendar=*-*-* 05:15:00 UTC
+RandomizedDelaySec=10min
+Persistent=true
+Unit=vps-backup.service
+
+[Install]
+WantedBy=timers.target

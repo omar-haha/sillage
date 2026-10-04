@@ -1,0 +1,18 @@
+{
+  "Rules": [
+    {"ID":"rcca-daily","Status":"Enabled","Filter":{"Prefix":"rcca/daily/"},"Expiration":{"Days":14},"NoncurrentVersionExpiration":{"NoncurrentDays":30}},
+    {"ID":"rcca-weekly","Status":"Enabled","Filter":{"Prefix":"rcca/weekly/"},"Expiration":{"Days":56},"NoncurrentVersionExpiration":{"NoncurrentDays":30}},
+    {"ID":"rcca-monthly","Status":"Enabled","Filter":{"Prefix":"rcca/monthly/"},"Expiration":{"Days":180},"NoncurrentVersionExpiration":{"NoncurrentDays":30}},
+    {"ID":"pizza-daily","Status":"Enabled","Filter":{"Prefix":"pizzaroma/daily/"},"Expiration":{"Days":14},"NoncurrentVersionExpiration":{"NoncurrentDays":30}},
+    {"ID":"pizza-weekly","Status":"Enabled","Filter":{"Prefix":"pizzaroma/weekly/"},"Expiration":{"Days":56},"NoncurrentVersionExpiration":{"NoncurrentDays":30}},
+    {"ID":"pizza-monthly","Status":"Enabled","Filter":{"Prefix":"pizzaroma/monthly/"},"Expiration":{"Days":180},"NoncurrentVersionExpiration":{"NoncurrentDays":30}},
+    {"ID":"sillage-daily","Status":"Enabled","Filter":{"Prefix":"sillage/daily/"},"Expiration":{"Days":14},"NoncurrentVersionExpiration":{"NoncurrentDays":30}},
+    {"ID":"sillage-weekly","Status":"Enabled","Filter":{"Prefix":"sillage/weekly/"},"Expiration":{"Days":56},"NoncurrentVersionExpiration":{"NoncurrentDays":30}},
+    {"ID":"sillage-monthly","Status":"Enabled","Filter":{"Prefix":"sillage/monthly/"},"Expiration":{"Days":180},"NoncurrentVersionExpiration":{"NoncurrentDays":30}},
+    {"ID":"rcca-delete-markers","Status":"Enabled","Filter":{"Prefix":"rcca/"},"Expiration":{"ExpiredObjectDeleteMarker":true},"AbortIncompleteMultipartUpload":{"DaysAfterInitiation":7}},
+    {"ID":"pizza-delete-markers","Status":"Enabled","Filter":{"Prefix":"pizzaroma/"},"Expiration":{"ExpiredObjectDeleteMarker":true},"AbortIncompleteMultipartUpload":{"DaysAfterInitiation":7}},
+    {"ID":"sillage-delete-markers","Status":"Enabled","Filter":{"Prefix":"sillage/"},"Expiration":{"ExpiredObjectDeleteMarker":true},"AbortIncompleteMultipartUpload":{"DaysAfterInitiation":7}},
+    {"ID":"verification-test","Status":"Enabled","Filter":{"Prefix":"test/"},"Expiration":{"Days":7},"NoncurrentVersionExpiration":{"NoncurrentDays":30}},
+    {"ID":"test-delete-markers","Status":"Enabled","Filter":{"Prefix":"test/"},"Expiration":{"ExpiredObjectDeleteMarker":true}}
+  ]
+}

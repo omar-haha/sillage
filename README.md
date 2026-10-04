@@ -155,6 +155,11 @@ For unattended paper operation, [docs/deployment.md](docs/deployment.md) supplie
 systemd service and weekday timer, journal backups, optional failure heartbeats, and the
 weekly IB Gateway authentication routine.
 
+[Production off-site backups](docs/vps-backups.md) documents the daily S3 backup
+timer, recovery commands, and proposed retention policy for the shared VPS.
+PizzaRoma and Sillage backups are verified; RCCA's database backup awaits its
+SQL connection credential. S3 lifecycle expiration is not yet applied.
+
 ## Does it survive being attacked?
 
 `sillage validate` runs seventy-one configurations against it — data it never saw,
