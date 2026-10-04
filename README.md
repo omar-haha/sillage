@@ -157,8 +157,8 @@ weekly IB Gateway authentication routine.
 
 [Production off-site backups](docs/vps-backups.md) documents the daily S3 backup
 timer, recovery commands, and proposed retention policy for the shared VPS.
-PizzaRoma and Sillage backups are verified; RCCA's database backup awaits its
-SQL connection credential. S3 lifecycle expiration is not yet applied.
+RCCA, PizzaRoma and Sillage backups are verified. S3 lifecycle expiration is
+approved but not yet applied through an AWS administrator account.
 
 ## Does it survive being attacked?
 

@@ -21,7 +21,8 @@ STATE = Path("/home/deploy/.local/state/vps-backup")
 PROJECTS = {
     "rcca": {"env": "/opt/rcca/.env.production", "db": "SUPABASE_DB_URL",
              "files": ["/opt/rcca/.env.production", "/opt/rcca/Caddyfile",
-                       "/opt/rcca/docker-compose.override.yml"]},
+                       "/opt/rcca/docker-compose.override.yml",
+                       "/home/deploy/.config/vps-backup/databases.env"]},
     "pizzaroma": {"env": "/home/deploy/pizza-roma/.env.production",
                   "db": "DATABASE_DIRECT_URL", "files": [
                       "/home/deploy/pizza-roma/.env.production"]},
