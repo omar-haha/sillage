@@ -155,10 +155,25 @@ For unattended paper operation, [docs/deployment.md](docs/deployment.md) supplie
 systemd service and weekday timer, journal backups, optional failure heartbeats, and the
 weekly IB Gateway authentication routine.
 
-[Production off-site backups](docs/vps-backups.md) documents the daily S3 backup
-timer, recovery commands, and proposed retention policy for the shared VPS.
-RCCA, PizzaRoma and Sillage backups are verified. S3 lifecycle expiration is
-approved but not yet applied through an AWS administrator account.
+### Operations and recovery
+
+Paper failures and missed-cycle checks capture redacted incident evidence for
+GitHub. OpenHands provides a read-only diagnosis; GitHub Actions validates and
+emails the report. Recovery requires owner approval and runs through allow-listed
+SSH commands with pinned host keys. Duplicate open incidents are suppressed, and
+broker reconciliation and trading cutoff guards remain enforced. Diagnosis
+delivery and the approval-based Gateway check have successful workflow runs;
+this is AI-assisted on-call triage, not unrestricted autonomous repair. See
+[incident recovery](docs/incident-recovery.md).
+
+[Production off-site backups](docs/vps-backups.md) covers daily S3 backups of
+RCCA, PizzaRoma and Sillage on the shared VPS: logical PostgreSQL dumps, online
+SQLite snapshots, private recovery configuration, least-privilege IAM, and
+download/checksum verification. The bucket owner confirmed lifecycle retention:
+14-day daily, 56-day weekly and 180-day monthly points, plus noncurrent-version
+cleanup. An isolated restore drill passed for all three projects on 2026-10-05
+UTC (October 4 Toronto). Both website databases require Supabase-compatible
+extensions; the drill does not establish a complete website/broker cutover.
 
 ## Does it survive being attacked?
 

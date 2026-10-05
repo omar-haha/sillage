@@ -83,19 +83,57 @@ Do not grant deploy sudo. Installing units uses ubuntu's admin access; backup
 execution does not. No backup-specific email alert is configured yet; use the
 checks above. Existing Sillage trading Healthchecks is separate.
 
-## Retention — approved, NOT applied
+## Retention — configured by bucket owner
 
-`deploy/backups/lifecycle-proposed.json` proposes daily points for 14 days,
+The bucket owner confirmed configuration on 2026-10-04 Toronto. This is an
+owner-confirmed status, not an API audit: the VPS writer intentionally lacks
+`GetLifecycleConfiguration`/`PutLifecycleConfiguration` permission.
+`deploy/backups/lifecycle-proposed.json` records the reviewed policy: daily points for 14 days,
 weekly points for 56 days and monthly points for 180 days. Versioned expiration
 first creates delete markers: noncurrent data expires after a further 30 days.
 Expired delete markers and abandoned multipart uploads are cleaned up. Test
 objects expire after 7 days. Lifecycle processing is asynchronous. See
 [AWS lifecycle expiration documentation](https://docs.aws.amazon.com/AmazonS3/latest/userguide/lifecycle-expire-general-considerations.html).
 
-**Until applied by the bucket administrator, retention is not
-active and storage grows.** Review existing lifecycle rules first; applying an
-entire lifecycle document replaces the existing configuration. Do not execute
-this with the restricted VPS writer or broaden its permissions.
+Future changes must be made by the bucket administrator. Review existing rules
+first; applying an entire lifecycle document replaces existing configuration.
+Do not broaden the restricted VPS writer's permissions to manage lifecycle.
+
+## Restore drill
+
+On **2026-10-05 UTC (October 4 Toronto)**, downloaded the latest successful S3
+archives and verified their recorded SHA-256 checksums. Recovery config files
+were present without displaying their contents. Restored into a uniquely named,
+network-isolated PostgreSQL container with temporary storage and resource limits;
+restored SQLite into a temporary directory. Production was not modified.
+
+| Project | Result | Restored tables | Total rows across tables |
+|---|---|---|---|
+| RCCA | Passed | 51 | 352 |
+| PizzaRoma | Passed | 53 | 258 |
+| Sillage | Passed, including SQLite integrity | 5 | 51 |
+
+The initial plain-PostgreSQL trial failed on the Supabase `supabase_vault`
+extension. The full PostgreSQL archives then restored successfully using the
+already-installed `public.ecr.aws/supabase/postgres:17.6.1.167` image. Both
+websites use Supabase PostgreSQL, not a generic PostgreSQL-only environment.
+Test DBs were initialized empty; no real database credentials were supplied to
+the test container, and no test-only role placeholders were required.
+
+Repeat as deploy using the installed test image:
+
+```bash
+python3 /home/deploy/sillage/deploy/backups/restore-test.py
+cat /home/deploy/.local/state/vps-backup/restore-test.json
+```
+
+This downloads existing objects; it does not overwrite backups or production
+data. The disposable container and extracted archives are removed after the run.
+Only a private, nonsecret aggregate result is retained. Table/row counts prove
+materialization, not source-to-destination equality at a later point in time.
+The drill validates database restoration and recovery-file presence, not a
+complete application cutover, Supabase role/ACL restoration, email delivery,
+payment behavior, broker reconciliation, or Gateway authentication.
 
 ## Disaster recovery (new infrastructure only)
 
@@ -136,6 +174,12 @@ Create a **new empty PostgreSQL/Supabase destination**, preserving the old servi
 if it still exists. For Supabase, use its direct/session SQL credentials, not
 API keys. Recreate provider-managed roles/extensions through the provider;
 ordinary users' pg_dump cannot necessarily capture managed/global objects.
+Both current databases require Supabase-compatible extensions. Plain PostgreSQL
+is not a tested restore target. See the successful restore drill above and
+[Supabase's restore guidance](https://supabase.com/docs/guides/platform/migrating-within-supabase/backup-restore).
+If Vault or encrypted columns gain data, preserve/migrate the project encryption
+root key separately; a SQL dump alone does not establish decryptability on a new
+project. See [Vault key portability](https://supabase.com/docs/guides/database/vault).
 Save the NEW database URL as `RESTORE_DATABASE_URL` in a private `restore.env`
 file; never paste it into command arguments. From the archive's recovered directory:
 
@@ -235,8 +279,8 @@ sudo systemctl enable --now vps-backup.timer
 
 ## Limitations and security
 
-Verified archive integrity/round-trip is not a full application restore drill.
-Test restores on disposable infrastructure regularly. Logical databases are
+A database restore drill has passed; a full application cutover is still untested.
+Repeat restores on disposable infrastructure regularly. Logical databases are
 individually consistent, not one simultaneous transaction across all projects.
 No point-in-time/WAL capture: worst-case loss is roughly one day, longer after
 failures. Configuration and database are read sequentially. The 90-minute service
