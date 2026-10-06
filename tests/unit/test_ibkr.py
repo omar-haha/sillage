@@ -29,6 +29,79 @@ SESSION = date(2026, 3, 12)
 TS = datetime(2026, 3, 12, 14, 30, tzinfo=UTC)
 
 
+def test_gateway_waits_for_commission_report_before_recording_execution(monkeypatch):
+    import sys
+
+    from sillage.execution.ibkr import IBGatewayClient
+
+    monkeypatch.setitem(
+        sys.modules, "ib_async", SimpleNamespace(ExecutionFilter=lambda **kwargs: kwargs)
+    )
+    item = SimpleNamespace(
+        execution=SimpleNamespace(
+            execId="exec1", orderRef="order1", shares=10, side="BOT", price=100
+        ),
+        contract=SimpleNamespace(symbol="AAA"),
+        time=TS,
+        commissionReport=SimpleNamespace(execId="", commission=0),
+    )
+
+    class Venue:
+        def isConnected(self):  # noqa: N802 - venue API spelling
+            return True
+
+        def reqExecutions(self, _execution_filter):  # noqa: N802 - venue API spelling
+            return [item]
+
+        def waitOnUpdate(self, timeout):  # noqa: N802 - venue API spelling
+            item.commissionReport.execId = "exec1"
+            item.commissionReport.commission = 1.25
+
+    client = IBGatewayClient()
+    client._ib = Venue()
+    assert client.executions()[0].commission == dec("1.25")
+
+
+def test_gateway_does_not_invent_zero_commission_when_report_is_missing(monkeypatch):
+    import sys
+
+    from sillage.execution.ibkr import IBGatewayClient
+
+    monkeypatch.setitem(
+        sys.modules, "ib_async", SimpleNamespace(ExecutionFilter=lambda **kwargs: kwargs)
+    )
+    item = SimpleNamespace(
+        execution=SimpleNamespace(execId="exec1"),
+        commissionReport=SimpleNamespace(execId="", commission=0),
+    )
+    venue = SimpleNamespace(reqExecutions=lambda _: [item], isConnected=lambda: True)
+    client = IBGatewayClient(request_timeout=0)
+    client._ib = venue
+    with pytest.raises(TimeoutError, match="commission evidence"):
+        client.executions()
+
+
+@pytest.mark.parametrize(
+    "fee,confirmed,expected",
+    [
+        (0, True, True),
+        (1.25, True, True),
+        (None, True, False),
+        (float("nan"), True, False),
+        (1.7976931348623157e308, True, False),
+        (0, False, False),
+    ],
+)
+def test_commission_report_requires_confirmed_finite_fee(fee, confirmed, expected):
+    from sillage.execution.ibkr import _commission_ready
+
+    item = SimpleNamespace(
+        execution=SimpleNamespace(execId="exec1"),
+        commissionReport=SimpleNamespace(execId="exec1" if confirmed else "", commission=fee),
+    )
+    assert _commission_ready(item) is expected
+
+
 def test_execution_evidence_retries_timeout_without_submission(monkeypatch) -> None:
     venue = FakeVenue()
     attempts = []

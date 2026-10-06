@@ -45,7 +45,9 @@ def test_existing_incident_suppresses_new_issue(monkeypatch) -> None:
     import httpx
 
     monkeypatch.setenv("SILLAGE_GITHUB_TOKEN", "test")
-    response = httpx.Response(200, json=[{"number": 1}], request=httpx.Request("GET", "https://api.github.com"))
+    response = httpx.Response(
+        200, json=[{"number": 1}], request=httpx.Request("GET", "https://api.github.com")
+    )
     monkeypatch.setattr(incident_report.httpx, "get", lambda *args, **kwargs: response)
 
     def forbidden(*args, **kwargs):
@@ -53,3 +55,51 @@ def test_existing_incident_suppresses_new_issue(monkeypatch) -> None:
 
     monkeypatch.setattr(incident_report.httpx, "post", forbidden)
     assert incident_report.create_issue("evidence") == ""
+
+
+def test_unresolved_incident_reminds_once_per_day(monkeypatch, tmp_path) -> None:
+    from datetime import UTC, datetime, timedelta
+
+    import httpx
+
+    monkeypatch.setenv("SILLAGE_GITHUB_TOKEN", "test")
+    response = httpx.Response(
+        200,
+        json=[{"number": 1, "html_url": "https://github.com/test/repo/issues/1"}],
+        request=httpx.Request("GET", "https://api.github.com"),
+    )
+    monkeypatch.setattr(incident_report.httpx, "get", lambda *args, **kwargs: response)
+    sent = []
+    monkeypatch.setattr(incident_report, "email", lambda *args, **kwargs: sent.append(kwargs))
+    now = datetime(2026, 10, 5, 10, tzinfo=UTC)
+    assert incident_report.remind_existing(tmp_path, "redacted evidence", now=now)
+    assert not incident_report.remind_existing(
+        tmp_path, "redacted evidence", now=now + timedelta(hours=2)
+    )
+    assert incident_report.remind_existing(
+        tmp_path, "redacted evidence", now=now + timedelta(days=1)
+    )
+    assert len(sent) == 2
+    assert all(item["reminder"] for item in sent)
+
+
+def test_failed_reminder_delivery_does_not_suppress_retry(monkeypatch, tmp_path) -> None:
+    import httpx
+
+    monkeypatch.setenv("SILLAGE_GITHUB_TOKEN", "test")
+    response = httpx.Response(
+        200,
+        json=[{"number": 1, "html_url": "https://github.com/test/repo/issues/1"}],
+        request=httpx.Request("GET", "https://api.github.com"),
+    )
+    monkeypatch.setattr(incident_report.httpx, "get", lambda *args, **kwargs: response)
+
+    def failure(*args, **kwargs):
+        raise RuntimeError("delivery failed")
+
+    monkeypatch.setattr(incident_report, "email", failure)
+    import pytest
+
+    with pytest.raises(RuntimeError):
+        incident_report.remind_existing(tmp_path, "evidence")
+    assert not (tmp_path / "incident-reminder.json").exists()

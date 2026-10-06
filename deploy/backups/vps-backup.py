@@ -30,7 +30,9 @@ PROJECTS = {
         "/home/deploy/.config/sillage/paper.env",
         "/home/deploy/sillage/deploy/ibgateway/.env",
         "/home/deploy/sillage/deploy/ibgateway/secrets/tws_password",
-        "/home/deploy/sillage/deploy/ibgateway/secrets/vnc_password"]},
+        "/home/deploy/sillage/deploy/ibgateway/secrets/vnc_password",
+        "/home/deploy/.local/share/sillage-recovery/activity.csv",
+        "/home/deploy/.local/share/sillage-recovery/confirmations.htm"]},
 }
 
 

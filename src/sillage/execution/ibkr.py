@@ -45,7 +45,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
-from math import sqrt
+from math import isfinite, sqrt
 from statistics import median, stdev
 from typing import Any, Protocol, runtime_checkable
 
@@ -324,7 +324,7 @@ class IBKRBroker:
                         "pending orders remain unresolved. Restore Gateway connectivity "
                         "and recover broker fills before submitting new orders."
                     ) from exc
-                self._sleep(2 ** attempt)
+                self._sleep(2**attempt)
         raise AssertionError("unreachable")
 
     def _already_submitted(self, session: date) -> set[str]:
@@ -439,6 +439,18 @@ def _reason(placement: Placement) -> str:
     return placement.message or f"broker returned {placement.status!r}"
 
 
+def _commission_ready(item: Any) -> bool:
+    report = item.commissionReport
+    value = report.commission
+    return (
+        report.execId == item.execution.execId
+        and bool(report.execId)
+        and value is not None
+        and isfinite(value)
+        and abs(value) < 1e100
+    )
+
+
 @dataclass
 class IBGatewayClient:
     """A thin translation of `ib_async` into the shape above.
@@ -512,6 +524,16 @@ class IBGatewayClient:
         raw = ib.reqExecutions(
             ExecutionFilter(time=since.strftime("%Y%m%d 00:00:00") if since else "")
         )
+        # execDetailsEnd can arrive before commissionReport. A default report's zero
+        # is not proof of a fee-free trade; wait for the matching execution id.
+        deadline = time.monotonic() + self.request_timeout
+        while not all(_commission_ready(item) for item in raw):
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError(
+                    "IBKR commission evidence unavailable; refusing zero-fee fallback"
+                )
+            ib.waitOnUpdate(timeout=min(1.0, remaining))
         return [
             Execution(
                 order_ref=item.execution.orderRef,
@@ -520,7 +542,7 @@ class IBGatewayClient:
                 quantity=dec(item.execution.shares)
                 * (dec(-1) if item.execution.side.upper().startswith("S") else dec(1)),
                 price=dec(item.execution.price),
-                commission=dec(abs(item.commissionReport.commission or 0.0)),
+                commission=dec(abs(item.commissionReport.commission)),
                 ts=item.time.astimezone(UTC) if item.time else datetime.now(UTC),
             )
             for item in raw

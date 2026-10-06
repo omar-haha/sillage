@@ -10,7 +10,7 @@ Administrator: `ubuntu`, with `sudo`. AWS bucket:
 |---|---|---|---|
 | RCCA (`/opt/rcca`) | Remote Supabase PostgreSQL; production env and local proxy override | Logical PostgreSQL dump; `.env.production`, `Caddyfile`, `docker-compose.override.yml`, private backup database configuration | Git source/migrations, image/build/dependencies; Upstash rate-limit counters |
 | PizzaRoma (`/home/deploy/pizza-roma`) | Remote PostgreSQL database `postgres`, approximately 11.7 MB; production env | Logical PostgreSQL dump via `DATABASE_DIRECT_URL`; `.env.production` | Git source/migrations, image/build/dependencies |
-| Sillage (`/home/deploy/sillage`) | SQLite trading journal, approximately 45 KB consistent snapshot; paper and Gateway secrets | SQLite online backup plus integrity check; `paper.env`, Gateway `.env`, `tws_password`, `vnc_password` | Git/config tracked in Git, cached market data, logs, Gateway sessions |
+| Sillage (`/home/deploy/sillage`) | SQLite trading journal and append-only recovery audit; paper/Gateway secrets and private broker recovery exports | SQLite online backup plus integrity check; `paper.env`, Gateway `.env`, Gateway passwords, recovery activity CSV and trade confirmations | Git/config tracked in Git, cached market data, logs, Gateway sessions |
 
 All three projects have passed logical backup and S3 round-trip verification.
 RCCA's `SUPABASE_DB_URL` is installed in
@@ -19,6 +19,12 @@ mode `0600`, using a secure editor/transfer (never paste the password in shell
 commands or chat). The Supabase API service key is not the database password.
 Use an actual direct or session-pooler PostgreSQL connection URL, not the
 transaction pooler. The URL is held only in process environment for dump tools.
+
+Sillage's private broker exports now support the October 5 ledger repair. They
+are included in private S3 archives for recovery/audit but excluded from Git.
+The original pre-repair journal and previews are retained privately on the VPS;
+the repaired journal also retains the original fills and prior NAV/pending
+state in its append-only recovery audit.
 
 No local user-upload directories or object-storage usage were found in either
 website. Re-inventory if uploads or storage services are added. There are no
@@ -242,11 +248,14 @@ From its recovered directory:
 ```bash
 install -d -m 700 /home/deploy/sillage/state /home/deploy/.config/sillage
 install -d -m 700 /home/deploy/sillage/deploy/ibgateway/secrets
+install -d -m 700 /home/deploy/.local/share/sillage-recovery
 install -m 600 ibkr.db /home/deploy/sillage/state/ibkr.db
 install -m 600 files/home/deploy/.config/sillage/paper.env /home/deploy/.config/sillage/paper.env
 install -m 600 files/home/deploy/sillage/deploy/ibgateway/.env /home/deploy/sillage/deploy/ibgateway/.env
 install -m 640 files/home/deploy/sillage/deploy/ibgateway/secrets/tws_password /home/deploy/sillage/deploy/ibgateway/secrets/tws_password
 install -m 640 files/home/deploy/sillage/deploy/ibgateway/secrets/vnc_password /home/deploy/sillage/deploy/ibgateway/secrets/vnc_password
+install -m 600 files/home/deploy/.local/share/sillage-recovery/activity.csv /home/deploy/.local/share/sillage-recovery/activity.csv
+install -m 600 files/home/deploy/.local/share/sillage-recovery/confirmations.htm /home/deploy/.local/share/sillage-recovery/confirmations.htm
 cd /home/deploy/sillage
 python3 -m venv .venv
 .venv/bin/pip install -e '.[ibkr]'
@@ -256,6 +265,10 @@ docker compose --env-file deploy/ibgateway/.env -f deploy/ibgateway/compose.yaml
 Before starting Gateway, securely update `SECRET_GID` in its restored `.env` to
 the new server's `id -g deploy` so the container can read the group-readable
 password mounts. Do not make passwords world-readable.
+
+Archives created before the October 5 repair do not contain the recovery exports;
+recover those separately from IBKR before enabling the current backup job, which
+requires them as part of the audit trail.
 
 Follow `docs/ibkr.md` and the deployed paper configuration for Gateway
 authentication. Validate the restored SQLite integrity, Gateway connection,

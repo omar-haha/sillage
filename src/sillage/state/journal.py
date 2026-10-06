@@ -66,6 +66,25 @@ CREATE TABLE IF NOT EXISTS fills (
 );
 CREATE INDEX IF NOT EXISTS fills_by_order ON fills (order_id);
 
+CREATE TABLE IF NOT EXISTS fill_amendments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    fill_id INTEGER NOT NULL REFERENCES fills(id),
+    ts TEXT NOT NULL,
+    price TEXT NOT NULL,
+    commission TEXT NOT NULL,
+    slippage TEXT NOT NULL,
+    source_sha256 TEXT NOT NULL,
+    source_row INTEGER NOT NULL,
+    created_at TEXT NOT NULL,
+    UNIQUE(fill_id, source_sha256, source_row)
+);
+CREATE TABLE IF NOT EXISTS statement_recoveries (
+    source_sha256 TEXT PRIMARY KEY,
+    confirmation_sha256 TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    audit TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS rejections (
     id       INTEGER PRIMARY KEY AUTOINCREMENT,
     order_id TEXT NOT NULL,
@@ -89,6 +108,16 @@ CREATE TABLE IF NOT EXISTS meta (
     key   TEXT PRIMARY KEY,
     value TEXT NOT NULL
 );
+"""
+
+EFFECTIVE_FILLS = """
+SELECT f.id, f.order_id, COALESCE(a.ts, f.ts) AS ts, f.symbol, f.quantity,
+       COALESCE(a.price, f.price) AS price,
+       COALESCE(a.commission, f.commission) AS commission,
+       COALESCE(a.slippage, f.slippage) AS slippage
+FROM fills f LEFT JOIN fill_amendments a
+  ON a.id = (SELECT MAX(id) FROM fill_amendments WHERE fill_id = f.id)
+ORDER BY f.id
 """
 
 #: Orders decided at a close and not yet executed. Held here rather than in memory so
@@ -207,7 +236,7 @@ class SqliteJournal:
         it would put a position in the book with made-up lot sizes.
         """
         with closing(self._connect()) as connection:
-            rows = connection.execute("SELECT * FROM fills ORDER BY id").fetchall()
+            rows = connection.execute(EFFECTIVE_FILLS).fetchall()
         return [
             Fill(
                 instrument=instruments[row["symbol"]],

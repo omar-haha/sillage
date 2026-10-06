@@ -3,6 +3,11 @@ __pycache__/
 .venv/
 .env
 secret.txt
+/DU*.csv
+/DU*.htm
+/U*_*.csv
+/U*_*.htm
+/ibkr-exports/
 .mypy_cache/
 .ruff_cache/
 .pytest_cache/

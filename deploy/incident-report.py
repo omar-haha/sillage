@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import fcntl
+import json
 import os
 import re
 import sqlite3
@@ -42,7 +43,12 @@ REDACTIONS = (
     (re.compile(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}"), "[EMAIL]"),
     (re.compile(r"https://hc-ping\.com/[\w-]+(?:/\w+)?"), "[HEALTHCHECK_URL]"),
     (re.compile(r"\b(?:re|gh[pousr]|github_pat)_[A-Za-z0-9_\-]{12,}\b"), "[TOKEN]"),
-    (re.compile(r"(?im)(\b(?:jxBrowserKey|TWS_USERID|password|api_key|token)\s*[=:]\s*)[^\s,;]+"), r"\1[REDACTED]"),
+    (
+        re.compile(
+            r"(?im)(\b(?:jxBrowserKey|TWS_USERID|password|api_key|token)\s*[=:]\s*)[^\s,;]+"
+        ),
+        r"\1[REDACTED]",
+    ),
 )
 
 
@@ -162,19 +168,66 @@ def create_issue(body: str) -> str:
     return str(response.json()["html_url"])
 
 
-def email(body: str, issue_url: str) -> None:
+def email(body: str, issue_url: str, *, reminder: bool = False) -> None:
     response = httpx.post(
         "https://api.resend.com/emails",
         headers={"Authorization": f"Bearer {os.environ['SILLAGE_RESEND_API_KEY']}"},
         json={
             "from": os.environ.get("SILLAGE_REPORT_FROM", "onboarding@resend.dev"),
             "to": [os.environ["SILLAGE_REPORT_TO"]],
-            "subject": "Sillage incident collected — diagnosis starting",
-            "text": f"A Sillage failure was captured.\n\nOpenHands incident: {issue_url}\n\n{body[:6000]}",
+            "subject": "Sillage still blocked — unresolved incident"
+            if reminder
+            else "Sillage incident collected — diagnosis starting",
+            "text": (
+                "The paper cycle remains blocked. This is a daily reminder, not a new incident or recovery approval."
+                if reminder
+                else "A Sillage failure was captured."
+            )
+            + f"\n\nIncident: {issue_url}\n\n{body[:6000]}",
         },
         timeout=20,
     )
     response.raise_for_status()
+
+
+def remember_notification(state: Path, issue_url: str, now: datetime) -> None:
+    target = state / "incident-reminder.json"
+    temporary = target.with_suffix(".tmp")
+    temporary.write_text(json.dumps({"issue": issue_url, "sent_at": now.isoformat()}) + "\n")
+    temporary.chmod(0o600)
+    temporary.replace(target)
+
+
+def remind_existing(state: Path, body: str, *, now: datetime | None = None) -> bool:
+    """At most one reminder per incident per 24 hours; never retrigger diagnosis."""
+    now = now or datetime.now(UTC)
+    repository = os.environ.get("SILLAGE_GITHUB_REPOSITORY", "omar-haha/sillage")
+    response = httpx.get(
+        f"https://api.github.com/repos/{repository}/issues",
+        headers={
+            "Authorization": f"Bearer {os.environ['SILLAGE_GITHUB_TOKEN']}",
+            "Accept": "application/vnd.github+json",
+        },
+        params={"state": "open", "labels": "sillage-incident", "per_page": 100},
+        timeout=20,
+    )
+    response.raise_for_status()
+    incident = next((issue for issue in response.json() if "pull_request" not in issue), None)
+    if incident is None:
+        return False
+    issue_url = incident["html_url"]
+    try:
+        last = json.loads((state / "incident-reminder.json").read_text())
+        if (
+            last["issue"] == issue_url
+            and (now - datetime.fromisoformat(last["sent_at"])).total_seconds() < 86400
+        ):
+            return False
+    except (OSError, ValueError, KeyError, TypeError):
+        pass
+    email(body, issue_url, reminder=True)
+    remember_notification(state, issue_url, now)
+    return True
 
 
 def main() -> int:
@@ -193,9 +246,15 @@ def main() -> int:
         fcntl.flock(lock, fcntl.LOCK_EX)
         issue_url = create_issue(body)
         if not issue_url:
-            print("Existing open incident: duplicate issue and email suppressed.")
+            sent = remind_existing(state, body)
+            print(
+                "Existing open incident: daily blocked-status reminder sent."
+                if sent
+                else "Existing open incident: duplicate issue suppressed; reminder not due."
+            )
             return 0
         email(body, issue_url)
+        remember_notification(state, issue_url, datetime.now(UTC))
     print(issue_url)
     return 0
 

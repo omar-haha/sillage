@@ -161,10 +161,18 @@ Paper failures and missed-cycle checks capture redacted incident evidence for
 GitHub. OpenHands provides a read-only diagnosis; GitHub Actions validates and
 emails the report. Recovery requires owner approval and runs through allow-listed
 SSH commands with pinned host keys. Duplicate open incidents are suppressed, and
-broker reconciliation and trading cutoff guards remain enforced. Diagnosis
+unresolved failures produce at most one reminder email per incident per day.
+Broker reconciliation and trading cutoff guards remain enforced. Diagnosis
 delivery and the approval-based Gateway check have successful workflow runs;
 this is AI-assisted on-call triage, not unrestricted autonomous repair. See
 [incident recovery](docs/incident-recovery.md).
+
+Historical execution recovery supports a strict statement-backed preview and
+atomic, audited import. Original fills remain intact; corrections are append-only,
+and cash/holdings must agree with broker evidence before the repair is applied.
+The October 5 paper-ledger repair imported missing October 1 fills and corrected
+earlier fee/price discrepancies without placing trades. The next scheduled cycle
+still needs to confirm normal operation.
 
 [Production off-site backups](docs/vps-backups.md) covers daily S3 backups of
 RCCA, PizzaRoma and Sillage on the shared VPS: logical PostgreSQL dumps, online
