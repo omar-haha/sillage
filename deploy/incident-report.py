@@ -142,7 +142,7 @@ def markdown(report: dict[str, object]) -> str:
     return "\n".join(sections)
 
 
-def create_issue(body: str) -> str:
+def create_issue(body: str, *, resolved: set[int] | None = None) -> str:
     token = os.environ["SILLAGE_GITHUB_TOKEN"]
     repository = os.environ.get("SILLAGE_GITHUB_REPOSITORY", "omar-haha/sillage")
     existing = httpx.get(
@@ -152,7 +152,10 @@ def create_issue(body: str) -> str:
         timeout=20,
     )
     existing.raise_for_status()
-    if any("pull_request" not in issue for issue in existing.json()):
+    if any(
+        "pull_request" not in issue and issue.get("number") not in (resolved or set())
+        for issue in existing.json()
+    ):
         return ""
     response = httpx.post(
         f"https://api.github.com/repos/{repository}/issues",
@@ -251,8 +254,8 @@ def main() -> int:
     state.mkdir(exist_ok=True)
     with (state / "incident-dispatch.lock").open("a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
-        resolve_success(state)
-        issue_url = create_issue(body)
+        resolved = resolve_success(state)
+        issue_url = create_issue(body, resolved=resolved)
         if not issue_url:
             sent = remind_existing(state, body)
             print(
@@ -267,7 +270,7 @@ def main() -> int:
     return 0
 
 
-def resolve_success(state: Path) -> None:
+def resolve_success(state: Path) -> set[int]:
     """Close only incidents predating the last actual successful scheduled cycle.
 
     Also used before failure dispatch: a historical success closes a stale issue,
@@ -275,7 +278,7 @@ def resolve_success(state: Path) -> None:
     """
     marker = state / "paper-last-success"
     if not marker.exists():
-        return
+        return set()
     successful_day = marker.read_text().strip()
     success = datetime.fromtimestamp(marker.stat().st_mtime, UTC)
     if successful_day != success.date().isoformat():
@@ -290,6 +293,7 @@ def resolve_success(state: Path) -> None:
         timeout=20,
     )
     response.raise_for_status()
+    resolved = set()
     for issue in response.json():
         if "pull_request" in issue or "created_at" not in issue:
             continue
@@ -301,6 +305,7 @@ def resolve_success(state: Path) -> None:
             url, headers=headers, json={"state": "closed", "state_reason": "completed"}, timeout=20
         )
         closed.raise_for_status()
+        resolved.add(issue["number"])
         comment = httpx.post(
             url + "/comments",
             headers=headers,
@@ -311,6 +316,7 @@ def resolve_success(state: Path) -> None:
         )
         comment.raise_for_status()
         print(f"Resolved incident #{issue['number']} from recorded cycle success.")
+    return resolved
 
 
 if __name__ == "__main__":

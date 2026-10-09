@@ -161,3 +161,23 @@ def test_no_success_never_closes_incidents(monkeypatch, tmp_path):
 
 def test_redacts_gateway_restart_session_secret():
     assert "private-session" not in incident_report.redact("restart = private-session")
+
+
+def test_fresh_incident_ignores_stale_listing_of_just_closed_issue(monkeypatch):
+    import httpx
+
+    monkeypatch.setenv("SILLAGE_GITHUB_TOKEN", "test")
+    request = httpx.Request("GET", "https://api.github.com")
+    monkeypatch.setattr(
+        incident_report.httpx,
+        "get",
+        lambda *a, **k: httpx.Response(200, json=[{"number": 1}], request=request),
+    )
+    monkeypatch.setattr(
+        incident_report.httpx,
+        "post",
+        lambda *a, **k: httpx.Response(
+            201, json={"html_url": "https://github.com/test/repo/issues/2"}, request=request
+        ),
+    )
+    assert incident_report.create_issue("fresh evidence", resolved={1}).endswith("/2")
