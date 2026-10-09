@@ -5,8 +5,36 @@ failures and missed-cycle checks do not create another issue or initial email.
 They now send a redacted **still blocked** email at most once per incident per
 24 hours. Failed email delivery does not consume the reminder interval. The
 reminder does not launch another agent or approve recovery.
-Close the incident after resolution to rearm diagnosis for a new incident.
+Successful scheduled cycles now close incidents created before that success,
+with a dated recovery comment. Failure dispatch also uses the recorded success
+marker to close a stale incident before opening a new one. A success confirms
+one cycle, not continuous Gateway availability. Incidents created after the last
+success are never closed using that older marker. Notification/closure failures
+do not turn a completed trading cycle into a trading failure.
 Manual diagnosis delivery retries do not email on failure; normal incidents do.
+
+## Gateway readiness and overnight failures
+
+The October 7 cycle succeeded following a cold restart; the subsequent nightly
+11:45 p.m. restart returned to a logged-out dialog and later API connections timed
+out. The exact IBKR/IBC session-resumption failure remains unconfirmed. Container
+uptime alone is not a readiness check.
+
+Before a scheduled trading cycle, `deploy/ensure-gateway.sh` performs a read-only
+API check, retries once, then permits at most one Gateway-only cold restart with
+a five-minute deadline. It clears the auto-restart token using the existing
+restart procedure; no volumes, positions or orders are removed. An IB Key prompt
+may still require the owner. This path is restricted to localhost port 4002 and
+runs under `paper.lock`, before trading starts. It does not retry or restart after
+an ambiguous submission. The 08:30 Toronto cutoff is checked again afterward.
+If readiness is still unavailable, the cycle fails and normal incident diagnosis
+starts. This is recovery containment, not proof that nightly restart is fixed.
+
+Broker connection requires completed startup synchronization; positions are
+fetched afresh and request timeouts are reported as unavailable broker evidence,
+never as an empty portfolio. Multi-account sessions require an explicit account.
+New incident creation triggers diagnosis on the `opened` event as well as manual
+labeling; workflow concurrency and the diagnosis marker suppress repeat delivery.
 
 Missed-cycle checks run weekdays at 12:15 UTC and require today's local success
 marker. They capture evidence even when the paper cron job never started. They

@@ -103,3 +103,61 @@ def test_failed_reminder_delivery_does_not_suppress_retry(monkeypatch, tmp_path)
     with pytest.raises(RuntimeError):
         incident_report.remind_existing(tmp_path, "evidence")
     assert not (tmp_path / "incident-reminder.json").exists()
+
+
+def test_success_closes_only_older_incidents(monkeypatch, tmp_path):
+    import os
+    from datetime import UTC, datetime
+
+    import httpx
+
+    monkeypatch.setenv("SILLAGE_GITHUB_TOKEN", "test")
+    marker = tmp_path / "paper-last-success"
+    marker.write_text("2026-10-07\n")
+    timestamp = datetime(2026, 10, 7, 10, tzinfo=UTC).timestamp()
+    os.utime(marker, (timestamp, timestamp))
+    calls = []
+
+    def response(json):
+        return httpx.Response(
+            200, json=json, request=httpx.Request("GET", "https://api.github.com")
+        )
+
+    monkeypatch.setattr(
+        incident_report.httpx,
+        "get",
+        lambda *a, **k: response(
+            [
+                {"number": 1, "created_at": "2026-10-03T10:00:00Z"},
+                {"number": 2, "created_at": "2026-10-08T10:00:00Z"},
+                {"number": 3, "created_at": "2026-10-01T10:00:00Z", "pull_request": {}},
+            ]
+        ),
+    )
+    monkeypatch.setattr(
+        incident_report.httpx,
+        "patch",
+        lambda url, **k: calls.append((url, k["json"])) or response({}),
+    )
+    monkeypatch.setattr(
+        incident_report.httpx,
+        "post",
+        lambda url, **k: calls.append((url, k["json"])) or response({}),
+    )
+    incident_report.resolve_success(tmp_path)
+    assert len(calls) == 2
+    assert calls[0][0].endswith("/1")
+    assert calls[0][1]["state"] == "closed"
+    assert "2026-10-07" in calls[1][1]["body"]
+
+
+def test_no_success_never_closes_incidents(monkeypatch, tmp_path):
+    def forbidden(*a, **k):
+        raise AssertionError("No success evidence")
+
+    monkeypatch.setattr(incident_report.httpx, "patch", forbidden)
+    incident_report.resolve_success(tmp_path)
+
+
+def test_redacts_gateway_restart_session_secret():
+    assert "private-session" not in incident_report.redact("restart = private-session")

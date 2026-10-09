@@ -29,6 +29,45 @@ SESSION = date(2026, 3, 12)
 TS = datetime(2026, 3, 12, 14, 30, tzinfo=UTC)
 
 
+def test_gateway_position_timeout_is_not_an_empty_portfolio():
+    from sillage.execution.ibkr import IBGatewayClient
+
+    def timeout():
+        raise TimeoutError("no positionEnd")
+
+    client = IBGatewayClient()
+    client._ib = SimpleNamespace(isConnected=lambda: True, reqPositions=timeout)
+    with pytest.raises(BrokerError, match="position evidence unavailable"):
+        client.positions()
+
+
+def test_gateway_positions_use_fresh_complete_selected_account():
+    from sillage.execution.ibkr import IBGatewayClient
+
+    client = IBGatewayClient(account="DU123")
+    client._ib = SimpleNamespace(
+        isConnected=lambda: True,
+        managedAccounts=lambda: ["DU123", "DU456"],
+        reqPositions=lambda: [
+            SimpleNamespace(account="DU123", contract=SimpleNamespace(symbol="AAA"), position=3),
+            SimpleNamespace(account="DU456", contract=SimpleNamespace(symbol="AAA"), position=99),
+        ],
+    )
+    assert client.positions() == {"AAA": dec(3)}
+
+
+def test_gateway_connection_requires_complete_initial_sync(monkeypatch):
+    from sillage.execution.ibkr import IBGatewayClient
+
+    called = {}
+    venue = SimpleNamespace(connect=lambda *args, **kwargs: called.update(kwargs))
+    client = IBGatewayClient(request_timeout=7)
+    client._ib = venue
+    client.connect()
+    assert called["raiseSyncErrors"] is True
+    assert called["timeout"] == 7
+
+
 def test_gateway_waits_for_commission_report_before_recording_execution(monkeypatch):
     import sys
 

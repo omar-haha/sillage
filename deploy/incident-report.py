@@ -45,7 +45,7 @@ REDACTIONS = (
     (re.compile(r"\b(?:re|gh[pousr]|github_pat)_[A-Za-z0-9_\-]{12,}\b"), "[TOKEN]"),
     (
         re.compile(
-            r"(?im)(\b(?:jxBrowserKey|TWS_USERID|password|api_key|token)\s*[=:]\s*)[^\s,;]+"
+            r"(?im)(\b(?:jxBrowserKey|TWS_USERID|password|api_key|token|restart|IbLoginId|FIXLoginId)\s*[=:]\s*)[^\s,;]+"
         ),
         r"\1[REDACTED]",
     ),
@@ -235,7 +235,14 @@ def main() -> int:
     parser.add_argument("--root", type=Path, default=Path(os.environ.get("SILLAGE_ROOT", ".")))
     parser.add_argument("--trigger", default="paper cycle failed")
     parser.add_argument("--dispatch", action="store_true")
+    parser.add_argument("--resolve", action="store_true")
     args = parser.parse_args()
+    if args.resolve:
+        state = args.root.resolve() / "state"
+        with (state / "incident-dispatch.lock").open("a") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            resolve_success(state)
+        return 0
     body = markdown(collect(args.root.resolve(), args.trigger))
     if not args.dispatch:
         print(body)
@@ -244,6 +251,7 @@ def main() -> int:
     state.mkdir(exist_ok=True)
     with (state / "incident-dispatch.lock").open("a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
+        resolve_success(state)
         issue_url = create_issue(body)
         if not issue_url:
             sent = remind_existing(state, body)
@@ -257,6 +265,52 @@ def main() -> int:
         remember_notification(state, issue_url, datetime.now(UTC))
     print(issue_url)
     return 0
+
+
+def resolve_success(state: Path) -> None:
+    """Close only incidents predating the last actual successful scheduled cycle.
+
+    Also used before failure dispatch: a historical success closes a stale issue,
+    but never claims the current failure has recovered.
+    """
+    marker = state / "paper-last-success"
+    if not marker.exists():
+        return
+    successful_day = marker.read_text().strip()
+    success = datetime.fromtimestamp(marker.stat().st_mtime, UTC)
+    if successful_day != success.date().isoformat():
+        raise ValueError("Invalid paper success marker")
+    repository = os.environ.get("SILLAGE_GITHUB_REPOSITORY", "omar-haha/sillage")
+    base = f"https://api.github.com/repos/{repository}/issues"
+    headers = {"Authorization": f"Bearer {os.environ['SILLAGE_GITHUB_TOKEN']}"}
+    response = httpx.get(
+        base,
+        headers=headers,
+        params={"state": "open", "labels": "sillage-incident", "per_page": 100},
+        timeout=20,
+    )
+    response.raise_for_status()
+    for issue in response.json():
+        if "pull_request" in issue or "created_at" not in issue:
+            continue
+        created = datetime.fromisoformat(issue["created_at"].replace("Z", "+00:00"))
+        if created >= success:
+            continue
+        url = f"{base}/{issue['number']}"
+        closed = httpx.patch(
+            url, headers=headers, json={"state": "closed", "state_reason": "completed"}, timeout=20
+        )
+        closed.raise_for_status()
+        comment = httpx.post(
+            url + "/comments",
+            headers=headers,
+            json={
+                "body": f"<!-- sillage-cycle-recovered-v1 -->\nResolved by the successful scheduled paper cycle on {successful_day} (UTC). This confirms that cycle only, not ongoing Gateway health. Subsequent failures are separate incidents."
+            },
+            timeout=20,
+        )
+        comment.raise_for_status()
+        print(f"Resolved incident #{issue['number']} from recorded cycle success.")
 
 
 if __name__ == "__main__":

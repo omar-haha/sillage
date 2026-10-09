@@ -490,6 +490,8 @@ class IBGatewayClient:
             clientId=self.client_id,
             account=self.account,
             readonly=self.readonly,
+            timeout=self.request_timeout,
+            raiseSyncErrors=True,
         )
 
     def disconnect(self) -> None:
@@ -555,7 +557,26 @@ class IBGatewayClient:
     def positions(self) -> dict[str, Decimal]:
         ib = self._require()
         held = {}
-        for position in ib.positions(self.account):
+        # Cached positions can be empty after a failed initial synchronization.
+        # A completed fresh request is evidence; an empty cache is not.
+        try:
+            positions = ib.reqPositions()
+        except (TimeoutError, ConnectionError) as exc:
+            raise BrokerError("IBKR position evidence unavailable; refusing to trade") from exc
+        if not ib.isConnected():
+            raise BrokerError("IBKR disconnected while fetching positions; refusing to trade")
+        accounts = ib.managedAccounts()
+        if self.account:
+            if self.account not in accounts:
+                raise BrokerError("Configured IBKR account unavailable; refusing to trade")
+            account = self.account
+        elif len(accounts) == 1:
+            account = accounts[0]
+        else:
+            raise BrokerError("Select one IBKR account explicitly; refusing ambiguous positions")
+        for position in positions:
+            if position.account != account:
+                continue
             if position.position:
                 held[position.contract.symbol] = dec(position.position)
         return held

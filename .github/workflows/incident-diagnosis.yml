@@ -10,7 +10,7 @@ on:
         default: '1'
         description: Incident issue number
   issues:
-    types: [labeled]
+    types: [opened, labeled]
 
 permissions:
   contents: read
@@ -22,7 +22,7 @@ concurrency:
 
 jobs:
   diagnose:
-    if: github.event.label.name == 'sillage-incident' || github.event_name == 'workflow_dispatch'
+    if: github.event.label.name == 'sillage-incident' || (github.event.action == 'opened' && contains(github.event.issue.labels.*.name, 'sillage-incident')) || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:

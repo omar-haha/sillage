@@ -47,6 +47,14 @@ if ((10#$toronto_time >= 830)); then
     exit 6
 fi
 
+bash deploy/ensure-gateway.sh
+# Readiness/re-authentication can take minutes. Recheck the trading cutoff.
+toronto_time=$(TZ=America/Toronto date +%H%M)
+if ((10#$toronto_time >= 830)); then
+    echo "refusing broker cycle after Gateway recovery exceeded cutoff" >&2
+    exit 6
+fi
+
 timeout --signal=TERM --kill-after=30s "$SILLAGE_RUN_TIMEOUT" \
   .venv/bin/sillage live run-once \
     --strategy "$SILLAGE_STRATEGY" \
@@ -64,3 +72,8 @@ cp --reflink=auto state/ibkr.db "$backup"
 find state/backups -type f -name 'ibkr-*.db' -mtime +35 -delete
 healthcheck "${SILLAGE_HEALTHCHECK_URL:-}"
 date -u +%Y-%m-%d > state/paper-last-success
+if [[ -n "${SILLAGE_GITHUB_TOKEN:-}" ]]; then
+    timeout 90s .venv/bin/python deploy/incident-report.py --root "$SILLAGE_ROOT" \
+        --resolve >>state/incident-report.log 2>&1 || \
+        echo "Cycle succeeded, but incident closure failed; will retry on next dispatch." >&2
+fi
