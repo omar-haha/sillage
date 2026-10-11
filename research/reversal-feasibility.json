@@ -1,0 +1,197 @@
+{
+  "status": "daily-bar cost screen conditionally feasible; not execution validated",
+  "period": [
+    "2005-01-03",
+    "2026-09-16"
+  ],
+  "coverage": {
+    "XLB": {
+      "expected_sessions": 5460,
+      "missing_close_sessions": 0,
+      "missing_dates": [],
+      "invalid_close_count": 0,
+      "sha256": "ccec9ffbf6994817d3416eaaaaae8945879e59897369ae2e383a0b411cac1559"
+    },
+    "XLE": {
+      "expected_sessions": 5460,
+      "missing_close_sessions": 0,
+      "missing_dates": [],
+      "invalid_close_count": 0,
+      "sha256": "452bd213f3a6653e44e68d741914bf10f2207afcbb6d4eb20d92aed28ca39e94"
+    },
+    "XLF": {
+      "expected_sessions": 5460,
+      "missing_close_sessions": 0,
+      "missing_dates": [],
+      "invalid_close_count": 0,
+      "sha256": "44da04e807db9a6df695edb9f9880404987c1f187373938a57c5e4f37ebfb8b9"
+    },
+    "XLI": {
+      "expected_sessions": 5460,
+      "missing_close_sessions": 0,
+      "missing_dates": [],
+      "invalid_close_count": 0,
+      "sha256": "27bcde53132ff7bbe99067f046b63957eced7b4e323b9dadc39f49d8abc69a82"
+    },
+    "XLK": {
+      "expected_sessions": 5460,
+      "missing_close_sessions": 0,
+      "missing_dates": [],
+      "invalid_close_count": 0,
+      "sha256": "732e83a1f26d776a35937842cfea565e16d5bb92d5785cc22c2f714f253a041a"
+    },
+    "XLP": {
+      "expected_sessions": 5460,
+      "missing_close_sessions": 0,
+      "missing_dates": [],
+      "invalid_close_count": 0,
+      "sha256": "af6a5ae6cf2ff495f5cdbc84a7d4ca131fd5bbe0e576a79d35c4ce5e3fda9ace"
+    },
+    "XLU": {
+      "expected_sessions": 5460,
+      "missing_close_sessions": 0,
+      "missing_dates": [],
+      "invalid_close_count": 0,
+      "sha256": "7582b9bbe22c5effefa8f6beca2ed09697c9b64022e46cbb3d692bd93e56e99a"
+    },
+    "XLV": {
+      "expected_sessions": 5460,
+      "missing_close_sessions": 0,
+      "missing_dates": [],
+      "invalid_close_count": 0,
+      "sha256": "3efcb7836247644fa5e510cb06ff969dc5c212e019c8d2ee56e1b7ccc11830d6"
+    },
+    "XLY": {
+      "expected_sessions": 5460,
+      "missing_close_sessions": 0,
+      "missing_dates": [],
+      "invalid_close_count": 0,
+      "sha256": "4feab1b0c4debe8e86ce6bbcd857df611c4ca6ed2eeb21566e33fea8cfcb99d3"
+    },
+    "SPY": {
+      "expected_sessions": 5460,
+      "missing_close_sessions": 0,
+      "missing_dates": [],
+      "invalid_close_count": 0,
+      "sha256": "bc66a26e9945a43fc1bd4f62fa9522e7b3e03120951d28ed03a0f6ae4aad5107"
+    },
+    "VIX": {
+      "expected_sessions": 5460,
+      "missing_close_sessions": 0,
+      "missing_dates": [],
+      "invalid_close_count": 0,
+      "sha256": "998f2e9af407619994a0735ed25f9501fe339dd9a1bc64a41ad1063b5002b28c"
+    }
+  },
+  "vix_source": "https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv",
+  "historical_quotes_available": false,
+  "venue_shortability_and_margin_verified": false,
+  "budgets": [
+    {
+      "capital": 25000,
+      "allocation": 0.1,
+      "sleeve_capital": 2500.0,
+      "equal_leg_dollars": 625.0,
+      "commission_floor": 8.0,
+      "spread_assumption_bps": 4,
+      "borrow_calendar_days": 2,
+      "estimated_round_trip_dollars": 9.068493150684931,
+      "break_even_bps_of_sleeve": 36.273972602739725,
+      "illustrative_100_dollar_etf_shares_per_leg": 6
+    },
+    {
+      "capital": 25000,
+      "allocation": 0.2,
+      "sleeve_capital": 5000.0,
+      "equal_leg_dollars": 1250.0,
+      "commission_floor": 8.0,
+      "spread_assumption_bps": 4,
+      "borrow_calendar_days": 2,
+      "estimated_round_trip_dollars": 10.136986301369863,
+      "break_even_bps_of_sleeve": 20.27397260273973,
+      "illustrative_100_dollar_etf_shares_per_leg": 12
+    },
+    {
+      "capital": 25000,
+      "allocation": 0.3,
+      "sleeve_capital": 7500.0,
+      "equal_leg_dollars": 1875.0,
+      "commission_floor": 8.0,
+      "spread_assumption_bps": 4,
+      "borrow_calendar_days": 2,
+      "estimated_round_trip_dollars": 11.205479452054794,
+      "break_even_bps_of_sleeve": 14.940639269406391,
+      "illustrative_100_dollar_etf_shares_per_leg": 18
+    },
+    {
+      "capital": 100000,
+      "allocation": 0.1,
+      "sleeve_capital": 10000.0,
+      "equal_leg_dollars": 2500.0,
+      "commission_floor": 8.0,
+      "spread_assumption_bps": 4,
+      "borrow_calendar_days": 2,
+      "estimated_round_trip_dollars": 12.273972602739725,
+      "break_even_bps_of_sleeve": 12.273972602739725,
+      "illustrative_100_dollar_etf_shares_per_leg": 25
+    },
+    {
+      "capital": 100000,
+      "allocation": 0.2,
+      "sleeve_capital": 20000.0,
+      "equal_leg_dollars": 5000.0,
+      "commission_floor": 8.0,
+      "spread_assumption_bps": 4,
+      "borrow_calendar_days": 2,
+      "estimated_round_trip_dollars": 16.54794520547945,
+      "break_even_bps_of_sleeve": 8.273972602739725,
+      "illustrative_100_dollar_etf_shares_per_leg": 50
+    },
+    {
+      "capital": 100000,
+      "allocation": 0.3,
+      "sleeve_capital": 30000.0,
+      "equal_leg_dollars": 7500.0,
+      "commission_floor": 8.0,
+      "spread_assumption_bps": 4,
+      "borrow_calendar_days": 2,
+      "estimated_round_trip_dollars": 20.82191780821918,
+      "break_even_bps_of_sleeve": 6.940639269406393,
+      "illustrative_100_dollar_etf_shares_per_leg": 75
+    }
+  ],
+  "stress_budgets": [
+    {
+      "capital": 25000,
+      "allocation": 0.2,
+      "sleeve_capital": 5000.0,
+      "equal_leg_dollars": 1250.0,
+      "commission_floor": 8.0,
+      "spread_assumption_bps": 20,
+      "borrow_calendar_days": 4,
+      "estimated_round_trip_dollars": 19.095890410958905,
+      "break_even_bps_of_sleeve": 38.19178082191781,
+      "illustrative_100_dollar_etf_shares_per_leg": 12
+    },
+    {
+      "capital": 100000,
+      "allocation": 0.2,
+      "sleeve_capital": 20000.0,
+      "equal_leg_dollars": 5000.0,
+      "commission_floor": 8.0,
+      "spread_assumption_bps": 20,
+      "borrow_calendar_days": 4,
+      "estimated_round_trip_dollars": 52.38356164383562,
+      "break_even_bps_of_sleeve": 26.19178082191781,
+      "illustrative_100_dollar_etf_shares_per_leg": 50
+    }
+  ],
+  "limitations": [
+    "Not an observed strategy edge or turnover estimate.",
+    "Equal-dollar budget is illustrative; final beta sizing may be asymmetric.",
+    "Impact, additional fees, adverse opening gaps and recalls are not included in these floors.",
+    "A $1 minimum is an assumption; per-share and venue fees may make larger tickets cost more.",
+    "Paper account buying power exceeds the virtual $25K budget; cannot certify live $25K admission.",
+    "VIX closes must be available at actual decision time, not ETF closing bell by assumption."
+  ]
+}

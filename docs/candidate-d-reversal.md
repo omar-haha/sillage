@@ -1,7 +1,30 @@
-# Candidate D: stress-conditioned ETF reversal — draft
+# Candidate D: stress-conditioned ETF reversal — feasibility reviewed
 
-Status: evidence-backed research proposal, not a tested edge, frozen signal, or
-authorization to change paper trading. No new performance curve has been inspected.
+Status: daily-input/cost feasibility review complete; research-screen specification
+frozen below on 2026-10-11. No alpha curve has been inspected. Quote, borrow and
+account-level margin validation are still prerequisites for promotion, not completed
+evidence. This does not authorize changing paper trading.
+
+## First feasibility review
+
+`scripts/reversal_feasibility.py` and `research/reversal-feasibility.json` reproduce
+the review. The frozen 2005-01-03 through 2026-09-16 NYSE-session window has no
+missing or nonpositive closes for the nine ETFs, SPY or Cboe VIX. VIX is sourced
+directly from Cboe; ETF daily bars retain Candidate C's hashed Yahoo vintage.
+Coverage does not certify data accuracy or historical execution prices.
+
+At a 20% allocation, a US$25K portfolio gives the sleeve US$5K. Eight illustrative
+$1 tickets consume 16bp per complete four-leg round trip, before spreads and borrow.
+Adding a declared 4bp round-trip spread and two calendar days of 1% borrow on half
+the gross raises the cost floor to 20.27bp of sleeve capital. At US$100K, the same
+allocation gives US$20K and the corresponding floor is 8.27bp. These are budget
+examples, not measured ETF spreads or observed expected returns. Stress budgets
+use 20bp spread, 4% borrow and four calendar days; impact and other fees are extra.
+
+Conditional decision: permit a research-only daily-bar screen with explicit costs,
+not broker deployment. Usable historical quotes and short-fee history were not
+found in the repository. No market-data purchase or broker subscription was made.
+The outsized paper account's margin cannot certify a live US$25K portfolio.
 
 ## Mechanism and evidence
 
@@ -44,7 +67,64 @@ IBKR references: [borrow cost and short-proceeds interest](https://brokerage.ibk
 The listed first USD 100K short-proceeds tier earns zero interest. Borrow fees can
 change, and availability must be checked rather than inferred from ETF liquidity.
 
-## Proposed first screen — freeze only after the feasibility review
+## Frozen first daily-bar screen
+
+These rules are committed before the first Candidate D alpha run. They operationalize
+the draft below; this is not an empirically chosen optimum. Any subsequent rule
+change is a separate ledger entry, never an overwriting of this specification.
+
+- Research period ends 2026-09-16; 252-session warm-up, score only afterward.
+  Chronological halves and 2008/2020 stress episodes are reused diagnostic data,
+  not pristine holdouts. Forward paper observation is distinct evidence.
+- Beta: covariance of trailing 252 daily log returns with SPY divided by SPY
+  variance. Require positive finite betas and positive residual volatility.
+- Rank the sum of trailing five daily log residual returns divided by the standard
+  deviation of trailing 20 daily residual returns. Residuals use the decision's
+  trailing beta. Tie-break alphabetically; lowest two long, highest two short.
+- VIX decision close >=25 activates entries. The decision runs after the VIX closing
+  observation is available, not at the ETF closing bell using a future VIX print.
+- Equal weights within sides, side gross chosen to neutralize estimated SPY beta,
+  total gross <=100%, individual absolute weight <=35%; proportional reduction
+  preserves beta neutrality if capped. Round target shares toward zero.
+- One basket at a time. Enter next observed session open, hold two complete
+  open-to-open intervals, exit the third open; no intraday entries/exits or stop
+  prices synthesized from daily OHLC. An entry is not permitted on an exit day.
+  Stress ending does not accelerate the fixed exit. Invalid history means no entry;
+  do not abandon an existing basket's scheduled exit. The final open basket is marked
+  and identified separately, not given a fabricated terminal fill.
+- Use the existing cost model with $0.005/share, $1 minimum commission, 2bp
+  half-spread, and trailing 20-session ADV impact. These fixed-pricing inputs are
+  conservative assumptions consistent with observed minimum paper tickets; extra
+  venue fees and actual stress spread changes remain limitations.
+- Base borrow 1% over actual calendar days; zero interest on idle cash and short
+  proceeds. Compute real cash/debit balances and financing if debit cash arises.
+- Declared variants only: VIX 20 and 30, one extra session entry delay, 2x execution
+  costs, 4% borrow, and a 10bp half-spread plus 4% borrow crisis-cost scenario.
+  Delayed entry retains the original decision and cannot peek at the next day's rank.
+- Primary combination allocates 20% of capital to D, with 10% and 30% as robustness
+  checks, not competing weights from which to choose a winner. Combined gross <=100%
+  with capital substitution and netted orders; financing and commissions must be
+  recalculated on the combined book before any executable conclusion.
+
+First accounting/sanity gate: positive cumulative net trading P&L (excluding cash
+interest) in both chronological halves, plus no reliance on free execution for the
+sign. This is not a minimum standalone excess-Sharpe requirement. If viable, the
+primary combined screen must improve excess Sharpe by >=0.05, not deepen maximum
+drawdown, and not lengthen the longest drawdown versus the same-period balanced
+control. Report a paired block-bootstrap interval for the improvement; require
+its 95% lower bound above zero before treating improvement as established. Report
+all alternate-weight/cost/delay cases rather than silently replacing the primary
+case. If minimum gates fail, log rejection; if uncertainty straddles zero, mark it
+inconclusive, not approved. A >=1.1 final portfolio Sharpe remains a later target.
+
+No paper promotion unless live permissions, quotes/borrow, virtual-budget margin
+and failed-leg/recall handling are verified. Low sample size in high-VIX episodes,
+tail losses or reused history can prevent promotion even when point estimates pass.
+
+### Original proposal, retained for provenance
+
+The draft wording below is superseded by the frozen controls above. Its references
+to future freezing describe the earlier planning stage, not the current status.
 
 - Universe: `XLB XLE XLF XLI XLK XLP XLU XLV XLY`; SPY supplies a market reference,
   not another overlapping ranked asset. Do not add sectors after seeing winners.

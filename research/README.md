@@ -2,8 +2,11 @@
 
 The cross-experiment history is in [TRIALS.md](TRIALS.md), including failed and
 preliminary screens. The next proposal is
-[stress-conditioned reversal](../docs/candidate-d-reversal.md); it must pass a
-data/execution-feasibility review and have its rules committed before testing.
+[stress-conditioned reversal](../docs/candidate-d-reversal.md); its first daily-input/
+cost review is complete and research-screen rules are frozen. Execution validation
+is not complete. Reproduce the coverage and illustrative budget review with
+`uv run python scripts/reversal_feasibility.py --download-vix`, or omit the flag to
+reuse the ignored local VIX vintage. No rankings or alpha curves are generated.
 
 Candidate C's rejected monthly beta-neutral sector-momentum screen is recorded in
 `sector-candidate.json`. Reproduce locally (no broker access) with:
