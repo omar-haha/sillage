@@ -338,9 +338,13 @@ The honest list, in the order I would worry about them.
 8. **No point-in-time fundamentals, and no survivorship-safe single-stock universe.** The
    ETF universe is fixed and declared, which sidesteps the problem rather than solving it.
 
-What comes next: accumulate the unattended IBKR paper record while testing the frozen
-futures-trend, ETF relative-value, sector-neutral momentum and stress-reversal candidates (all currently
-rejected by their frozen gates). Only robust, executable sleeves may enter
+What comes next: accumulate the unattended IBKR paper record while researching
+complementary exposures. Futures-trend, ETF relative-value, sector-neutral momentum
+and stress reversal failed their frozen gates. The value/quality mechanism screen is
+held, and the subsequent [long-only QUAL test](docs/candidate-e2-quality-etf.md)
+did not improve Sharpe enough or outperform its matched SPY allocation control.
+The [trial ledger](research/TRIALS.md) records these outcomes; no candidate was added
+to paper trading. Only robust, executable sleeves may enter
 the blend; only after that does risk scaling attempt to exceed SPY's return with smaller
 drawdowns.
 

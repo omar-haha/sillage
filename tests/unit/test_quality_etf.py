@@ -5,7 +5,13 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from sillage.backtest.quality_etf import acceptance, paired_diagnostics, quality_portfolio
+from sillage.backtest.metrics import from_nav
+from sillage.backtest.quality_etf import (
+    acceptance,
+    paired_diagnostics,
+    quality_portfolio,
+    validate_sessions,
+)
 from sillage.core.money import dec
 from sillage.strategy.blend import Blend
 from sillage.strategy.registry import names
@@ -37,6 +43,19 @@ def test_shared_spy_control_and_endpoints():
     assert quality_portfolio(1)[0].weights == {"QUAL": 1}
     with pytest.raises(ValueError):
         quality_portfolio(0.2, symbol="OTHER")
+
+
+def test_calendar_validation_accepts_equivalent_timestamp_precision_not_missing_days():
+    days = pd.date_range("2016-01-04", periods=3, tz="UTC").as_unit("s")
+    frame = pd.DataFrame(
+        100.0, index=days.as_unit("ms"), columns=["open", "high", "low", "close", "volume"]
+    )
+    validate_sessions(frame, days)
+    with pytest.raises(ValueError):
+        validate_sessions(frame.iloc[1:], days)
+    frame.iloc[1, 0] = np.nan
+    with pytest.raises(ValueError):
+        validate_sessions(frame, days)
 
 
 def test_paired_bootstrap_identical_curves_zero_difference_and_no_mutation():
@@ -79,3 +98,17 @@ def test_better_neighbor_cannot_rescue_failed_primary_gate():
     assert not result["continue_to_raw_price_and_venue_validation"]
     rows["primary"]["metrics"]["sharpe"] = 1.0
     assert acceptance(rows, spec["criteria"])["continue_to_raw_price_and_venue_validation"]
+
+
+def test_bootstrap_point_estimate_uses_existing_metric_convention():
+    rng = np.random.default_rng(3)
+    days = pd.bdate_range("2016-01-01", periods=600)
+    core = pd.Series(np.cumprod(1 + rng.normal(0.0003, 0.01, len(days))), index=days)
+    candidate = pd.Series(np.cumprod(1 + rng.normal(0.0004, 0.012, len(days))), index=days)
+    rates = pd.Series(np.linspace(0, 0.05, len(days)), index=days)
+    result = paired_diagnostics(core, candidate, rates, replicates=10)
+    expected = (
+        from_nav(candidate, risk_free_rate=rates).sharpe
+        - from_nav(core, risk_free_rate=rates).sharpe
+    )
+    assert result["excess_sharpe_improvement"] == pytest.approx(expected)

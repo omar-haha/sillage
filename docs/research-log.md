@@ -1098,3 +1098,35 @@ live short admission or production changes follow. The next investor-relevance
 task is an honest matched-period, CAD-valued comparison of the existing core with
 simple all-in-one ETFs, rather than treating another rejected hypothesis as
 progress toward 1.1 or deploying real money on paper plumbing evidence.
+
+### 2026-10-11 — portfolio-first value/quality and investable QUAL follow-up
+
+Clarified discovery objective: an unfinished core need not independently replace
+XEQT/SPY. Passive controls remain important for the eventual combined system, but
+do not block every new mechanism investigation. E's frozen 50/50 academic US
+value/QMJ premium is negatively correlated with the core (-0.316) yet fails its
+both-half positive-mean gate. Quality alone is an exploratory lead, not a substitute
+primary. Long/short opposing market exposure is not preserved automatically in a
+long-only stock/ETF expression. See `candidate-e-value-quality.md`.
+
+E2 is a separately authorized and preregistered QUAL portfolio hypothesis, spec
+commit `ebc0342`. Eight configurations run through one netted engine with $25K,
+whole shares, $1-minimum fixed cost proxy, zero idle-cash interest and no leverage.
+January 2016–September 16, 2026 results: core CAGR 8.10%, excess Sharpe 0.658,
+drawdown -19.73%; primary 80/20 core/QUAL CAGR 9.12%, Sharpe 0.672, drawdown
+-22.48%; matching core/SPY control CAGR 9.35%, Sharpe 0.688. QUAL standalone
+correlation with core is 0.879 and beta to SPY approximately 0.986. The primary's
+paired Sharpe-improvement interval crosses zero; 10%/30% neighbors and 2x costs
+do not rescue the failed full-period/control/drawdown criteria.
+
+This is an economically meaningful distinction: long-term ETF quality is practical
+at the proposed capital scale, but this expression mostly adds equity risk rather
+than the independent diversification sought. 131 QUAL fills over the full staged
+replay also contradict an assumption of automatically quarterly portfolio trades.
+No orders were rejected in simulation; real broker admission remains unverified.
+Adjusted research prices limit historical whole-share realism, and no pre-inception
+or pre-2015 benchmark history was backfilled. Nine new synthetic cases and 94
+relevant tests pass. Calendar precision and bootstrap convention corrections are
+documented, with unchanged primary criteria/portfolio conclusions. The next decision
+is a genuinely different exposure or an explicitly labeled risk overlay, not
+another allocation search within these rejected curves. Production is unchanged.

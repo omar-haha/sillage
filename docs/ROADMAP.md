@@ -641,7 +641,7 @@ cash interest and the frozen margin gate. The direct-product history screen has 
    `candidate-d-reversal.md` and `research/TRIALS.md`. Do not tune rejected candidates
    or scale balanced to manufacture the target.
 
-   **Candidate E next: slow value/quality.** Start with published-factor definitions
+   **Candidate E/E2 reviewed: slow value/quality.** Start with published-factor definitions
    and a preregistered inexpensive mechanism/covariance screen against the actual
    core, not a full stock-ranking implementation. Academic long/short returns do
    not establish a long-only ETF/stock sleeve's behavior. Then investigate investable
@@ -650,8 +650,12 @@ cash interest and the frozen margin gate. The direct-product history screen has 
    committed before inspection: composite correlation -0.316, but negative
    second-half mean fails continuation. Academic short-market exposure explains
    much of the diversification; no long-only net blend or implementation is proven.
-   Quality-led investable feasibility is a possible separately registered follow-up,
-   not a post-result substitution for E's frozen 50/50 primary. Candidate F
+   The separately registered E2 QUAL expression is now tested and rejected: primary
+   Sharpe 0.672 vs core 0.658, SPY substitution 0.688, with deeper drawdown.
+   See `candidate-e2-quality-etf.md`. One ETF is mechanically practical, but this
+   implementation adds equity beta rather than proven independent diversification.
+   Do not tune its weight or deploy it. Next research decision: genuinely different
+   exposure, or a clearly labeled/frozen risk-management overlay. Candidate F
    (volatility management) remains deferred because it may duplicate core controls.
 
    **Investor-relevance controls, not an immediate discovery gate:** compare the current

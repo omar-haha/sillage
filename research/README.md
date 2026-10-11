@@ -1,6 +1,14 @@
 # Frozen research controls
 
-The latest discovery review is [Candidate E, slow value/quality](../docs/candidate-e-value-quality.md).
+The latest investable-expression test is [Candidate E2, QUAL](../docs/candidate-e2-quality-etf.md).
+It is mechanically feasible but rejected for the frozen Sharpe/diversification
+goal: primary Sharpe 0.672 versus core 0.658 and SPY substitution 0.688, with a
+deeper drawdown. Reproduce via `uv run python scripts/test_quality_etf.py` using
+the frozen private vintage; `--prepare` downloads only and does not score.
+See `quality-etf-spec.json`, `quality-etf-inputs.json` and `quality-etf-candidate.json`.
+No live strategy registry or paper allocation changed.
+
+The preceding mechanism review is [Candidate E, slow value/quality](../docs/candidate-e-value-quality.md).
 Its published-factor mechanism screen is complete: the frozen composite diversifies
 the core but fails the positive-mean-in-both-halves continuation gate. Quality alone
 is an exploratory lead, not a substituted pass or long-only implementation.

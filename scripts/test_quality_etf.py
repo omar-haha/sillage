@@ -18,7 +18,12 @@ from sillage.backtest.metrics import (
     load_risk_free_rates,
     nav_series,
 )
-from sillage.backtest.quality_etf import acceptance, paired_diagnostics, quality_portfolio
+from sillage.backtest.quality_etf import (
+    acceptance,
+    paired_diagnostics,
+    quality_portfolio,
+    validate_sessions,
+)
 from sillage.backtest.runner import BacktestConfig, run_backtest
 from sillage.core.calendar import TradingCalendar
 from sillage.core.money import dec
@@ -73,11 +78,7 @@ def main():
     )
     for symbol in symbols:
         frame = pd.read_parquet(store.path_for(symbol))
-        actual = frame.loc[(frame.index >= expected[0]) & (frame.index <= expected[-1])]
-        if not actual.index.equals(expected) or not np.isfinite(actual.to_numpy()).all():
-            raise ValueError(f"{symbol}: incomplete/nonfinite session evidence")
-        if (actual[["open", "high", "low", "close"]] <= 0).any().any():
-            raise ValueError(f"{symbol}: nonpositive prices")
+        validate_sessions(frame, expected)
     rates = load_risk_free_rates(rate_path)
     fixed = CostModel(commission_per_share=dec("0.005"), min_commission=dec(1))
     variants = {

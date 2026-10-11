@@ -14,6 +14,18 @@ from sillage.strategy.blend import Blend
 from sillage.strategy.registry import build
 
 
+def validate_sessions(frame: pd.DataFrame, expected: pd.DatetimeIndex) -> None:
+    """Require exact research calendar coverage, independent of timestamp precision."""
+    actual = frame.loc[(frame.index >= expected[0]) & (frame.index <= expected[-1])]
+    if (
+        not actual.index.as_unit("ns").equals(expected.as_unit("ns"))
+        or not np.isfinite(actual.to_numpy()).all()
+    ):
+        raise ValueError("incomplete/nonfinite session evidence")
+    if (actual[["open", "high", "low", "close"]] <= 0).any().any():
+        raise ValueError("nonpositive prices")
+
+
 def quality_portfolio(weight: float, *, symbol: str = "QUAL"):
     """Keep QUAL outside the core signal universe; only execution gets the union."""
     if not np.isfinite(weight) or not 0 <= weight <= 1 or symbol not in ("QUAL", "SPY"):
@@ -54,11 +66,15 @@ def paired_diagnostics(
         or not np.isfinite(np.column_stack((core, candidate))).all()
     ):
         raise ValueError("NAVs must be finite and positive")
-    a = _excess_returns(core.pct_change().dropna(), rates).to_numpy()
-    b = _excess_returns(candidate.pct_change().dropna(), rates).to_numpy()
+    core_returns = core.pct_change().dropna()
+    candidate_returns = candidate.pct_change().dropna()
+    ar, br = core_returns.to_numpy(), candidate_returns.to_numpy()
+    a = _excess_returns(core_returns, rates).to_numpy()
+    b = _excess_returns(candidate_returns, rates).to_numpy()
 
-    def sharpe(x):
-        vol = x.std(ddof=1)
+    def sharpe(x, total_returns):
+        # Same convention as from_nav: excess numerator, total-return volatility.
+        vol = total_returns.std(ddof=1)
         if vol <= 0:
             raise ValueError("constant excess returns cannot support uncertainty estimates")
         return float(x.mean() / vol * np.sqrt(252))
@@ -70,7 +86,7 @@ def paired_diagnostics(
     for _ in range(replicates):
         starts = rng.integers(0, len(a), size=int(np.ceil(len(a) / blocks)))
         indices = ((starts[:, None] + np.arange(blocks)) % len(a)).ravel()[: len(a)]
-        diffs.append(sharpe(b[indices]) - sharpe(a[indices]))
+        diffs.append(sharpe(b[indices], br[indices]) - sharpe(a[indices], ar[indices]))
     halfway = (len(core) - 1) // 2
     halves = (
         (core.iloc[: halfway + 1], candidate.iloc[: halfway + 1]),
@@ -78,7 +94,7 @@ def paired_diagnostics(
     )
     tail = a <= np.quantile(a, 0.1)
     return {
-        "excess_sharpe_improvement": sharpe(b) - sharpe(a),
+        "excess_sharpe_improvement": sharpe(b, br) - sharpe(a, ar),
         "paired_block_sharpe_improvement_interval_95": np.quantile(diffs, [0.025, 0.975]).tolist(),
         "half_excess_sharpe_improvements": [
             from_nav(y, risk_free_rate=rates).sharpe - from_nav(x, risk_free_rate=rates).sharpe
