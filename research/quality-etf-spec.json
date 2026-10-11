@@ -1,0 +1,27 @@
+{
+  "candidate": "E2",
+  "hypothesis": "A long-only QUAL allocation improves the actual netted core portfolio, not merely equity beta; new exploratory hypothesis after E factor inspection.",
+  "symbol": "QUAL",
+  "replay_start": "2015-09-01",
+  "score_start": "2016-01-04",
+  "end": "2026-09-16",
+  "capital_usd": 25000,
+  "primary_quality_weight": 0.2,
+  "neighbor_weights": [0.1, 0.3],
+  "execution": "Shared engine, next session open, whole shares, netted target weights, default 20% relative no-trade band. QUAL fixed target retained on core rebalance opportunities, not a strict quarterly trading schedule.",
+  "costs": "Conservative fixed proxy $0.005/share, $1 minimum, QUAL half-spread 2bp, existing core spread/ADV impact estimates; 2x costs repeated on core and primary.",
+  "cash": "zero interest on positive idle cash; BIL returns embedded; no leverage, shorting or margin borrowing",
+  "controls": ["core only", "80% core + 20% SPY", "QUAL standalone diagnostic"],
+  "criteria": {
+    "minimum_full_excess_sharpe_improvement_vs_core": 0.05,
+    "minimum_full_excess_sharpe_improvement_vs_spy_substitution": 0.02,
+    "minimum_half_excess_sharpe_improvements_vs_core": 0.0,
+    "maximum_extra_drawdown_depth": 0.02,
+    "maximum_drawdown_duration_ratio": 1.25,
+    "minimum_neighbor_excess_sharpe_improvements_vs_core": 0.0,
+    "minimum_2x_cost_excess_sharpe_improvement_vs_2x_core": 0.0
+  },
+  "uncertainty": "Paired circular daily-return block bootstrap, 252-session blocks, 2000 replicates, seed 1102026. Report interval on excess Sharpe difference; no new gate selected after viewing it.",
+  "tail_diagnostics": "Core worst daily-return decile, fixed calendar 2020 and 2022 periods, daily return correlation and market beta; descriptive only.",
+  "limits": ["Primary source product pages incidentally display historical performance; no downloaded candidate curve or combined results inspected before freezing this spec.", "QUAL started 2013 and changed benchmark September 2015; no pre-inception/index backfill or 2008 crisis claim.", "Adjusted Yahoo research OHLC embeds fund fees/dividends; do not subtract expense ratio or add distributions again.", "Adjusted-history whole-share sizing is only a research proxy, not historical raw-price lot accounting. Passing still requires raw corporate-action validation, broker contract/permission/spread verification and shadow review.", "USD pretax research account, no CAD conversion or account-specific withholding/tax estimates. Repeated familiar history is not an untouched holdout.", "No weight search, additional quality ETFs, paid data, registry change or paper deployment."]
+}
