@@ -1,9 +1,14 @@
 # Frozen research controls
 
+The active discovery proposal is [Candidate E, slow value/quality](../docs/candidate-e-value-quality.md).
+Next is a preregistered published-factor mechanism screen, not stock selection or
+paper deployment. Passive ETF comparisons remain controls for the combined system;
+they do not require every candidate to beat a passive portfolio standalone.
+
 The cross-experiment history is in [TRIALS.md](TRIALS.md), including failed and
-preliminary screens. The next proposal is
-[stress-conditioned reversal](../docs/candidate-d-reversal.md); its first daily-input/
-cost review is complete and research-screen rules are frozen. Execution validation
+preliminary screens. The completed Candidate D review is documented in
+[stress-conditioned reversal](../docs/candidate-d-reversal.md); its daily-input/
+cost review is complete and the frozen research screen was rejected. Execution validation
 is not complete. Reproduce the coverage and illustrative budget review with
 `uv run python scripts/reversal_feasibility.py --download-vix`, or omit the flag to
 reuse the ignored local VIX vintage. No rankings or alpha curves are generated.

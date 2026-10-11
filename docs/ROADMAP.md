@@ -641,14 +641,26 @@ cash interest and the frozen margin gate. The direct-product history screen has 
    `candidate-d-reversal.md` and `research/TRIALS.md`. Do not tune rejected candidates
    or scale balanced to manufacture the target.
 
-   **Investor-relevance benchmark before another new family:** compare the current
+   **Candidate E next: slow value/quality.** Start with published-factor definitions
+   and a preregistered inexpensive mechanism/covariance screen against the actual
+   core, not a full stock-ranking implementation. Academic long/short returns do
+   not establish a long-only ETF/stock sleeve's behavior. Then investigate investable
+   ETFs or verified point-in-time fundamentals and realistic $5K sleeve costs.
+   See `candidate-e-value-quality.md`. No E performance has been inspected and its
+   numerical screening criteria must be committed before testing. Candidate F
+   (volatility management) remains deferred because it may duplicate core controls.
+
+   **Investor-relevance controls, not an immediate discovery gate:** compare the current
    core at $25K against CAD buy-and-hold XEQT and a simple balanced all-in-one ETF
    (e.g. XBAL/XGRO, with risk levels made explicit), on the same available period,
    CAD valuation, reinvested distributions and declared FX/trading/tax assumptions.
    XEQT only launched in 2019; do not pretend it has the core's 2005 history.
    Frozen controls used $100K and Treasury cash-accrual proxies, not actual $25K
    Canadian retail-account performance. A direct comparison is outstanding, not a
-   claim that Sillage beats these alternatives. Include taxes only as labeled
+   claim that Sillage beats these alternatives. Discovery assesses the combined
+   portfolio rather than requiring each unfinished component to replace passive
+   investing. The eventual completed portfolio still must earn its complexity.
+   Include taxes only as labeled
    account-specific scenarios, not a universal after-tax estimate.
 
 Individual-stock pairs, options selling and intraday reversal are outside the first
