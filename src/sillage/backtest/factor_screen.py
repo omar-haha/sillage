@@ -111,7 +111,8 @@ def residual(values: np.ndarray, market: np.ndarray) -> np.ndarray:
 def diagnose(frame: pd.DataFrame, spec: dict) -> dict:
     """Paired monthly diagnostics and frozen heuristic continuation gate."""
     if (
-        frame.index.has_duplicates
+        len(frame) < 4
+        or frame.index.has_duplicates
         or not frame.index.equals(pd.period_range(frame.index[0], frame.index[-1], freq="M"))
         or not np.isfinite(frame.to_numpy()).all()
     ):
@@ -145,6 +146,7 @@ def diagnose(frame: pd.DataFrame, spec: dict) -> dict:
                 "both_negative_months": int(((subset.core_excess < 0) & (subset[name] < 0)).sum()),
             }
         rows[name] = {
+            "market_beta": float(np.cov(factor, market, ddof=1)[0, 1] / np.var(market, ddof=1)),
             "mean_monthly_factor": float(factor.mean()),
             "annualized_factor_mean_over_vol": float(
                 factor.mean() / factor.std(ddof=1) * np.sqrt(12)
@@ -181,6 +183,11 @@ def diagnose(frame: pd.DataFrame, spec: dict) -> dict:
         "positive_halves": min(primary["half_factor_means"]) > 0,
     }
     return {
+        "core_market_beta": float(np.cov(core, market, ddof=1)[0, 1] / np.var(market, ddof=1)),
+        "half_periods": [
+            {"start": str(frame.index[h[0]]), "end": str(frame.index[h[-1]]), "months": len(h)}
+            for h in np.array_split(np.arange(len(frame)), 2)
+        ],
         "diagnostics": rows,
         "gates": gates,
         "continue_to_implementation_feasibility": all(gates.values()),

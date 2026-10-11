@@ -646,8 +646,12 @@ cash interest and the frozen margin gate. The direct-product history screen has 
    core, not a full stock-ranking implementation. Academic long/short returns do
    not establish a long-only ETF/stock sleeve's behavior. Then investigate investable
    ETFs or verified point-in-time fundamentals and realistic $5K sleeve costs.
-   See `candidate-e-value-quality.md`. No E performance has been inspected and its
-   numerical screening criteria must be committed before testing. Candidate F
+   See `candidate-e-value-quality.md`. Initial screen now complete under criteria
+   committed before inspection: composite correlation -0.316, but negative
+   second-half mean fails continuation. Academic short-market exposure explains
+   much of the diversification; no long-only net blend or implementation is proven.
+   Quality-led investable feasibility is a possible separately registered follow-up,
+   not a post-result substitution for E's frozen 50/50 primary. Candidate F
    (volatility management) remains deferred because it may duplicate core controls.
 
    **Investor-relevance controls, not an immediate discovery gate:** compare the current

@@ -1,8 +1,12 @@
 # Frozen research controls
 
-The active discovery proposal is [Candidate E, slow value/quality](../docs/candidate-e-value-quality.md).
-Next is a preregistered published-factor mechanism screen, not stock selection or
-paper deployment. Passive ETF comparisons remain controls for the combined system;
+The latest discovery review is [Candidate E, slow value/quality](../docs/candidate-e-value-quality.md).
+Its published-factor mechanism screen is complete: the frozen composite diversifies
+the core but fails the positive-mean-in-both-halves continuation gate. Quality alone
+is an exploratory lead, not a substituted pass or long-only implementation.
+Reproduce with `uv run python scripts/screen_value_quality.py` using the frozen,
+ignored source vintages; see `value-quality-screen.json` and the input/spec manifests.
+Passive ETF comparisons remain controls for the combined system;
 they do not require every candidate to beat a passive portfolio standalone.
 
 The cross-experiment history is in [TRIALS.md](TRIALS.md), including failed and

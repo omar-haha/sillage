@@ -107,3 +107,5 @@ def test_diagnostics_repeatable_and_gate_not_individual_selection():
     assert result["diagnostics"]["composite"]["core_correlation"] == pytest.approx(1.0)
     with pytest.raises(ValueError):
         diagnose(frame.drop(frame.index[1]), spec)
+    with pytest.raises(ValueError):
+        diagnose(frame.iloc[:0], spec)

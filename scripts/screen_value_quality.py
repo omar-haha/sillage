@@ -70,6 +70,11 @@ def main():
     report.update(
         {
             "candidate": "E",
+            "specification_commit": "7c912e1",
+            "sources": {
+                "vme": "https://www.aqr.com/-/media/AQR/Documents/Insights/Data-Sets/Value-and-Momentum-Everywhere-Factors-Monthly.xlsx",
+                "qmj": "https://www.aqr.com/-/media/AQR/Documents/Insights/Data-Sets/Quality-Minus-Junk-Factors-Monthly.xlsx",
+            },
             "stage": "academic mechanism diagnostic, not an investable backtest",
             "spec_sha256": sha(spec_path),
             "factor_sha256": {name: sha(root / (name + ".xlsx")) for name in ("vme", "qmj")},
