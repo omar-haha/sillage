@@ -106,6 +106,10 @@ change is a separate ledger entry, never an overwriting of this specification.
   with capital substitution and netted orders; financing and commissions must be
   recalculated on the combined book before any executable conclusion.
 
+The first standalone sanity gate is evaluated at $5K (20% of the modeled $25K
+portfolio), not $25K secretly devoted to the sleeve. An unchanged-rule $25K standalone
+run is a size diagnostic only; it cannot replace a failed $5K primary case.
+
 First accounting/sanity gate: positive cumulative net trading P&L (excluding cash
 interest) in both chronological halves, plus no reliance on free execution for the
 sign. This is not a minimum standalone excess-Sharpe requirement. If viable, the
