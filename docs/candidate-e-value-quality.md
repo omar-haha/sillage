@@ -1,7 +1,8 @@
 # Candidate E: slow value/quality — mechanism review first
 
-Status: research proposal, no Candidate E performance inspected, no frozen stock
-selection rules, no paper promotion. Discovery is portfolio-first; passive ETFs
+Status: mechanism-screen criteria frozen in `research/value-quality-screen-spec.json`
+before performance inspection; no frozen stock selection rules or paper promotion.
+Discovery is portfolio-first; passive ETFs
 remain controls rather than an immediate prerequisite for testing a new sleeve.
 
 ## Hypothesis and limits

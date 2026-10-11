@@ -1,0 +1,21 @@
+{
+  "candidate": "E",
+  "stage": "non-investable mechanism diagnostic only",
+  "start_month": "2006-01",
+  "last_possible_month": "2026-08",
+  "core": "balanced, $25000 USD, default whole-share costs, zero positive-cash interest, no margin",
+  "factor_columns": {"vme": "VALLS_VME_US90", "qmj": "USA", "market": "USA on QMJ MKT sheet"},
+  "composite": "0.5 * US value + 0.5 * US QMJ, native provider units; no volatility scaling",
+  "criteria": {
+    "minimum_common_months": 180,
+    "maximum_core_correlation": 0.5,
+    "maximum_half_core_correlation": 0.65,
+    "maximum_market_residual_correlation": 0.5,
+    "maximum_bootstrap_correlation_upper_95": 0.7,
+    "positive_mean_in_both_halves": true
+  },
+  "bootstrap": {"method": "paired circular moving blocks", "block_months": 12, "replicates": 2000, "seed": 1102026},
+  "tails": "core worst decile months and fixed 2008-09/2020/2022 windows; descriptive, not extra pass gates",
+  "decision": "all criteria required to proceed to implementation feasibility; failure/inconclusive is not a universal rejection of long-only value/quality",
+  "limits": ["Heuristic research resource-allocation gate, not statistical proof or an expected Sharpe target.", "No factor-cost or financing replication; do not add risk-free interest or subtract it again from long/short factors.", "Individual value/quality diagnostics are recorded but cannot replace the frozen composite after inspection.", "No blend, new region, weight search, paid data or paper trading in this stage."]
+}
