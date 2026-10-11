@@ -1,0 +1,27 @@
+# Research trials ledger
+
+This ledger tracks hypotheses and meaningful inspected variants, including failures.
+It is not a count of statistically independent trials: variants share data and rules.
+Never reset the history when a new candidate looks good. Record drafts before runs,
+then append dates, artifacts, costs, changes and outcomes. Historical completeness is
+limited; do not claim the rows below reconstruct every earlier research experiment.
+
+| family | status | inspected configurations / caveats | evidence |
+|---|---|---|---|
+| Original momentum/balanced controls | provisional core, below target | Historical sensitivities, crypto and risk sweeps exist; comprehensive count not reconstructed. Existing validation already implements deflated-Sharpe diagnostics. | `baselines.json`, `docs/research-log.md`, Phase 4 validation |
+| A: diversified futures trend | rejected on feasibility | Four qualifying products inspected for direct history/liquidity; no performance backtest. This is not four successful alpha trials. | `docs/phase8-strategy-specs.md`, 2026-09-24 research log |
+| B: ETF relative value | rejected | Six reported configurations: base, free execution/no borrow, 2x costs, 4% borrow, two adjacent entry thresholds. A timezone/rate bug produced invalid preliminary metrics; corrected before final rejection. | 2026-09-29 research log |
+| C: sector-neutral momentum | rejected | Seven final configurations in JSON. Six preliminary configurations also inspected with cash credited at Treasury rates; these optimistic-accounting screens are not acceptance evidence. Record both sets, not merely the final seven. Repeated runs of identical configurations are not additional independent trials. | `sector-candidate.json`, 2026-10-11 research log |
+| D: stress-conditioned short-horizon reversal | draft, not tested | No signal curve inspected. Proposed rules below are not yet an approved/frozen specification. Data/cost feasibility review comes first. | `docs/candidate-d-reversal.md` |
+
+For every new experiment retain the frozen specification commit, data/rate hashes,
+all meaningful configurations, metrics, chronology, inspected holdouts, accounting
+corrections and rejection reason. A period examined for A/B/C is not a pristine
+holdout for D. Chronological splits remain useful diagnostics, but selection-aware
+statistics and a genuinely future/paper period must address repeated reuse.
+
+Do not turn a raw variant count into an exact deflated-Sharpe probability without
+justifying dependence and the assumed effective number of trials. The existing
+diagnostic is not a substitute for a cross-experiment ledger.
+
+Reference: [Bailey and Lopez de Prado, The Deflated Sharpe Ratio](https://www.davidhbailey.com/dhbpapers/deflated-sharpe.pdf).

@@ -629,8 +629,13 @@ cash interest and the frozen margin gate. The direct-product history screen has 
    all declared stress/adjacent variants remained negative against cash. Even free
    execution/no borrow lost money. Results and input hashes are in
    `research/sector-candidate.json`; reproduce with `scripts/test_sector_candidate.py`.
-   No sleeve currently qualifies for blending. Next research requires a new frozen
-   economic hypothesis, not tuning rejected candidates or scaling the balanced book.
+   No sleeve currently qualifies for blending. Candidate D is now a documented
+   stress-conditioned short-horizon reversal hypothesis, not yet frozen or tested.
+   Review data, costs and $25K execution feasibility before freezing its rules;
+   assess viable sleeves by paired portfolio improvement rather than requiring the
+   final portfolio target from each standalone strategy. See
+   `candidate-d-reversal.md` and `research/TRIALS.md`. Do not tune rejected candidates
+   or scale balanced to manufacture the target.
 
 Individual-stock pairs, options selling and intraday reversal are outside the first
 round. They require materially better point-in-time, borrow, quote or option-chain data
