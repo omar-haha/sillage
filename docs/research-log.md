@@ -1056,3 +1056,45 @@ new sleeve to combine with balanced, and no risk scaling or paper change follows
 script reproduces the screen; synthetic tests cover timing, integer sizing, cost
 and borrow accounting, delayed entry, missing sessions, future-data causality,
 and trailing-volume costs. Production Gateway and the paper strategy were untouched.
+
+## 2026-10-11 — Frozen stress reversal fails at realistic sleeve size
+
+Candidate D's signal and lifecycle implementation was committed before viewing
+the first price curve (`bef0c6f`), following the separately committed feasibility
+review and rule freeze. Five-session residual reversal uses trailing SPY beta,
+20-session residual volatility and decision-close VIX >=25. It enters the next
+open, exits after two full open-to-open intervals, never pyramids or enters on
+an exit day, and retains the original signal for the declared delayed-entry test.
+No intraday stop or same-day future volume is synthesized from daily bars.
+
+The primary sleeve starts at $5K, 20% of a $25K modeled portfolio. Fixed-style
+$1 minimum commissions, 2bp half-spread, ADV impact, calendar borrow and zero cash
+interest are explicit assumptions. No positive short-proceeds carry is credited;
+debit financing requires the dated margin curve. Historical quotes/borrow and live
+margin remain unverified. Whole-share sizing must admit all four legs or none.
+
+| case | net trading P&L | CAGR | excess Sharpe | max drawdown |
+|---|---:|---:|---:|---:|
+| primary $5K | -$2,192.58 | -2.75% | -1.067 | -50.89% |
+| $25K standalone diagnostic | -$2,648.33 | -0.54% | -0.528 | -28.42% |
+| VIX 20 | -$4,753.07 | -13.52% | -3.242 | -95.20% |
+| VIX 30 | -$389.66 | -0.39% | -0.561 | -19.48% |
+| delayed one session | -$2,420.37 | -3.15% | -1.474 | -49.90% |
+| 2x costs | -$4,739.34 | -13.30% | -3.004 | -95.08% |
+| 4% borrow | -$2,354.12 | -3.03% | -1.135 | -53.43% |
+| crisis spread/borrow | -$3,912.60 | -7.10% | -2.091 | -79.72% |
+
+Primary half P&Ls are -$1,311.79 and -$880.79; the first sanity gate fails.
+332 baskets incur $2,660.46 commissions, $548.95 slippage and $53.57 borrow.
+The booked positions earn positive gross trading P&L, but costs more than consume
+it. Adding costs back is an accounting decomposition, not a free-execution
+counterfactual with identical future sizes. Even the unchanged-rule full-$25K
+diagnostic loses net capital and has a negative first half. A higher VIX threshold
+cannot replace the primary specification after viewing results.
+
+The screen binds ETF/VIX input hashes and the frozen cutoff. Reused historical
+periods are not untouched holdouts. No portfolio blending, quote subscriptions,
+live short admission or production changes follow. The next investor-relevance
+task is an honest matched-period, CAD-valued comparison of the existing core with
+simple all-in-one ETFs, rather than treating another rejected hypothesis as
+progress toward 1.1 or deploying real money on paper plumbing evidence.

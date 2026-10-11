@@ -70,6 +70,31 @@ def test_invalid_parameters_fail():
         replay.run_reversal(bars, vix, initial_nav=0)
 
 
+def test_duplicate_vix_is_rejected():
+    bars, vix = frames()
+    with pytest.raises(ValueError, match="duplicate"):
+        replay.run_reversal(bars, pd.concat([vix, vix.iloc[:1]]))
+
+
+def test_zero_share_leg_cancels_entire_entry(monkeypatch):
+    fixed_signal(monkeypatch)
+    bars, vix = frames()
+    result = replay.run_reversal(bars, vix, initial_nav=100)
+    assert result.entries == 0
+    assert not result.fills
+    assert result.nav.iloc[-1] == 100
+
+
+def test_entry_cost_uses_only_prior_volume(monkeypatch):
+    fixed_signal(monkeypatch)
+    bars, vix = frames()
+    base = replay.run_reversal(bars, vix)
+    for frame in bars.values():
+        frame.loc[frame.index[253], "volume"] = 1
+    changed = replay.run_reversal(bars, vix)
+    assert changed.fills[:4] == base.fills[:4]
+
+
 def test_future_prices_do_not_change_prior_nav(monkeypatch):
     fixed_signal(monkeypatch)
     bars, vix = frames()

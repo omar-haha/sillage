@@ -339,7 +339,7 @@ The honest list, in the order I would worry about them.
    ETF universe is fixed and declared, which sidesteps the problem rather than solving it.
 
 What comes next: accumulate the unattended IBKR paper record while testing the frozen
-futures-trend, ETF relative-value and sector-neutral momentum candidates (all currently
+futures-trend, ETF relative-value, sector-neutral momentum and stress-reversal candidates (all currently
 rejected by their frozen gates). Only robust, executable sleeves may enter
 the blend; only after that does risk scaling attempt to exceed SPY's return with smaller
 drawdowns.

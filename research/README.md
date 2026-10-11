@@ -8,6 +8,14 @@ is not complete. Reproduce the coverage and illustrative budget review with
 `uv run python scripts/reversal_feasibility.py --download-vix`, or omit the flag to
 reuse the ignored local VIX vintage. No rankings or alpha curves are generated.
 
+The subsequent frozen Candidate D screen is rejected and recorded in
+`reversal-candidate.json`. Reproduce with
+`uv run python scripts/test_reversal_candidate.py`. Input hashes must match the
+feasibility vintage; unexpected restatements abort rather than silently change the
+experiment. The primary case uses only $5K, the proposed 20% slice of $25K.
+Its prerequisite net-trading-profit gate fails in both halves, so portfolio
+combinations remain unevaluated. No broker-side reversal trading was enabled.
+
 Candidate C's rejected monthly beta-neutral sector-momentum screen is recorded in
 `sector-candidate.json`. Reproduce locally (no broker access) with:
 

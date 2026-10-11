@@ -50,6 +50,8 @@ def run_reversal(
         raise ValueError("ETF sessions must align exactly")
     vix = vix.copy()
     vix.index = pd.to_datetime(vix.index, utc=True).normalize()
+    if vix.index.has_duplicates:
+        raise ValueError("VIX has duplicate sessions")
     vix = vix.reindex(sessions)
     if vix.isna().any() or (vix <= 0).any():
         raise ValueError("VIX has missing or invalid sessions")

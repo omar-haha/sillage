@@ -1,0 +1,877 @@
+{
+  "candidate": "D",
+  "sanity_gate_pass": false,
+  "variants": {
+    "primary_5k": {
+      "metrics": {
+        "label": "primary_5k",
+        "start": "2006-01-03",
+        "end": "2026-09-16",
+        "years": 20.700889801505816,
+        "initial_nav": "5000.0",
+        "final_nav": "2807.42",
+        "total_return": -0.4385166476874287,
+        "cagr": -0.027496459179818245,
+        "volatility": 0.04180281194184126,
+        "raw_sharpe": -0.6472817427453791,
+        "sharpe": -1.0674997748733248,
+        "sortino": -1.4679532637753792,
+        "max_drawdown": -0.5088785981339604,
+        "calmar": -0.05403343603100381,
+        "longest_drawdown_days": 6572,
+        "time_underwater": 0.9185867895545314,
+        "drawdowns": [
+          {
+            "peak": "2008-09-18",
+            "trough": "2026-03-19",
+            "recovery": null,
+            "depth": -0.5088785981339604,
+            "days_to_trough": 6391,
+            "recovery_days": 181,
+            "total_days": 6572
+          },
+          {
+            "peak": "2007-08-28",
+            "trough": "2008-03-03",
+            "recovery": "2008-07-03",
+            "depth": -0.0703165554705012,
+            "days_to_trough": 188,
+            "recovery_days": 122,
+            "total_days": 310
+          },
+          {
+            "peak": "2008-07-14",
+            "trough": "2008-07-15",
+            "recovery": "2008-07-16",
+            "depth": -0.005452693684945498,
+            "days_to_trough": 1,
+            "recovery_days": 1,
+            "total_days": 2
+          },
+          {
+            "peak": "2008-07-07",
+            "trough": "2008-07-08",
+            "recovery": "2008-07-11",
+            "depth": -0.0028720363443034413,
+            "days_to_trough": 1,
+            "recovery_days": 3,
+            "total_days": 4
+          },
+          {
+            "peak": "2007-08-16",
+            "trough": "2007-08-17",
+            "recovery": "2007-08-20",
+            "depth": -0.0024431112893579243,
+            "days_to_trough": 1,
+            "recovery_days": 3,
+            "total_days": 4
+          }
+        ],
+        "best_month": 0.07661516164739401,
+        "worst_month": -0.04845373474837156,
+        "positive_months": 0.10040160642570281,
+        "best_day": 0.03237686434854914,
+        "worst_day": -0.03791620379334537
+      },
+      "half_net_trading_pnl": [
+        -1311.7898431255503,
+        -880.7933953115935
+      ],
+      "entries": 332,
+      "fills": 2656,
+      "borrow": 53.56595798792908,
+      "commissions": 2660.46,
+      "slippage": 548.9527179116351,
+      "financing": 0.0,
+      "terminal_positions": {}
+    },
+    "standalone_25k_diagnostic": {
+      "metrics": {
+        "label": "standalone_25k_diagnostic",
+        "start": "2006-01-03",
+        "end": "2026-09-16",
+        "years": 20.700889801505816,
+        "initial_nav": "25000.0",
+        "final_nav": "22351.67",
+        "total_return": -0.10593300421675189,
+        "cagr": -0.0053945636675845066,
+        "volatility": 0.04185563655816342,
+        "raw_sharpe": -0.1085649297232034,
+        "sharpe": -0.5282526185534681,
+        "sortino": -0.7598843900688877,
+        "max_drawdown": -0.28421995042783454,
+        "calmar": -0.01898024279950828,
+        "longest_drawdown_days": 6572,
+        "time_underwater": 0.8990015360983102,
+        "drawdowns": [
+          {
+            "peak": "2008-09-18",
+            "trough": "2020-03-13",
+            "recovery": null,
+            "depth": -0.28421995042783454,
+            "days_to_trough": 4194,
+            "recovery_days": 2378,
+            "total_days": 6572
+          },
+          {
+            "peak": "2007-08-28",
+            "trough": "2008-03-03",
+            "recovery": "2008-04-01",
+            "depth": -0.055674305330773,
+            "days_to_trough": 188,
+            "recovery_days": 29,
+            "total_days": 217
+          },
+          {
+            "peak": "2008-07-14",
+            "trough": "2008-07-15",
+            "recovery": "2008-07-16",
+            "depth": -0.00508415206188384,
+            "days_to_trough": 1,
+            "recovery_days": 1,
+            "total_days": 2
+          },
+          {
+            "peak": "2008-07-07",
+            "trough": "2008-07-08",
+            "recovery": "2008-07-11",
+            "depth": -0.0024375162299622444,
+            "days_to_trough": 1,
+            "recovery_days": 3,
+            "total_days": 4
+          },
+          {
+            "peak": "2007-08-16",
+            "trough": "2007-08-17",
+            "recovery": "2007-08-20",
+            "depth": -0.0018987947190830523,
+            "days_to_trough": 1,
+            "recovery_days": 3,
+            "total_days": 4
+          }
+        ],
+        "best_month": 0.08039121540529481,
+        "worst_month": -0.04500790949189559,
+        "positive_months": 0.13654618473895583,
+        "best_day": 0.032889852098406225,
+        "worst_day": -0.03813232481337636
+      },
+      "half_net_trading_pnl": [
+        -3055.0818245986593,
+        406.75671917986256
+      ],
+      "entries": 332,
+      "fills": 2656,
+      "borrow": 318.77192141018105,
+      "commissions": 5130.1000000000095,
+      "slippage": 3380.2141814475212,
+      "financing": 0.0,
+      "terminal_positions": {}
+    },
+    "vix20": {
+      "metrics": {
+        "label": "vix20",
+        "start": "2006-01-03",
+        "end": "2026-09-16",
+        "years": 20.700889801505816,
+        "initial_nav": "5000.0",
+        "final_nav": "246.93",
+        "total_return": -0.950613970331115,
+        "cagr": -0.13524755158682844,
+        "volatility": 0.04992187394287089,
+        "raw_sharpe": -2.8902644856079807,
+        "sharpe": -3.2421402062934157,
+        "sortino": -3.668567339705431,
+        "max_drawdown": -0.952014434837246,
+        "calmar": -0.14206460179351169,
+        "longest_drawdown_days": 6963,
+        "time_underwater": 0.9765745007680492,
+        "drawdowns": [
+          {
+            "peak": "2007-08-24",
+            "trough": "2022-08-24",
+            "recovery": null,
+            "depth": -0.952014434837246,
+            "days_to_trough": 5479,
+            "recovery_days": 1484,
+            "total_days": 6963
+          },
+          {
+            "peak": "2007-08-13",
+            "trough": "2007-08-14",
+            "recovery": "2007-08-20",
+            "depth": -0.00654403251892377,
+            "days_to_trough": 1,
+            "recovery_days": 6,
+            "total_days": 7
+          },
+          {
+            "peak": "2006-06-14",
+            "trough": "2006-06-15",
+            "recovery": "2007-07-30",
+            "depth": -0.001823225424915087,
+            "days_to_trough": 1,
+            "recovery_days": 410,
+            "total_days": 411
+          },
+          {
+            "peak": "2007-07-30",
+            "trough": "2007-07-31",
+            "recovery": "2007-08-02",
+            "depth": -0.0012631702226780783,
+            "days_to_trough": 1,
+            "recovery_days": 2,
+            "total_days": 3
+          },
+          {
+            "peak": "2007-08-07",
+            "trough": "2007-08-08",
+            "recovery": "2007-08-13",
+            "depth": -0.0012532272382766996,
+            "days_to_trough": 1,
+            "recovery_days": 5,
+            "total_days": 6
+          }
+        ],
+        "best_month": 0.014155758105492744,
+        "worst_month": -0.13072834324492333,
+        "positive_months": 0.05220883534136546,
+        "best_day": 0.03230755819805431,
+        "worst_day": -0.03802140029008949
+      },
+      "half_net_trading_pnl": [
+        -3801.627417180618,
+        -951.4424344749575
+      ],
+      "entries": 474,
+      "fills": 3792,
+      "borrow": 44.35087465793157,
+      "commissions": 3792.0,
+      "slippage": 449.5452995198551,
+      "financing": 0.0,
+      "terminal_positions": {}
+    },
+    "vix30": {
+      "metrics": {
+        "label": "vix30",
+        "start": "2006-01-03",
+        "end": "2026-09-16",
+        "years": 20.700889801505816,
+        "initial_nav": "5000.0",
+        "final_nav": "4610.34",
+        "total_return": -0.07793234896351464,
+        "cagr": -0.003911806955074204,
+        "volatility": 0.03710243724783667,
+        "raw_sharpe": -0.08729892379585535,
+        "sharpe": -0.5607528711545123,
+        "sortino": -0.8072515058998722,
+        "max_drawdown": -0.19483744223719324,
+        "calmar": -0.020077285506099017,
+        "longest_drawdown_days": 6386,
+        "time_underwater": 0.8945852534562212,
+        "drawdowns": [
+          {
+            "peak": "2009-03-23",
+            "trough": "2022-09-30",
+            "recovery": null,
+            "depth": -0.19483744223719324,
+            "days_to_trough": 4939,
+            "recovery_days": 1447,
+            "total_days": 6386
+          },
+          {
+            "peak": "2008-11-05",
+            "trough": "2008-11-21",
+            "recovery": "2008-12-16",
+            "depth": -0.08436137629729479,
+            "days_to_trough": 16,
+            "recovery_days": 25,
+            "total_days": 41
+          },
+          {
+            "peak": "2008-10-17",
+            "trough": "2008-10-24",
+            "recovery": "2008-11-03",
+            "depth": -0.04879427618246224,
+            "days_to_trough": 7,
+            "recovery_days": 10,
+            "total_days": 17
+          },
+          {
+            "peak": "2008-12-19",
+            "trough": "2009-01-26",
+            "recovery": "2009-02-17",
+            "depth": -0.04564576568518586,
+            "days_to_trough": 38,
+            "recovery_days": 22,
+            "total_days": 60
+          },
+          {
+            "peak": "2009-02-23",
+            "trough": "2009-03-02",
+            "recovery": "2009-03-20",
+            "depth": -0.0395081135313321,
+            "days_to_trough": 7,
+            "recovery_days": 18,
+            "total_days": 25
+          }
+        ],
+        "best_month": 0.044157842139425085,
+        "worst_month": -0.04966965328543316,
+        "positive_months": 0.10040160642570281,
+        "best_day": 0.0332058238208337,
+        "worst_day": -0.03609108281045603
+      },
+      "half_net_trading_pnl": [
+        -267.3661331256744,
+        -122.29561169189856
+      ],
+      "entries": 170,
+      "fills": 1360,
+      "borrow": 33.53438378664568,
+      "commissions": 1371.3600000000004,
+      "slippage": 347.2766285178194,
+      "financing": 0.0,
+      "terminal_positions": {}
+    },
+    "delay_session": {
+      "metrics": {
+        "label": "delay_session",
+        "start": "2006-01-03",
+        "end": "2026-09-16",
+        "years": 20.700889801505816,
+        "initial_nav": "5000.0",
+        "final_nav": "2579.63",
+        "total_return": -0.4840730669223221,
+        "cagr": -0.03146355189328964,
+        "volatility": 0.03326534223769839,
+        "raw_sharpe": -0.9461025627820717,
+        "sharpe": -1.4741685374560944,
+        "sortino": -1.9326814557969354,
+        "max_drawdown": -0.4990266747887705,
+        "calmar": -0.06304983978383046,
+        "longest_drawdown_days": 6557,
+        "time_underwater": 0.9224270353302612,
+        "drawdowns": [
+          {
+            "peak": "2008-10-03",
+            "trough": "2026-03-26",
+            "recovery": null,
+            "depth": -0.4990266747887705,
+            "days_to_trough": 6383,
+            "recovery_days": 174,
+            "total_days": 6557
+          },
+          {
+            "peak": "2008-03-04",
+            "trough": "2008-07-09",
+            "recovery": "2008-09-29",
+            "depth": -0.04366612561196881,
+            "days_to_trough": 127,
+            "recovery_days": 82,
+            "total_days": 209
+          },
+          {
+            "peak": "2007-08-24",
+            "trough": "2008-01-30",
+            "recovery": "2008-03-04",
+            "depth": -0.03373161150659543,
+            "days_to_trough": 159,
+            "recovery_days": 34,
+            "total_days": 193
+          },
+          {
+            "peak": "2008-09-29",
+            "trough": "2008-09-30",
+            "recovery": "2008-10-03",
+            "depth": -0.015017879447033478,
+            "days_to_trough": 1,
+            "recovery_days": 3,
+            "total_days": 4
+          },
+          {
+            "peak": "2007-08-06",
+            "trough": "2007-08-17",
+            "recovery": "2007-08-24",
+            "depth": -0.010773562906630119,
+            "days_to_trough": 11,
+            "recovery_days": 7,
+            "total_days": 18
+          }
+        ],
+        "best_month": 0.03880695987714944,
+        "worst_month": -0.056740361642583004,
+        "positive_months": 0.08433734939759036,
+        "best_day": 0.02508672109200427,
+        "worst_day": -0.036915772528130386
+      },
+      "half_net_trading_pnl": [
+        -1689.253175144535,
+        -731.1121594670758
+      ],
+      "entries": 261,
+      "fills": 2088,
+      "borrow": 37.94619248620123,
+      "commissions": 2089.84,
+      "slippage": 390.8467559015232,
+      "financing": 0.0,
+      "terminal_positions": {}
+    },
+    "2x_costs": {
+      "metrics": {
+        "label": "2x_costs",
+        "start": "2006-01-03",
+        "end": "2026-09-16",
+        "years": 20.700889801505816,
+        "initial_nav": "5000.0",
+        "final_nav": "260.66",
+        "total_return": -0.9478684823463135,
+        "cagr": -0.13298455046107627,
+        "volatility": 0.05295594946791723,
+        "raw_sharpe": -2.6722457173137344,
+        "sharpe": -3.0039609551314883,
+        "sortino": -3.323014094641623,
+        "max_drawdown": -0.9507695807838387,
+        "calmar": -0.13987043038486824,
+        "longest_drawdown_days": 6572,
+        "time_underwater": 0.9210829493087558,
+        "drawdowns": [
+          {
+            "peak": "2008-09-18",
+            "trough": "2024-08-08",
+            "recovery": null,
+            "depth": -0.9507695807838387,
+            "days_to_trough": 5803,
+            "recovery_days": 769,
+            "total_days": 6572
+          },
+          {
+            "peak": "2007-08-21",
+            "trough": "2008-03-03",
+            "recovery": "2008-07-21",
+            "depth": -0.10476254910722105,
+            "days_to_trough": 195,
+            "recovery_days": 140,
+            "total_days": 335
+          },
+          {
+            "peak": "2008-09-11",
+            "trough": "2008-09-15",
+            "recovery": "2008-09-16",
+            "depth": -0.0044307633266842394,
+            "days_to_trough": 4,
+            "recovery_days": 1,
+            "total_days": 5
+          },
+          {
+            "peak": "2007-08-16",
+            "trough": "2007-08-17",
+            "recovery": "2007-08-21",
+            "depth": -0.0033125164160250353,
+            "days_to_trough": 1,
+            "recovery_days": 4,
+            "total_days": 5
+          },
+          {
+            "peak": "2007-08-07",
+            "trough": "2007-08-08",
+            "recovery": "2007-08-10",
+            "depth": -0.002278402296864823,
+            "days_to_trough": 1,
+            "recovery_days": 2,
+            "total_days": 3
+          }
+        ],
+        "best_month": 0.06719895824817246,
+        "worst_month": -0.21187911165329099,
+        "positive_months": 0.0321285140562249,
+        "best_day": 0.03142555797492186,
+        "worst_day": -0.03809194645726899
+      },
+      "half_net_trading_pnl": [
+        -3040.8653961940977,
+        -1698.47701553747
+      ],
+      "entries": 302,
+      "fills": 2416,
+      "borrow": 32.85521730541852,
+      "commissions": 4834.04,
+      "slippage": 673.4235611626455,
+      "financing": 0.0,
+      "terminal_positions": {}
+    },
+    "4pct_borrow": {
+      "metrics": {
+        "label": "4pct_borrow",
+        "start": "2006-01-03",
+        "end": "2026-09-16",
+        "years": 20.700889801505816,
+        "initial_nav": "5000.0",
+        "final_nav": "2645.88",
+        "total_return": -0.4708244473613138,
+        "cagr": -0.030276532099076103,
+        "volatility": 0.04182622206353903,
+        "raw_sharpe": -0.7154570778535837,
+        "sharpe": -1.135439914097551,
+        "sortino": -1.5526509178276922,
+        "max_drawdown": -0.534326133971129,
+        "calmar": -0.056663019407379424,
+        "longest_drawdown_days": 6572,
+        "time_underwater": 0.9185867895545314,
+        "drawdowns": [
+          {
+            "peak": "2008-09-18",
+            "trough": "2026-03-19",
+            "recovery": null,
+            "depth": -0.534326133971129,
+            "days_to_trough": 6391,
+            "recovery_days": 181,
+            "total_days": 6572
+          },
+          {
+            "peak": "2007-08-28",
+            "trough": "2008-03-03",
+            "recovery": "2008-07-03",
+            "depth": -0.0722947372347128,
+            "days_to_trough": 188,
+            "recovery_days": 122,
+            "total_days": 310
+          },
+          {
+            "peak": "2008-07-14",
+            "trough": "2008-07-15",
+            "recovery": "2008-07-16",
+            "depth": -0.005456380693434348,
+            "days_to_trough": 1,
+            "recovery_days": 1,
+            "total_days": 2
+          },
+          {
+            "peak": "2008-07-07",
+            "trough": "2008-07-08",
+            "recovery": "2008-07-11",
+            "depth": -0.002911937201549808,
+            "days_to_trough": 1,
+            "recovery_days": 3,
+            "total_days": 4
+          },
+          {
+            "peak": "2007-08-16",
+            "trough": "2007-08-17",
+            "recovery": "2007-08-20",
+            "depth": -0.002479459009317453,
+            "days_to_trough": 1,
+            "recovery_days": 3,
+            "total_days": 4
+          }
+        ],
+        "best_month": 0.07562126001576108,
+        "worst_month": -0.04922290309174204,
+        "positive_months": 0.09236947791164658,
+        "best_day": 0.032624818938095546,
+        "worst_day": -0.0379876201354864
+      },
+      "half_net_trading_pnl": [
+        -1420.6409751206274,
+        -933.4812616859417
+      ],
+      "entries": 332,
+      "fills": 2656,
+      "borrow": 209.46379349925408,
+      "commissions": 2659.9999999999995,
+      "slippage": 536.2936710508383,
+      "financing": 0.0,
+      "terminal_positions": {}
+    },
+    "crisis_costs": {
+      "metrics": {
+        "label": "crisis_costs",
+        "start": "2006-01-03",
+        "end": "2026-09-16",
+        "years": 20.700889801505816,
+        "initial_nav": "5000.0",
+        "final_nav": "1087.4",
+        "total_return": -0.7825196507477411,
+        "cagr": -0.07104926806598622,
+        "volatility": 0.04326436269054469,
+        "raw_sharpe": -1.6847184665968669,
+        "sharpe": -2.090740750971212,
+        "sortino": -2.6367758644879977,
+        "max_drawdown": -0.797245842980332,
+        "calmar": -0.08911839264082434,
+        "longest_drawdown_days": 6572,
+        "time_underwater": 0.9206989247311828,
+        "drawdowns": [
+          {
+            "peak": "2008-09-18",
+            "trough": "2026-04-10",
+            "recovery": null,
+            "depth": -0.797245842980332,
+            "days_to_trough": 6413,
+            "recovery_days": 159,
+            "total_days": 6572
+          },
+          {
+            "peak": "2007-08-21",
+            "trough": "2008-03-03",
+            "recovery": "2008-07-17",
+            "depth": -0.09903072756667719,
+            "days_to_trough": 195,
+            "recovery_days": 136,
+            "total_days": 331
+          },
+          {
+            "peak": "2008-09-11",
+            "trough": "2008-09-15",
+            "recovery": "2008-09-16",
+            "depth": -0.003931679395719256,
+            "days_to_trough": 4,
+            "recovery_days": 1,
+            "total_days": 5
+          },
+          {
+            "peak": "2007-08-16",
+            "trough": "2007-08-17",
+            "recovery": "2007-08-21",
+            "depth": -0.003144841068151605,
+            "days_to_trough": 1,
+            "recovery_days": 4,
+            "total_days": 5
+          },
+          {
+            "peak": "2007-08-07",
+            "trough": "2007-08-08",
+            "recovery": "2007-08-10",
+            "depth": -0.002132266527066884,
+            "days_to_trough": 1,
+            "recovery_days": 2,
+            "total_days": 3
+          }
+        ],
+        "best_month": 0.06852691049185,
+        "worst_month": -0.07049015926444291,
+        "positive_months": 0.04417670682730924,
+        "best_day": 0.03164559771398778,
+        "worst_day": -0.03818316971865132
+      },
+      "half_net_trading_pnl": [
+        -2522.3831463123634,
+        -1390.2151074263422
+      ],
+      "entries": 332,
+      "fills": 2656,
+      "borrow": 157.69773906561466,
+      "commissions": 2657.2200000000003,
+      "slippage": 1975.3001052476068,
+      "financing": 0.0,
+      "terminal_positions": {}
+    }
+  },
+  "inputs": {
+    "status": "daily-bar cost screen conditionally feasible; not execution validated",
+    "period": [
+      "2005-01-03",
+      "2026-09-16"
+    ],
+    "coverage": {
+      "XLB": {
+        "expected_sessions": 5460,
+        "missing_close_sessions": 0,
+        "missing_dates": [],
+        "invalid_close_count": 0,
+        "sha256": "ccec9ffbf6994817d3416eaaaaae8945879e59897369ae2e383a0b411cac1559"
+      },
+      "XLE": {
+        "expected_sessions": 5460,
+        "missing_close_sessions": 0,
+        "missing_dates": [],
+        "invalid_close_count": 0,
+        "sha256": "452bd213f3a6653e44e68d741914bf10f2207afcbb6d4eb20d92aed28ca39e94"
+      },
+      "XLF": {
+        "expected_sessions": 5460,
+        "missing_close_sessions": 0,
+        "missing_dates": [],
+        "invalid_close_count": 0,
+        "sha256": "44da04e807db9a6df695edb9f9880404987c1f187373938a57c5e4f37ebfb8b9"
+      },
+      "XLI": {
+        "expected_sessions": 5460,
+        "missing_close_sessions": 0,
+        "missing_dates": [],
+        "invalid_close_count": 0,
+        "sha256": "27bcde53132ff7bbe99067f046b63957eced7b4e323b9dadc39f49d8abc69a82"
+      },
+      "XLK": {
+        "expected_sessions": 5460,
+        "missing_close_sessions": 0,
+        "missing_dates": [],
+        "invalid_close_count": 0,
+        "sha256": "732e83a1f26d776a35937842cfea565e16d5bb92d5785cc22c2f714f253a041a"
+      },
+      "XLP": {
+        "expected_sessions": 5460,
+        "missing_close_sessions": 0,
+        "missing_dates": [],
+        "invalid_close_count": 0,
+        "sha256": "af6a5ae6cf2ff495f5cdbc84a7d4ca131fd5bbe0e576a79d35c4ce5e3fda9ace"
+      },
+      "XLU": {
+        "expected_sessions": 5460,
+        "missing_close_sessions": 0,
+        "missing_dates": [],
+        "invalid_close_count": 0,
+        "sha256": "7582b9bbe22c5effefa8f6beca2ed09697c9b64022e46cbb3d692bd93e56e99a"
+      },
+      "XLV": {
+        "expected_sessions": 5460,
+        "missing_close_sessions": 0,
+        "missing_dates": [],
+        "invalid_close_count": 0,
+        "sha256": "3efcb7836247644fa5e510cb06ff969dc5c212e019c8d2ee56e1b7ccc11830d6"
+      },
+      "XLY": {
+        "expected_sessions": 5460,
+        "missing_close_sessions": 0,
+        "missing_dates": [],
+        "invalid_close_count": 0,
+        "sha256": "4feab1b0c4debe8e86ce6bbcd857df611c4ca6ed2eeb21566e33fea8cfcb99d3"
+      },
+      "SPY": {
+        "expected_sessions": 5460,
+        "missing_close_sessions": 0,
+        "missing_dates": [],
+        "invalid_close_count": 0,
+        "sha256": "bc66a26e9945a43fc1bd4f62fa9522e7b3e03120951d28ed03a0f6ae4aad5107"
+      },
+      "VIX": {
+        "expected_sessions": 5460,
+        "missing_close_sessions": 0,
+        "missing_dates": [],
+        "invalid_close_count": 0,
+        "sha256": "998f2e9af407619994a0735ed25f9501fe339dd9a1bc64a41ad1063b5002b28c"
+      }
+    },
+    "vix_source": "https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv",
+    "historical_quotes_available": false,
+    "venue_shortability_and_margin_verified": false,
+    "budgets": [
+      {
+        "capital": 25000,
+        "allocation": 0.1,
+        "sleeve_capital": 2500.0,
+        "equal_leg_dollars": 625.0,
+        "commission_floor": 8.0,
+        "spread_assumption_bps": 4,
+        "borrow_calendar_days": 2,
+        "estimated_round_trip_dollars": 9.068493150684931,
+        "break_even_bps_of_sleeve": 36.273972602739725,
+        "illustrative_100_dollar_etf_shares_per_leg": 6
+      },
+      {
+        "capital": 25000,
+        "allocation": 0.2,
+        "sleeve_capital": 5000.0,
+        "equal_leg_dollars": 1250.0,
+        "commission_floor": 8.0,
+        "spread_assumption_bps": 4,
+        "borrow_calendar_days": 2,
+        "estimated_round_trip_dollars": 10.136986301369863,
+        "break_even_bps_of_sleeve": 20.27397260273973,
+        "illustrative_100_dollar_etf_shares_per_leg": 12
+      },
+      {
+        "capital": 25000,
+        "allocation": 0.3,
+        "sleeve_capital": 7500.0,
+        "equal_leg_dollars": 1875.0,
+        "commission_floor": 8.0,
+        "spread_assumption_bps": 4,
+        "borrow_calendar_days": 2,
+        "estimated_round_trip_dollars": 11.205479452054794,
+        "break_even_bps_of_sleeve": 14.940639269406391,
+        "illustrative_100_dollar_etf_shares_per_leg": 18
+      },
+      {
+        "capital": 100000,
+        "allocation": 0.1,
+        "sleeve_capital": 10000.0,
+        "equal_leg_dollars": 2500.0,
+        "commission_floor": 8.0,
+        "spread_assumption_bps": 4,
+        "borrow_calendar_days": 2,
+        "estimated_round_trip_dollars": 12.273972602739725,
+        "break_even_bps_of_sleeve": 12.273972602739725,
+        "illustrative_100_dollar_etf_shares_per_leg": 25
+      },
+      {
+        "capital": 100000,
+        "allocation": 0.2,
+        "sleeve_capital": 20000.0,
+        "equal_leg_dollars": 5000.0,
+        "commission_floor": 8.0,
+        "spread_assumption_bps": 4,
+        "borrow_calendar_days": 2,
+        "estimated_round_trip_dollars": 16.54794520547945,
+        "break_even_bps_of_sleeve": 8.273972602739725,
+        "illustrative_100_dollar_etf_shares_per_leg": 50
+      },
+      {
+        "capital": 100000,
+        "allocation": 0.3,
+        "sleeve_capital": 30000.0,
+        "equal_leg_dollars": 7500.0,
+        "commission_floor": 8.0,
+        "spread_assumption_bps": 4,
+        "borrow_calendar_days": 2,
+        "estimated_round_trip_dollars": 20.82191780821918,
+        "break_even_bps_of_sleeve": 6.940639269406393,
+        "illustrative_100_dollar_etf_shares_per_leg": 75
+      }
+    ],
+    "stress_budgets": [
+      {
+        "capital": 25000,
+        "allocation": 0.2,
+        "sleeve_capital": 5000.0,
+        "equal_leg_dollars": 1250.0,
+        "commission_floor": 8.0,
+        "spread_assumption_bps": 20,
+        "borrow_calendar_days": 4,
+        "estimated_round_trip_dollars": 19.095890410958905,
+        "break_even_bps_of_sleeve": 38.19178082191781,
+        "illustrative_100_dollar_etf_shares_per_leg": 12
+      },
+      {
+        "capital": 100000,
+        "allocation": 0.2,
+        "sleeve_capital": 20000.0,
+        "equal_leg_dollars": 5000.0,
+        "commission_floor": 8.0,
+        "spread_assumption_bps": 20,
+        "borrow_calendar_days": 4,
+        "estimated_round_trip_dollars": 52.38356164383562,
+        "break_even_bps_of_sleeve": 26.19178082191781,
+        "illustrative_100_dollar_etf_shares_per_leg": 50
+      }
+    ],
+    "limitations": [
+      "Not an observed strategy edge or turnover estimate.",
+      "Equal-dollar budget is illustrative; final beta sizing may be asymmetric.",
+      "Impact, additional fees, adverse opening gaps and recalls are not included in these floors.",
+      "A $1 minimum is an assumption; per-share and venue fees may make larger tickets cost more.",
+      "Paper account buying power exceeds the virtual $25K budget; cannot certify live $25K admission.",
+      "VIX closes must be available at actual decision time, not ETF closing bell by assumption."
+    ]
+  },
+  "rate_sha256": {
+    "cash_benchmark": "9d2759e1b31f62a1d819a5a668a9cff1ce76b014e5e88410b3e4cc178c916858",
+    "margin_proxy": "d28b2595ef4e3fd7e34560da024f8037b8859a32dc20edb3a2a38209c51f99d4"
+  },
+  "combined_portfolio_test": "conditional on sanity gate; not yet evaluated",
+  "limitations": [
+    "Declared quotes/borrow assumptions, not live execution validation.",
+    "Reused historical period, not an untouched holdout.",
+    "No cash interest; partial terminal basket is marked, not liquidated."
+  ]
+}

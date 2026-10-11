@@ -1,5 +1,6 @@
 """Run only preregistered D screens; no tuning or broker access."""
 
+import hashlib
 import json
 from dataclasses import asdict
 from pathlib import Path
@@ -16,7 +17,19 @@ from sillage.strategy.sector_neutral import SECTOR_ETFS
 
 def main():
     store = BarStore("data/sector-research")
+    inputs = json.loads(Path("research/reversal-feasibility.json").read_text())
+    for symbol, coverage in inputs["coverage"].items():
+        path = (
+            Path("data/reversal-research/vix.parquet")
+            if symbol == "VIX"
+            else store.path_for(symbol)
+        )
+        if hashlib.sha256(path.read_bytes()).hexdigest() != coverage["sha256"]:
+            raise ValueError(f"{symbol}: research vintage changed; review before another trial")
     bars = {s: pd.read_parquet(store.path_for(s)) for s in (*SECTOR_ETFS, "SPY")}
+    start = pd.Timestamp("2005-01-03", tz="UTC")
+    end = pd.Timestamp("2026-09-17", tz="UTC")
+    bars = {s: f.loc[(f.index >= start) & (f.index < end)] for s, f in bars.items()}
     vix = pd.read_parquet("data/reversal-research/vix.parquet")["close"]
     rates = load_risk_free_rates("research/inputs/usd_3m_treasury.csv")
     margin = load_risk_free_rates("research/inputs/usd_ibkr_pro_margin_proxy.csv")
@@ -68,7 +81,14 @@ def main():
         "candidate": "D",
         "sanity_gate_pass": min(rows["primary_5k"]["half_net_trading_pnl"]) > 0,
         "variants": rows,
-        "inputs": json.loads(Path("research/reversal-feasibility.json").read_text()),
+        "inputs": inputs,
+        "rate_sha256": {
+            name: hashlib.sha256(Path(path).read_bytes()).hexdigest()
+            for name, path in {
+                "cash_benchmark": "research/inputs/usd_3m_treasury.csv",
+                "margin_proxy": "research/inputs/usd_ibkr_pro_margin_proxy.csv",
+            }.items()
+        },
         "combined_portfolio_test": "conditional on sanity gate; not yet evaluated",
         "limitations": [
             "Declared quotes/borrow assumptions, not live execution validation.",

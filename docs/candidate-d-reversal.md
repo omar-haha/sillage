@@ -1,9 +1,15 @@
 # Candidate D: stress-conditioned ETF reversal — feasibility reviewed
 
 Status: daily-input/cost feasibility review complete; research-screen specification
-frozen below on 2026-10-11. No alpha curve has been inspected. Quote, borrow and
+frozen below on 2026-10-11 before any alpha curve was inspected. Quote, borrow and
 account-level margin validation are still prerequisites for promotion, not completed
 evidence. This does not authorize changing paper trading.
+
+**Outcome update, 2026-10-11:** the subsequent frozen screen failed. Primary $5K
+net P&L -$2,192.58; chronological-half P&Ls -$1,311.79 and -$880.79. Standalone
+$25K net P&L -$2,648.33. All declared variants lost net capital. The chronology
+above describes preregistration; results are in `research/reversal-candidate.json`.
+No combined-portfolio test or broker promotion follows the failed prerequisite.
 
 ## First feasibility review
 

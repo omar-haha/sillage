@@ -630,14 +630,26 @@ cash interest and the frozen margin gate. The direct-product history screen has 
    execution/no borrow lost money. Results and input hashes are in
    `research/sector-candidate.json`; reproduce with `scripts/test_sector_candidate.py`.
    No sleeve currently qualifies for blending. Candidate D is now a documented
-   stress-conditioned short-horizon reversal hypothesis. Its first daily-input/cost
-   review is complete and the research-screen rules are frozen before testing.
-   Historical quote/borrow and venue-margin validation remain unverified; the next
-   task is the causal after-cost screen, not paper promotion. Continue to
+   stress-conditioned short-horizon reversal hypothesis, rejected 2026-10-11 at
+   its frozen first sanity gate. The realistic $5K sleeve lost $2,192.58 net, with
+   both chronological halves negative. The unchanged $25K standalone diagnostic
+   also lost money; declared variants do not rescue the sign. Costs consume gross
+   trading gains. No combination or shorting integration follows this rejection.
+   Historical quote/borrow and venue-margin validation remain unverified. Continue to
    assess viable sleeves by paired portfolio improvement rather than requiring the
    final portfolio target from each standalone strategy. See
    `candidate-d-reversal.md` and `research/TRIALS.md`. Do not tune rejected candidates
    or scale balanced to manufacture the target.
+
+   **Investor-relevance benchmark before another new family:** compare the current
+   core at $25K against CAD buy-and-hold XEQT and a simple balanced all-in-one ETF
+   (e.g. XBAL/XGRO, with risk levels made explicit), on the same available period,
+   CAD valuation, reinvested distributions and declared FX/trading/tax assumptions.
+   XEQT only launched in 2019; do not pretend it has the core's 2005 history.
+   Frozen controls used $100K and Treasury cash-accrual proxies, not actual $25K
+   Canadian retail-account performance. A direct comparison is outstanding, not a
+   claim that Sillage beats these alternatives. Include taxes only as labeled
+   account-specific scenarios, not a universal after-tax estimate.
 
 Individual-stock pairs, options selling and intraday reversal are outside the first
 round. They require materially better point-in-time, borrow, quote or option-chain data
