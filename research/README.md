@@ -1,5 +1,26 @@
 # Frozen research controls
 
+Candidate C's rejected monthly beta-neutral sector-momentum screen is recorded in
+`sector-candidate.json`. Reproduce locally (no broker access) with:
+
+```bash
+uv run python scripts/test_sector_candidate.py --download
+# Reuse the separate, ignored data/sector-research vintage:
+uv run python scripts/test_sector_candidate.py
+```
+
+The evaluation ends at the frozen controls' 2026-09-16 date; 2005 supplies warm-up
+and the scored period begins 2006-01-03. Input Parquet and rate hashes bind the
+results to their vintage. Downloading again may restate adjusted historical prices.
+The $25K screen conservatively credits zero cash interest, models no interest on
+short-sale proceeds, uses trailing-only ADV, whole shares, month-end signals and
+next-session opening execution. Borrow fees are declared proxies, not broker
+history. Rate data remains the benchmark for excess Sharpe. The shared default
+ETF cost model is used; terminal holdings are marked, not artificially liquidated.
+Correlation/drawdown overlap, concentration/beta and live availability gates remain
+unevaluated because the prerequisite performance gate failed. None of this enables
+live or paper sector trading.
+
 `baselines.json` is the Phase 8 control set. New strategy experiments compare against
 these exact results rather than a baseline silently changed by a later data download.
 

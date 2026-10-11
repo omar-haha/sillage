@@ -183,6 +183,12 @@ distributions owed on shorts. Those are built only if the research passes.
 
 ## Candidate C — beta-neutral US sector momentum
 
+**Rejected at the first acceptance gate, 2026-10-11.** Frozen base excess Sharpe
+-0.433, CAGR -2.41%, maximum drawdown -41.40%. Both chronological halves failed;
+the cost, borrow, delay and adjacent-selection screens did not rescue the sign.
+No portfolio blending, short-availability integration or paper promotion follows.
+See `research/sector-candidate.json` for results and input hashes.
+
 ### Hypothesis
 
 Medium-term leadership and weakness persist within economically distinct US sectors. A
@@ -229,7 +235,9 @@ of the broad equity direction already dominating the balanced sleeve.
    continuous tickers as execution history.
 4. Run Candidate A and log it whether it passes or fails.
 5. ✅ Run Candidate B with the frozen 1% borrow proxy and stress assumptions. Rejected: realistic costs consume an already weak gross edge.
-6. Only then compare combinations with the frozen controls in `research/baselines.json`.
+6. ✅ Run Candidate C without changing its rules in response to performance. Rejected
+   at gate one; even the free-execution/no-borrow diagnostic loses money.
+7. Compare combinations with the frozen controls only after a new candidate passes.
 
 The dated whole-contract screen is reproducible with `sillage broker-contract-risk`.
 It reads IBKR history and transmits no orders.

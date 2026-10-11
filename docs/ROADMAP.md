@@ -623,9 +623,14 @@ cash interest and the frozen margin gate. The direct-product history screen has 
    **Rejected, 2026-09-29:** the frozen base case produced -1.39 excess Sharpe; even
    free execution with no borrow reached only 0.20. All five pairs lost after realistic
    costs, both chronological halves failed, and adjacent entry thresholds stayed negative.
-   **Candidate C active:** beta-neutral momentum across the nine original liquid US
-   sector ETFs; its universe, signal, sizing and rejection gates are frozen before the
-   first backtest.
+   **Candidate C rejected, 2026-10-11:** beta-neutral momentum across the nine original
+   sector ETFs produced -0.43 excess Sharpe, -2.41% CAGR and -41.40% maximum drawdown
+   over 2006-01-03 through 2026-09-16 after warm-up. Both chronological halves failed;
+   all declared stress/adjacent variants remained negative against cash. Even free
+   execution/no borrow lost money. Results and input hashes are in
+   `research/sector-candidate.json`; reproduce with `scripts/test_sector_candidate.py`.
+   No sleeve currently qualifies for blending. Next research requires a new frozen
+   economic hypothesis, not tuning rejected candidates or scaling the balanced book.
 
 Individual-stock pairs, options selling and intraday reversal are outside the first
 round. They require materially better point-in-time, borrow, quote or option-chain data

@@ -1017,3 +1017,42 @@ backward across the sample and initially reported -11.27 Sharpe. Rate lookup now
 normalizes both indexes to UTC and has a regression test; the corrected -1.39 is the
 number above. This correction does not change the frozen baseline results, whose NAV
 indexes and rate dates were both timezone-naive.
+
+## 2026-10-11 — Sector-neutral momentum also fails its frozen gate
+
+Candidate C now has a research-only monthly replay. Nine frozen sector ETFs rank
+6–1 plus 12–1 returns; trailing betas size the top/bottom two, with whole shares,
+35% single-name caps, next-session opening execution and trailing-only ADV costs.
+Before running the first screen, a signal indexing error was corrected: the old
+implementation measured six/twelve full months ending one month ago, not the
+declared returns from six/twelve months ago through one month ago. No rule was
+changed after observing performance.
+
+The input vintage runs 2005-01-03 through the existing frozen-control cutoff,
+2026-09-16. Warm-up is excluded from scoring, which starts 2006-01-03. The $25K
+base credits zero cash interest conservatively and uses the committed dated
+Treasury curve only for excess-return metrics. No short-sale proceeds interest
+is credited. Borrow is the frozen 1% proxy, stressed to 4%; adjusted Yahoo prices
+remain research total-return proxies, not historical executable broker quotes.
+
+| variant | CAGR | excess Sharpe | maximum drawdown |
+|---|---:|---:|---:|
+| frozen base | -2.41% | -0.433 | -41.40% |
+| free execution, no borrow | -1.60% | -0.339 | -32.09% |
+| 2x execution costs | -2.74% | -0.471 | -44.76% |
+| 4% borrow | -3.86% | -0.605 | -56.05% |
+| one-month delayed entry | -1.72% | -0.355 | -39.04% |
+| one selection per side | -0.91% | -0.332 | -32.90% |
+| three selections per side | -2.40% | -0.571 | -40.20% |
+
+Base chronological-half excess Sharpes are -0.335 and -0.521. It fails both the
+minimum 0.60 excess-Sharpe gate and the 20% drawdown limit. Free execution and no
+borrow do not turn the underlying signal profitable. Subsequent correlation,
+drawdown-overlap, concentration/beta and broker shortability gates are not run
+for a sleeve already rejected at the prerequisite gate. There is no qualified
+new sleeve to combine with balanced, and no risk scaling or paper change follows.
+
+`research/sector-candidate.json` retains all metrics and input hashes. The local
+script reproduces the screen; synthetic tests cover timing, integer sizing, cost
+and borrow accounting, delayed entry, missing sessions, future-data causality,
+and trailing-volume costs. Production Gateway and the paper strategy were untouched.

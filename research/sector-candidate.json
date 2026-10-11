@@ -1,0 +1,605 @@
+{
+  "candidate": "C",
+  "initial_nav": 25000,
+  "cash_interest_assumption": "zero; conservative retail-account screen",
+  "signal": {
+    "short_lookback": 126,
+    "long_lookback": 252,
+    "skip": 21,
+    "beta_lookback": 252,
+    "selections_per_side": 2,
+    "gross": 1.0,
+    "max_weight": 0.35
+  },
+  "execution": "month-end close decision, next observed session open, whole shares, trailing 20-session ADV",
+  "gate_one_requirements": {
+    "minimum_excess_sharpe": 0.6,
+    "maximum_drawdown": 0.2,
+    "both_half_excess_sharpes_positive": true
+  },
+  "gate_one_pass": false,
+  "variants": {
+    "base": {
+      "metrics": {
+        "label": "base",
+        "start": "2006-01-03",
+        "end": "2026-09-16",
+        "years": 20.700889801505816,
+        "initial_nav": "25000.0",
+        "final_nav": "15092.91",
+        "total_return": -0.39628341920333143,
+        "cagr": -0.02408345151997371,
+        "volatility": 0.08800819549341342,
+        "raw_sharpe": -0.23339804683441068,
+        "sharpe": -0.43299645097314576,
+        "sortino": -0.5760007136190457,
+        "max_drawdown": -0.4140195207466786,
+        "calmar": -0.05816984541342285,
+        "longest_drawdown_days": 6638,
+        "time_underwater": 0.995583717357911,
+        "drawdowns": [
+          {
+            "peak": "2008-07-14",
+            "trough": "2026-04-17",
+            "recovery": null,
+            "depth": -0.4140195207466786,
+            "days_to_trough": 6486,
+            "recovery_days": 152,
+            "total_days": 6638
+          },
+          {
+            "peak": "2006-01-31",
+            "trough": "2007-08-17",
+            "recovery": "2008-06-23",
+            "depth": -0.17478124468315592,
+            "days_to_trough": 563,
+            "recovery_days": 311,
+            "total_days": 874
+          },
+          {
+            "peak": "2008-06-30",
+            "trough": "2008-07-08",
+            "recovery": "2008-07-14",
+            "depth": -0.04114518085681895,
+            "days_to_trough": 8,
+            "recovery_days": 6,
+            "total_days": 14
+          },
+          {
+            "peak": "2008-06-23",
+            "trough": "2008-06-25",
+            "recovery": "2008-06-30",
+            "depth": -0.013917225721959414,
+            "days_to_trough": 2,
+            "recovery_days": 5,
+            "total_days": 7
+          }
+        ],
+        "best_month": 0.07940028027327006,
+        "worst_month": -0.0687163275448508,
+        "positive_months": 0.4899598393574297,
+        "best_day": 0.03292718283882912,
+        "worst_day": -0.051983909519842775
+      },
+      "half_excess_sharpes": [
+        -0.3350980873305703,
+        -0.5213789963994718
+      ],
+      "sector_pnl": {
+        "XLB": -3232.409686030952,
+        "XLE": -7398.781823571586,
+        "XLF": 4728.487589738665,
+        "XLI": 1789.2547814251313,
+        "XLK": 2652.6672713371013,
+        "XLP": -4900.841722320148,
+        "XLU": -4732.734801823501,
+        "XLV": -2557.7160269854494,
+        "XLY": 3744.9889381476364
+      },
+      "fills": 1228,
+      "borrow": 2049.266468258955,
+      "commissions": 709.1500000000141,
+      "slippage": 653.2489684534305,
+      "cash_interest": 0.0
+    },
+    "free_execution_no_borrow": {
+      "metrics": {
+        "label": "free_execution_no_borrow",
+        "start": "2006-01-03",
+        "end": "2026-09-16",
+        "years": 20.700889801505816,
+        "initial_nav": "25000.0",
+        "final_nav": "17912.28",
+        "total_return": -0.2835086061311224,
+        "cagr": -0.01597606554323583,
+        "volatility": 0.08799657599326569,
+        "raw_sharpe": -0.13925919080264793,
+        "sharpe": -0.3388839508951255,
+        "sortino": -0.4525356638034767,
+        "max_drawdown": -0.32092326309566876,
+        "calmar": -0.049781575162637204,
+        "longest_drawdown_days": 6638,
+        "time_underwater": 0.9951996927803379,
+        "drawdowns": [
+          {
+            "peak": "2008-07-14",
+            "trough": "2026-04-17",
+            "recovery": null,
+            "depth": -0.32092326309566876,
+            "days_to_trough": 6486,
+            "recovery_days": 152,
+            "total_days": 6638
+          },
+          {
+            "peak": "2006-01-31",
+            "trough": "2007-08-17",
+            "recovery": "2008-06-09",
+            "depth": -0.16166125389073482,
+            "days_to_trough": 563,
+            "recovery_days": 297,
+            "total_days": 860
+          },
+          {
+            "peak": "2008-06-30",
+            "trough": "2008-07-08",
+            "recovery": "2008-07-14",
+            "depth": -0.04096187126608841,
+            "days_to_trough": 8,
+            "recovery_days": 6,
+            "total_days": 14
+          },
+          {
+            "peak": "2008-06-09",
+            "trough": "2008-06-16",
+            "recovery": "2008-06-18",
+            "depth": -0.01500582846161791,
+            "days_to_trough": 7,
+            "recovery_days": 2,
+            "total_days": 9
+          },
+          {
+            "peak": "2008-06-23",
+            "trough": "2008-06-25",
+            "recovery": "2008-06-30",
+            "depth": -0.013897207138615197,
+            "days_to_trough": 2,
+            "recovery_days": 5,
+            "total_days": 7
+          }
+        ],
+        "best_month": 0.07980968865216664,
+        "worst_month": -0.06823128785563815,
+        "positive_months": 0.5060240963855421,
+        "best_day": 0.032788938460933226,
+        "worst_day": -0.05189540481329591
+      },
+      "half_excess_sharpes": [
+        -0.2313228669816707,
+        -0.43552349940808754
+      ],
+      "sector_pnl": {
+        "XLB": -3230.089397279859,
+        "XLE": -7249.513994823315,
+        "XLF": 5408.042138447227,
+        "XLI": 2138.3563504836375,
+        "XLK": 3355.0616853612346,
+        "XLP": -4984.661599627479,
+        "XLU": -4385.926798035312,
+        "XLV": -2409.2822916016157,
+        "XLY": 4270.298753797398
+      },
+      "fills": 1230,
+      "borrow": 0.0,
+      "commissions": 0.0,
+      "slippage": 0.0,
+      "cash_interest": 0.0
+    },
+    "2x_costs": {
+      "metrics": {
+        "label": "2x_costs",
+        "start": "2006-01-03",
+        "end": "2026-09-16",
+        "years": 20.700889801505816,
+        "initial_nav": "25000.0",
+        "final_nav": "14080.37",
+        "total_return": -0.43678518345702744,
+        "cagr": -0.02735180121499181,
+        "volatility": 0.08802486529463585,
+        "raw_sharpe": -0.27151264463225033,
+        "sharpe": -0.4710732496137795,
+        "sortino": -0.625527866518241,
+        "max_drawdown": -0.4475998213341119,
+        "calmar": -0.06110771253989174,
+        "longest_drawdown_days": 6638,
+        "time_underwater": 0.9959677419354839,
+        "drawdowns": [
+          {
+            "peak": "2008-07-14",
+            "trough": "2026-04-17",
+            "recovery": null,
+            "depth": -0.4475998213341119,
+            "days_to_trough": 6486,
+            "recovery_days": 152,
+            "total_days": 6638
+          },
+          {
+            "peak": "2006-01-31",
+            "trough": "2007-08-17",
+            "recovery": "2008-07-14",
+            "depth": -0.18101855331965477,
+            "days_to_trough": 563,
+            "recovery_days": 332,
+            "total_days": 895
+          }
+        ],
+        "best_month": 0.07882190264630573,
+        "worst_month": -0.06888913568520694,
+        "positive_months": 0.4819277108433735,
+        "best_day": 0.03280640331637197,
+        "worst_day": -0.05200492819549973
+      },
+      "half_excess_sharpes": [
+        -0.3793764587121792,
+        -0.554126564343533
+      ],
+      "sector_pnl": {
+        "XLB": -3238.144598305482,
+        "XLE": -7406.5910899188475,
+        "XLF": 4491.598441945883,
+        "XLI": 1626.9732001598977,
+        "XLK": 2335.048353953408,
+        "XLP": -4818.299885971772,
+        "XLU": -4831.571143233093,
+        "XLV": -2600.6423128669812,
+        "XLY": 3521.9994478113567
+      },
+      "fills": 1225,
+      "borrow": 1976.831852556142,
+      "commissions": 1396.6100000000283,
+      "slippage": 1261.3289101496302,
+      "cash_interest": 0.0
+    },
+    "4pct_borrow": {
+      "metrics": {
+        "label": "4pct_borrow",
+        "start": "2006-01-03",
+        "end": "2026-09-16",
+        "years": 20.700889801505816,
+        "initial_nav": "25000.0",
+        "final_nav": "11057.68",
+        "total_return": -0.5576927340750812,
+        "cagr": -0.0386402026658903,
+        "volatility": 0.08795023742739898,
+        "raw_sharpe": -0.4047744875299193,
+        "sharpe": -0.6045044244287905,
+        "sortino": -0.7985803715632989,
+        "max_drawdown": -0.5604696695096268,
+        "calmar": -0.06894254010158636,
+        "longest_drawdown_days": 7533,
+        "time_underwater": 0.9961597542242704,
+        "drawdowns": [
+          {
+            "peak": "2006-01-31",
+            "trough": "2026-04-17",
+            "recovery": null,
+            "depth": -0.5604696695096268,
+            "days_to_trough": 7381,
+            "recovery_days": 152,
+            "total_days": 7533
+          }
+        ],
+        "best_month": 0.0785510064640138,
+        "worst_month": -0.07003219647780168,
+        "positive_months": 0.44176706827309237,
+        "best_day": 0.03267911443164029,
+        "worst_day": -0.05213746797501728
+      },
+      "half_excess_sharpes": [
+        -0.5118034583925528,
+        -0.6888659655012529
+      ],
+      "sector_pnl": {
+        "XLB": -3167.9438655692447,
+        "XLE": -7718.730437847576,
+        "XLF": 3664.6523093553396,
+        "XLI": 1313.9996769610486,
+        "XLK": 1753.1549738215454,
+        "XLP": -4830.404767595731,
+        "XLU": -5218.154833350012,
+        "XLV": -2745.8382900111465,
+        "XLY": 3006.946882358656
+      },
+      "fills": 1213,
+      "borrow": 7083.938770447117,
+      "commissions": 668.4900000000152,
+      "slippage": 567.055603023285,
+      "cash_interest": 0.0
+    },
+    "delay_month": {
+      "metrics": {
+        "label": "delay_month",
+        "start": "2006-01-03",
+        "end": "2026-09-16",
+        "years": 20.700889801505816,
+        "initial_nav": "25000.0",
+        "final_nav": "17459.83",
+        "total_return": -0.3016068991145877,
+        "cagr": -0.01719146381887493,
+        "volatility": 0.0875572985106228,
+        "raw_sharpe": -0.15457340458935168,
+        "sharpe": -0.35519968783955863,
+        "sortino": -0.4821637960054947,
+        "max_drawdown": -0.3904357623872383,
+        "calmar": -0.0440314783506544,
+        "longest_drawdown_days": 6638,
+        "time_underwater": 0.9880952380952381,
+        "drawdowns": [
+          {
+            "peak": "2008-07-14",
+            "trough": "2019-04-22",
+            "recovery": null,
+            "depth": -0.3904357623872383,
+            "days_to_trough": 3934,
+            "recovery_days": 2704,
+            "total_days": 6638
+          },
+          {
+            "peak": "2006-04-21",
+            "trough": "2007-08-17",
+            "recovery": "2008-05-20",
+            "depth": -0.15707008958610635,
+            "days_to_trough": 483,
+            "recovery_days": 277,
+            "total_days": 760
+          },
+          {
+            "peak": "2008-06-30",
+            "trough": "2008-07-08",
+            "recovery": "2008-07-14",
+            "depth": -0.0426812040947433,
+            "days_to_trough": 8,
+            "recovery_days": 6,
+            "total_days": 14
+          },
+          {
+            "peak": "2006-03-02",
+            "trough": "2006-03-10",
+            "recovery": "2006-03-29",
+            "depth": -0.02016532402561888,
+            "days_to_trough": 8,
+            "recovery_days": 19,
+            "total_days": 27
+          },
+          {
+            "peak": "2008-05-20",
+            "trough": "2008-05-29",
+            "recovery": "2008-06-06",
+            "depth": -0.017414374332648808,
+            "days_to_trough": 9,
+            "recovery_days": 8,
+            "total_days": 17
+          }
+        ],
+        "best_month": 0.0705830108177492,
+        "worst_month": -0.07028672061270513,
+        "positive_months": 0.4819277108433735,
+        "best_day": 0.0382000956702897,
+        "worst_day": -0.041299327340658776
+      },
+      "half_excess_sharpes": [
+        -0.39062700323345534,
+        -0.3208856321194671
+      ],
+      "sector_pnl": {
+        "XLB": -3142.4661244463364,
+        "XLE": -7818.5845450301595,
+        "XLF": 3030.2928220130184,
+        "XLI": 909.606538199558,
+        "XLK": 7020.69135125578,
+        "XLP": -4734.144965350908,
+        "XLU": -5948.598128009635,
+        "XLV": -2637.854111013185,
+        "XLY": 5780.884684516885
+      },
+      "fills": 1227,
+      "borrow": 2132.5640863870876,
+      "commissions": 718.3000000000135,
+      "slippage": 677.1873562156221,
+      "cash_interest": 0.0
+    },
+    "one_per_side": {
+      "metrics": {
+        "label": "one_per_side",
+        "start": "2006-01-03",
+        "end": "2026-09-16",
+        "years": 20.700889801505816,
+        "initial_nav": "25000.0",
+        "final_nav": "20690.93",
+        "total_return": -0.1723627604371999,
+        "cagr": -0.009097122388868728,
+        "volatility": 0.07260294115823733,
+        "raw_sharpe": -0.08975995258780098,
+        "sharpe": -0.33171014208948485,
+        "sortino": -0.45016827750233235,
+        "max_drawdown": -0.32898529271983357,
+        "calmar": -0.027652064059337473,
+        "longest_drawdown_days": 6638,
+        "time_underwater": 0.9925115207373272,
+        "drawdowns": [
+          {
+            "peak": "2008-07-14",
+            "trough": "2019-02-01",
+            "recovery": null,
+            "depth": -0.32898529271983357,
+            "days_to_trough": 3854,
+            "recovery_days": 2784,
+            "total_days": 6638
+          },
+          {
+            "peak": "2006-01-31",
+            "trough": "2007-08-17",
+            "recovery": "2008-03-03",
+            "depth": -0.13261724628844518,
+            "days_to_trough": 563,
+            "recovery_days": 199,
+            "total_days": 762
+          },
+          {
+            "peak": "2008-03-06",
+            "trough": "2008-03-20",
+            "recovery": "2008-04-14",
+            "depth": -0.049015384021424135,
+            "days_to_trough": 14,
+            "recovery_days": 25,
+            "total_days": 39
+          },
+          {
+            "peak": "2008-04-22",
+            "trough": "2008-05-01",
+            "recovery": "2008-05-16",
+            "depth": -0.04036611367969356,
+            "days_to_trough": 9,
+            "recovery_days": 15,
+            "total_days": 24
+          },
+          {
+            "peak": "2008-06-30",
+            "trough": "2008-07-08",
+            "recovery": "2008-07-14",
+            "depth": -0.032560220619982205,
+            "days_to_trough": 8,
+            "recovery_days": 6,
+            "total_days": 14
+          }
+        ],
+        "best_month": 0.09243784007828637,
+        "worst_month": -0.07496879095267672,
+        "positive_months": 0.4457831325301205,
+        "best_day": 0.041141610273524476,
+        "worst_day": -0.04227163856536753
+      },
+      "half_excess_sharpes": [
+        -0.3227818895547841,
+        -0.3409823836550159
+      ],
+      "sector_pnl": {
+        "XLB": -1049.8973437301881,
+        "XLE": -2491.5372515086315,
+        "XLF": 4807.650071610777,
+        "XLI": 454.80930438016196,
+        "XLK": 6086.973197607868,
+        "XLP": -5731.515721319432,
+        "XLU": -3381.485594438573,
+        "XLV": -4351.774099161589,
+        "XLY": 1347.7084256297812
+      },
+      "fills": 644,
+      "borrow": 1317.2196395725257,
+      "commissions": 490.6700000000051,
+      "slippage": 504.79958171783875,
+      "cash_interest": 0.0
+    },
+    "three_per_side": {
+      "metrics": {
+        "label": "three_per_side",
+        "start": "2006-01-03",
+        "end": "2026-09-16",
+        "years": 20.700889801505816,
+        "initial_nav": "25000.0",
+        "final_nav": "15119.54",
+        "total_return": -0.3952183334035103,
+        "cagr": -0.02400034964232045,
+        "volatility": 0.06921128993105584,
+        "raw_sharpe": -0.3169835841098587,
+        "sharpe": -0.5707903747232634,
+        "sortino": -0.7602582283944948,
+        "max_drawdown": -0.40201446350122916,
+        "calmar": -0.05970021434874835,
+        "longest_drawdown_days": 6638,
+        "time_underwater": 0.9953917050691244,
+        "drawdowns": [
+          {
+            "peak": "2008-07-14",
+            "trough": "2026-05-29",
+            "recovery": null,
+            "depth": -0.40201446350122916,
+            "days_to_trough": 6528,
+            "recovery_days": 110,
+            "total_days": 6638
+          },
+          {
+            "peak": "2006-04-19",
+            "trough": "2007-08-17",
+            "recovery": "2008-06-23",
+            "depth": -0.1358907211719641,
+            "days_to_trough": 485,
+            "recovery_days": 311,
+            "total_days": 796
+          },
+          {
+            "peak": "2008-06-23",
+            "trough": "2008-07-08",
+            "recovery": "2008-07-14",
+            "depth": -0.03033485800230029,
+            "days_to_trough": 15,
+            "recovery_days": 6,
+            "total_days": 21
+          },
+          {
+            "peak": "2006-01-31",
+            "trough": "2006-03-22",
+            "recovery": "2006-04-18",
+            "depth": -0.0277927474658054,
+            "days_to_trough": 50,
+            "recovery_days": 27,
+            "total_days": 77
+          }
+        ],
+        "best_month": 0.05926787057420513,
+        "worst_month": -0.0520786607698146,
+        "positive_months": 0.46987951807228917,
+        "best_day": 0.03469512460919977,
+        "worst_day": -0.035254129952803415
+      },
+      "half_excess_sharpes": [
+        -0.4544022748033889,
+        -0.6817568587398052
+      ],
+      "sector_pnl": {
+        "XLB": -391.1417816040096,
+        "XLE": -5585.00501186625,
+        "XLF": 1075.5952964718037,
+        "XLI": -190.95775593340517,
+        "XLK": 1755.848622692468,
+        "XLP": -2557.2423461959065,
+        "XLU": -4938.599972113324,
+        "XLV": -2361.8333730583154,
+        "XLY": 3312.8779865195456
+      },
+      "fills": 1711,
+      "borrow": 2051.1801960582607,
+      "commissions": 790.4400000000232,
+      "slippage": 539.1583352870676,
+      "cash_interest": 0.0
+    }
+  },
+  "data_sha256": {
+    "XLB": "ccec9ffbf6994817d3416eaaaaae8945879e59897369ae2e383a0b411cac1559",
+    "XLE": "452bd213f3a6653e44e68d741914bf10f2207afcbb6d4eb20d92aed28ca39e94",
+    "XLF": "44da04e807db9a6df695edb9f9880404987c1f187373938a57c5e4f37ebfb8b9",
+    "XLI": "27bcde53132ff7bbe99067f046b63957eced7b4e323b9dadc39f49d8abc69a82",
+    "XLK": "732e83a1f26d776a35937842cfea565e16d5bb92d5785cc22c2f714f253a041a",
+    "XLP": "af6a5ae6cf2ff495f5cdbc84a7d4ca131fd5bbe0e576a79d35c4ce5e3fda9ace",
+    "XLU": "7582b9bbe22c5effefa8f6beca2ed09697c9b64022e46cbb3d692bd93e56e99a",
+    "XLV": "3efcb7836247644fa5e510cb06ff969dc5c212e019c8d2ee56e1b7ccc11830d6",
+    "XLY": "4feab1b0c4debe8e86ce6bbcd857df611c4ca6ed2eeb21566e33fea8cfcb99d3",
+    "SPY": "bc66a26e9945a43fc1bd4f62fa9522e7b3e03120951d28ed03a0f6ae4aad5107"
+  },
+  "rates_sha256": "9d2759e1b31f62a1d819a5a668a9cff1ce76b014e5e88410b3e4cc178c916858",
+  "caveats": [
+    "Adjusted Yahoo research prices are restated, not historical executable quotes.",
+    "Borrow is a proxy, not a historical IBKR fee/availability archive.",
+    "No interest on short proceeds; no live trading enabled.",
+    "Correlation, drawdown overlap and venue gates remain conditional on gate one."
+  ]
+}

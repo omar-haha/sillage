@@ -30,6 +30,8 @@ class SectorNeutralConfig:
             raise ValueError("beta lookback must be at least 20 sessions")
         if self.selections_per_side < 1:
             raise ValueError("selections per side must be positive")
+        if 2 * self.selections_per_side > len(SECTOR_ETFS):
+            raise ValueError("long and short selections must be disjoint")
         if not 0 < self.gross <= 1.5:
             raise ValueError("gross must be in (0, 1.5]")
         if not 0 < self.max_weight <= self.gross:
@@ -54,7 +56,7 @@ def decide_sectors(
 ) -> SectorNeutralDecision:
     """Rank frozen 6-1/12-1 momentum and return whole-book beta-neutral weights."""
     cfg = config or SectorNeutralConfig()
-    needed = max(cfg.long_lookback + cfg.skip + 1, cfg.beta_lookback + 1)
+    needed = max(cfg.long_lookback + 1, cfg.beta_lookback + 1)
     if len(spy_prices) < needed or any(len(prices.get(s, ())) < needed for s in SECTOR_ETFS):
         return _empty("insufficient history")
 
@@ -71,8 +73,8 @@ def decide_sectors(
         if not np.isfinite(values).all() or np.any(values <= 0):
             return _empty(f"invalid history for {symbol}")
         end = len(values) - 1 - cfg.skip
-        six_one = values[end] / values[end - cfg.short_lookback] - 1
-        twelve_one = values[end] / values[end - cfg.long_lookback] - 1
+        six_one = values[end] / values[-1 - cfg.short_lookback] - 1
+        twelve_one = values[end] / values[-1 - cfg.long_lookback] - 1
         scores[symbol] = float(six_one + twelve_one)
         asset_returns = np.diff(np.log(values[-(cfg.beta_lookback + 1) :]))
         beta = float(np.cov(asset_returns, market_returns, ddof=1)[0, 1] / market_variance)

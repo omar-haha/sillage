@@ -56,3 +56,11 @@ def test_insufficient_history_is_not_a_trade() -> None:
 def test_invalid_configuration_is_rejected() -> None:
     with pytest.raises(ValueError, match="lookbacks"):
         SectorNeutralConfig(skip=126)
+
+
+def test_momentum_denominators_are_six_and_twelve_months_before_today():
+    sectors, market = histories()
+    result = decide_sectors(sectors, market)
+    values = sectors["XLB"]
+    expected = values[-22] / values[-127] - 1 + values[-22] / values[-253] - 1
+    assert result.scores["XLB"] == pytest.approx(expected)
