@@ -46,6 +46,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from math import isfinite, sqrt
+from pathlib import Path
 from statistics import median, stdev
 from typing import Any, Protocol, runtime_checkable
 
@@ -372,6 +373,12 @@ class IBKRBroker:
         wants to look at.
         """
         executions = [e for e in self._executions(session) if e.order_ref in submitted]
+        imported = getattr(self.client, "recorded_execution_ids", lambda: set())()
+        legacy = getattr(self.client, "legacy_recorded_order_refs", lambda: set())()
+        if any(e.order_ref in legacy for e in executions):
+            raise BrokerError(
+                "Legacy partial fills lack execution IDs; human mapping required before recovery"
+            )
 
         fills = [
             Fill(
@@ -386,9 +393,10 @@ class IBKRBroker:
                 # exists to measure honestly.
                 slippage=ZERO,
                 order_id=execution.order_ref,
+                execution_id=execution.execution_id,
             )
             for execution in executions
-            if execution.quantity != ZERO
+            if execution.quantity != ZERO and execution.execution_id not in imported
         ]
 
         filled = {execution.order_ref for execution in executions}
@@ -472,6 +480,7 @@ class IBGatewayClient:
     exchange: str = "SMART"
     currency: str = "USD"
     request_timeout: float = DEFAULT_REQUEST_TIMEOUT
+    execution_archive: Path | None = None
     _ib: object | None = field(default=None, init=False, repr=False)
 
     @property
@@ -536,7 +545,7 @@ class IBGatewayClient:
                     "IBKR commission evidence unavailable; refusing zero-fee fallback"
                 )
             ib.waitOnUpdate(timeout=min(1.0, remaining))
-        return [
+        result = [
             Execution(
                 order_ref=item.execution.orderRef,
                 execution_id=item.execution.execId,
@@ -549,6 +558,33 @@ class IBGatewayClient:
             )
             for item in raw
         ]
+        if self.execution_archive is not None:
+            from sillage.state.executions import ExecutionArchive
+
+            accounts = ib.managedAccounts()
+            account = self.account or (accounts[0] if len(accounts) == 1 else "")
+            if not account or account not in accounts:
+                raise BrokerError("Select one available account for execution capture")
+            if any(item.execution.acctNumber != account for item in raw):
+                raise BrokerError("Mixed-account executions; refusing ambiguous archive")
+            archive = ExecutionArchive(self.execution_archive)
+            archive.save(account, result)
+            return archive.load(account, since=since)
+        return result
+
+    def recorded_execution_ids(self) -> set[str]:
+        if self.execution_archive is None:
+            return set()
+        from sillage.state.executions import ExecutionArchive
+
+        return ExecutionArchive(self.execution_archive).imported_ids()
+
+    def legacy_recorded_order_refs(self) -> set[str]:
+        if self.execution_archive is None:
+            return set()
+        from sillage.state.executions import ExecutionArchive
+
+        return ExecutionArchive(self.execution_archive).legacy_order_refs()
 
     def open_order_refs(self) -> set[str]:
         ib = self._require()

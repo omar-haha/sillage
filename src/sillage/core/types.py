@@ -224,6 +224,7 @@ class Fill:
     commission: Decimal = ZERO
     slippage: Decimal = ZERO
     order_id: str = ""
+    execution_id: str = ""
 
     def __post_init__(self) -> None:
         if self.quantity == ZERO:

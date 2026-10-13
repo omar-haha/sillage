@@ -691,7 +691,7 @@ def _live_config(
         except ImportError:
             console.print("[red]ib_async is not installed[/]; run `uv sync --extra ibkr`")
             raise typer.Exit(1) from None
-        venue = IBKRBroker(IBGatewayClient(**connection))  # type: ignore[arg-type]
+        venue = IBKRBroker(IBGatewayClient(execution_archive=journal, **connection))  # type: ignore[arg-type]
     elif broker != "simulated":
         console.print(f"[red]unknown broker {broker!r}[/]; known: simulated, ibkr")
         raise typer.Exit(1)
@@ -788,8 +788,8 @@ def live_run_once(
     console.print(str(report))
     if report.stalled:
         console.print(
-            "\n[bold yellow]nothing filled.[/] Orders were placed and every one was "
-            "refused — check the rejections in the journal before the next run."
+            "\n[bold yellow]No fills recorded in this cycle.[/] Orders may still be "
+            "pending for the next opening auction; inspect pending orders and rejections."
         )
     if report.halted:
         console.print(f"\n[bold red]TRADING HALTED[/] {report.halted}")

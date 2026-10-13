@@ -124,3 +124,52 @@ missing fee evidence times out instead of being silently recorded as zero.
 Evidence reports redact account identifiers, known gateway credentials, browser
 keys and common token formats. Public issue sanitization cannot retract historical
 copies. Rotate exposed reusable credentials through their issuing service.
+
+## Same-day execution capture (October 13, 2026)
+
+The paper deployment now captures execution evidence every five minutes during
+XNYS trading days, 09:30-16:15 America/Toronto (DST-aware). The cron entry invokes
+`deploy/capture-executions.sh`; `capture-executions.py` applies the calendar/window
+guard, shared paper lock and a read-only localhost:4002 client using the owning
+API client ID. It cannot submit/cancel orders, run strategy decisions or restart
+Gateway. Failure sends a failure heartbeat and incident evidence; successful
+capture does **not** claim a successful trading cycle or close an incident.
+
+Confirmed executions and matching commissions are retained in the existing
+`state/ibkr.db` table `broker_execution_evidence`, scoped by account/execution ID.
+They therefore travel with the existing safe SQLite/S3 backup. Capturing evidence
+does not itself change ledger fills, positions, NAV or pending orders. Subsequent
+broker recovery merges available API evidence with this archive, still checking
+broker positions before trading. Broker execution IDs are mapped to imported fill
+rows in `broker_execution_imports`; repeat/partial recovery cannot re-import them.
+Changed/corrected execution evidence and legacy partial fills without execution
+IDs fail closed for human review rather than silently guessing or overwriting.
+
+Check operation with `tail -n 30 state/execution-capture.log` and `crontab -l`.
+To inspect safe aggregate evidence counts:
+
+```bash
+.venv/bin/python - <<'PY'
+import sqlite3
+with sqlite3.connect('file:state/ibkr.db?mode=ro', uri=True) as c:
+    print('Retained execution records:', c.execute(
+        'SELECT COUNT(*) FROM broker_execution_evidence').fetchone()[0])
+PY
+```
+
+The table may not exist until the first successful in-hours capture. Private
+online database and crontab backups precede installation. Unrelated website jobs
+are preserved; deploy receives no sudo access. This poll-based safeguard still
+depends on Gateway being available during that day's collection window; a full
+day outage requires broker exports or a separately validated history API.
+
+October 13 incident #3 remains unresolved until October 12 paper Activity Statement
+CSV and Trade Confirmation records supply actual execution prices, timestamps and
+fees. Both the owning client and diagnostic client returned zero executions;
+positions alone are not sufficient evidence. Do not restart/retrade to conceal
+this mismatch. Statement repair remains append-only, previewed against fresh broker
+positions, and requires the actual private reports.
+
+Verification for this change: 121 targeted journal, broker, recovery, collector and
+engine tests pass; the touched typed state/core files pass mypy. The broader offline
+suite was interrupted after it stopped making progress and is not claimed as a pass.

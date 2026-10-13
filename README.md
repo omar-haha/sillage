@@ -359,7 +359,9 @@ prevented from seeing data that did not exist at the time it claims to trade.
 
 Paper operations include a read-only pre-cycle Gateway readiness check and one
 bounded Gateway-only restart before any order submission, strict broker snapshot
-validation, and success-linked incident closure. Gateway overnight session
+validation, same-day read-only execution capture into the backed-up journal,
+execution-ID duplicate protection, and success-linked incident closure. Capture
+does not itself imply reconciled fills or successful trading. Gateway overnight session
 resumption remains under observation; a successful cycle is not a guarantee of
 continuous unattended reliability. See [incident recovery](docs/incident-recovery.md).
 

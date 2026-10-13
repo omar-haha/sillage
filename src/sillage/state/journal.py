@@ -114,9 +114,11 @@ EFFECTIVE_FILLS = """
 SELECT f.id, f.order_id, COALESCE(a.ts, f.ts) AS ts, f.symbol, f.quantity,
        COALESCE(a.price, f.price) AS price,
        COALESCE(a.commission, f.commission) AS commission,
-       COALESCE(a.slippage, f.slippage) AS slippage
+       COALESCE(a.slippage, f.slippage) AS slippage,
+       COALESCE(i.execution_id, '') AS execution_id
 FROM fills f LEFT JOIN fill_amendments a
   ON a.id = (SELECT MAX(id) FROM fill_amendments WHERE fill_id = f.id)
+LEFT JOIN broker_execution_imports i ON i.fill_id=f.id
 ORDER BY f.id
 """
 
@@ -134,6 +136,9 @@ class SqliteJournal:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self._connect() as connection:
             connection.executescript(SCHEMA)
+            connection.execute(
+                "CREATE TABLE IF NOT EXISTS broker_execution_imports (execution_id TEXT PRIMARY KEY, fill_id INTEGER NOT NULL UNIQUE)"
+            )
 
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self.path, isolation_level=None)
@@ -170,7 +175,26 @@ class SqliteJournal:
 
     def record_fill(self, fill: Fill) -> None:
         with self._connect() as connection:
-            connection.execute(
+            connection.execute("BEGIN IMMEDIATE")
+            if fill.execution_id:
+                previous = connection.execute(
+                    "SELECT f.* FROM fills f JOIN broker_execution_imports i ON i.fill_id=f.id WHERE i.execution_id=?",
+                    (fill.execution_id,),
+                ).fetchone()
+                if previous:
+                    if (
+                        previous["order_id"] != fill.order_id
+                        or previous["symbol"] != fill.instrument.symbol
+                        or datetime.fromisoformat(previous["ts"]) != fill.ts
+                        or dec(previous["quantity"]) != fill.quantity
+                        or dec(previous["price"]) != fill.price
+                        or dec(previous["commission"]) != fill.commission
+                        or dec(previous["slippage"]) != fill.slippage
+                    ):
+                        raise ValueError("duplicate execution id has conflicting fill evidence")
+                    connection.commit()
+                    return
+            cursor = connection.execute(
                 "INSERT INTO fills (order_id, ts, symbol, quantity, price, commission, slippage)"
                 " VALUES (?, ?, ?, ?, ?, ?, ?)",
                 (
@@ -183,6 +207,12 @@ class SqliteJournal:
                     str(fill.slippage),
                 ),
             )
+            if fill.execution_id:
+                connection.execute(
+                    "INSERT INTO broker_execution_imports VALUES (?,?)",
+                    (fill.execution_id, cursor.lastrowid),
+                )
+            connection.commit()
 
     def record_rejection(self, rejection: Rejection) -> None:
         with self._connect() as connection:
@@ -246,6 +276,7 @@ class SqliteJournal:
                 commission=dec(row["commission"]),
                 slippage=dec(row["slippage"]),
                 order_id=row["order_id"],
+                execution_id=row["execution_id"],
             )
             for row in rows
             if row["symbol"] in instruments
