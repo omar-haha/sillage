@@ -173,3 +173,25 @@ positions, and requires the actual private reports.
 Verification for this change: 121 targeted journal, broker, recovery, collector and
 engine tests pass; the touched typed state/core files pass mypy. The broader offline
 suite was interrupted after it stopped making progress and is not claimed as a pass.
+
+### Interval statements and restart-state correction
+
+The October 12 daily exports validate five executions but are not a complete
+account-history report. `recover-statement.py --interval` supports this narrow case:
+only wholly unrecorded pending orders executed after the latest journal mark,
+uniquely matched and independently confirmed. Prior fills/NAV remain untouched;
+the statement's USD cash change must equal the new trades/fees, and prior journal
+positions plus the new executions must equal statement and fresh broker holdings.
+Extra/missing orders, partial fills, unexplained cash changes or overlapping history
+fail closed. Online backups, a preview copy, locked atomic apply, evidence hashes
+and repeat-import protection remain mandatory. No fills are inferred from holdings.
+
+A separate read-only diagnostic found cold-reset `balanced` targets omitted inactive
+monthly sleeves: October 9 cold targets lacked SPY/IEF, while causal history-primed
+targets retained them. The live runner now primes built-in Blend/Tranched decisions
+from the preceding 90 calendar days through the last recorded session, using
+as-of-gated data and no broker/orders/accounting replay. This fixes forgotten
+monthly targets on process restart; it does not retroactively undo real trades or
+force compensating orders. Custom stateful schedules require separate validation.
+The updated targeted suite passes 124 tests, including interval rollback/preservation
+and restart retention of an inactive sleeve.

@@ -16,6 +16,79 @@ from sillage.state.journal import SqliteJournal
 from sillage.state.recovery import read_evidence, repair
 
 
+def make_interval(evidence):
+    _, statement, confirmations, _ = evidence
+    with statement.open(newline="") as stream:
+        rows = list(csv.reader(stream))
+    rows = [
+        row
+        for row in rows
+        if not (row[:2] == ["Trades", "Data"] and row[6].startswith("2024-09-18"))
+    ]
+    for row in rows:
+        if row[:3] == ["Cash Report", "Data", "Starting Cash"]:
+            row[-1] = "-1001"
+        if row[:3] == ["Statement", "Data", "Period"]:
+            row[-1] = "September 19, 2024"
+    with statement.open("w", newline="") as stream:
+        csv.writer(stream).writerows(rows)
+    html = confirmations.read_text()
+    begin = html.index("<tr>")
+    end = html.index("</tr>", begin) + len("</tr>")
+    confirmations.write_text(html[:begin] + html[end:])
+
+
+def test_interval_appends_only_new_pending_fills_and_marks(evidence):
+    make_interval(evidence)
+    journal, statement, confirmations, data = evidence
+    with sqlite3.connect(journal.path) as c:
+        old = c.execute("SELECT * FROM nav ORDER BY session").fetchall()
+    result = repair(
+        journal.path,
+        statement,
+        confirmations,
+        data,
+        date(2024, 9, 19),
+        {"A": dec(8)},
+        interval=True,
+    )
+    assert result["added_fills"] == 1 and result["amendments"] == 0
+    with sqlite3.connect(journal.path) as c:
+        assert (
+            c.execute("SELECT * FROM nav WHERE session<'2024-09-19' ORDER BY session").fetchall()
+            == old
+        )
+        assert c.execute("SELECT price,commission FROM fills WHERE id=1").fetchone() == ("101", "0")
+    assert repair(
+        journal.path,
+        statement,
+        confirmations,
+        data,
+        date(2024, 9, 19),
+        {"A": dec(8)},
+        interval=True,
+    ) == {"already_imported": True}
+
+
+def test_interval_requires_verified_positions_and_rolls_back(evidence):
+    make_interval(evidence)
+    journal, statement, confirmations, data = evidence
+    before = journal.counts()
+    with pytest.raises(ValueError, match="fresh broker"):
+        repair(
+            journal.path,
+            statement,
+            confirmations,
+            data,
+            date(2024, 9, 19),
+            {"A": dec(9)},
+            interval=True,
+        )
+    assert journal.counts() == before
+    with pytest.raises(ValueError, match="complete"):
+        read_evidence(statement, confirmations)
+
+
 @pytest.fixture
 def evidence(tmp_path):
     statement = tmp_path / "activity.csv"

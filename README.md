@@ -364,6 +364,8 @@ execution-ID duplicate protection, and success-linked incident closure. Capture
 does not itself imply reconciled fills or successful trading. Gateway overnight session
 resumption remains under observation; a successful cycle is not a guarantee of
 continuous unattended reliability. See [incident recovery](docs/incident-recovery.md).
+Built-in monthly blend/tranche decisions are causally primed across live-process
+restarts, so inactive sleeves are not silently omitted from the next target.
 
 ```bash
 make check      # ruff, mypy, and the full test suite

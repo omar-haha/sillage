@@ -17,6 +17,8 @@ from html.parser import HTMLParser
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+import pandas as pd
+
 from sillage.core.calendar import TradingCalendar
 from sillage.core.money import dec, quantize_cash, quantize_price
 from sillage.core.types import AssetClass, Fill, Instrument, Portfolio
@@ -73,7 +75,11 @@ class ConfirmationTables(HTMLParser):
 
 
 def read_evidence(
-    statement: Path, confirmations: Path, expected_account: str | None = None
+    statement: Path,
+    confirmations: Path,
+    expected_account: str | None = None,
+    *,
+    starting_positions: dict[str, Decimal] | None = None,
 ) -> tuple[list[StatementTrade], Decimal, date]:
     headers: dict[str, list[str]] = {}
     trades = []
@@ -119,7 +125,8 @@ def read_evidence(
             )
     if (
         not trades
-        or cash.get("Starting Cash") != 0
+        or "Starting Cash" not in cash
+        or (starting_positions is None and cash.get("Starting Cash") != 0)
         or "Ending Cash" not in cash
         or coverage_end is None
     ):
@@ -128,9 +135,10 @@ def read_evidence(
         )
     trades.sort(key=lambda trade: (trade.ts, trade.row))
     calculated = sum((-trade.quantity * trade.price - trade.commission for trade in trades), dec(0))
-    if abs(calculated - cash["Ending Cash"]) > dec("0.01"):
+    movement = cash["Ending Cash"] - cash["Starting Cash"]
+    if abs(calculated - movement) > dec("0.01"):
         raise ValueError("Statement USD cash includes unexplained cash movements")
-    held: dict[str, Decimal] = {}
+    held: dict[str, Decimal] = dict(starting_positions or {})
     for trade in trades:
         held[trade.symbol] = held.get(trade.symbol, dec(0)) + trade.quantity
     if {symbol: qty for symbol, qty in held.items() if qty} != positions:
@@ -166,7 +174,7 @@ def read_evidence(
         raise ValueError(
             "Confirmation report contains extra or split executions; manual review required"
         )
-    return trades, cash["Ending Cash"], coverage_end
+    return trades, movement, coverage_end
 
 
 def fingerprint(connection: sqlite3.Connection) -> str:
@@ -187,23 +195,28 @@ def repair(
     expected_positions: dict[str, Decimal],
     initial_cash: Decimal = Decimal("25000"),
     expected_account: str | None = None,
+    interval: bool = False,
 ) -> dict[str, object]:
     """Apply to an explicitly selected database (preview copy first).
 
     All changes commit atomically. An already-imported statement is a no-op.
     Old raw fills and NAV marks are retained in the evidence audit.
     """
-    trades, ending_cash, coverage_end = read_evidence(statement, confirmations, expected_account)
     source_hash = hashlib.sha256(statement.read_bytes()).hexdigest()
     confirmation_hash = hashlib.sha256(confirmations.read_bytes()).hexdigest()
     SqliteJournal(journal_path)  # Install append-only audit schema.
-    instruments = {trade.symbol: Instrument(trade.symbol, AssetClass.ETF) for trade in trades}
     with sqlite3.connect(journal_path) as connection:
         connection.row_factory = sqlite3.Row
         connection.execute("BEGIN IMMEDIATE")
-        if connection.execute(
-            "SELECT 1 FROM statement_recoveries WHERE source_sha256=?", (source_hash,)
-        ).fetchone():
+        prior_recovery = connection.execute(
+            "SELECT confirmation_sha256 FROM statement_recoveries WHERE source_sha256=?",
+            (source_hash,),
+        ).fetchone()
+        if prior_recovery:
+            if prior_recovery[0] != confirmation_hash:
+                raise ValueError(
+                    "Previously imported statement has different confirmation evidence"
+                )
             return {"already_imported": True}
         before = fingerprint(connection)
         orders = [dict(row) for row in connection.execute("SELECT * FROM orders")]
@@ -212,6 +225,40 @@ def repair(
         original_pending = connection.execute(
             "SELECT value FROM meta WHERE key='pending_orders'"
         ).fetchone()
+        pending = json.loads(original_pending[0]) if original_pending else []
+        opening = Portfolio(cash=initial_cash)
+        instruments = {
+            fill["symbol"]: Instrument(fill["symbol"], AssetClass.ETF) for fill in old_fills
+        }
+        if interval:
+            if not old_nav or not pending:
+                raise ValueError("Interval repair requires a prior mark and pending orders")
+            for fill in old_fills:
+                opening = opening.apply_fill(
+                    Fill(
+                        instruments[fill["symbol"]],
+                        datetime.fromisoformat(fill["ts"]),
+                        dec(fill["quantity"]),
+                        dec(fill["price"]),
+                        dec(fill["commission"]),
+                        dec(fill["slippage"]),
+                    )
+                )
+            ids = {row["client_order_id"] for row in pending}
+            orders = [row for row in orders if row["client_order_id"] in ids]
+        trades, ending_cash, coverage_end = read_evidence(
+            statement,
+            confirmations,
+            expected_account,
+            starting_positions=positions_of(opening) if interval else None,
+        )
+        instruments.update(
+            {trade.symbol: Instrument(trade.symbol, AssetClass.ETF) for trade in trades}
+        )
+        if interval and any(
+            trade.ts <= datetime.fromisoformat(old_nav[-1]["ts"]) for trade in trades
+        ):
+            raise ValueError("Interval execution overlaps already marked history")
         if len(orders) != len(trades):
             raise ValueError("Statement does not cover every journal order; manual review required")
         matched_ids: set[str] = set()
@@ -234,6 +281,10 @@ def repair(
             if len(recorded) > 1:
                 raise ValueError("Split journal fills require manual review")
             if recorded:
+                if interval:
+                    raise ValueError(
+                        "Interval order has prior partial fills; manual review required"
+                    )
                 fill = recorded[0]
                 if dec(fill["quantity"]) != trade.quantity or fill["symbol"] != trade.symbol:
                     raise ValueError("Existing fill quantity differs from broker evidence")
@@ -262,12 +313,11 @@ def repair(
                     ),
                 )
                 additions += 1
-        if any(fill["order_id"] not in matched_ids for fill in old_fills):
+        if not interval and any(fill["order_id"] not in matched_ids for fill in old_fills):
             raise ValueError("Journal has fills not covered by evidence")
-        pending = json.loads(original_pending[0]) if original_pending else []
         if any(order["client_order_id"] not in matched_ids for order in pending):
             raise ValueError("Pending order is not explained by statement")
-        portfolio = Portfolio(cash=initial_cash)
+        portfolio = opening
         for trade in trades:
             portfolio = portfolio.apply_fill(
                 Fill(
@@ -281,20 +331,26 @@ def repair(
         actual = positions_of(portfolio)
         if actual != {symbol: qty for symbol, qty in expected_positions.items() if qty}:
             raise ValueError("Repaired holdings do not match fresh broker positions")
-        if abs(portfolio.cash - quantize_cash(initial_cash + ending_cash)) > dec("0.01"):
+        if abs(portfolio.cash - quantize_cash(opening.cash + ending_cash)) > dec("0.01"):
             raise ValueError("Repaired virtual cash does not match statement USD cash movement")
         if through < trades[-1].ts.date() or through > coverage_end:
             raise ValueError("Recovery valuation must remain within verified statement coverage")
         if old_nav and date.fromisoformat(old_nav[-1]["session"]) > through:
             raise ValueError("Recovery cannot move the latest journal session backwards")
         calendar = TradingCalendar()
-        start = date.fromisoformat(old_nav[0]["session"]) if old_nav else trades[0].ts.date()
+        start = (
+            date.fromisoformat(old_nav[-1]["session"]) + timedelta(days=1)
+            if interval
+            else date.fromisoformat(old_nav[0]["session"])
+            if old_nav
+            else trades[0].ts.date()
+        )
         store = BarStore(data_root)
         prices = {
             symbol: store.read(symbol, start=start, end=through, as_of=through)
             for symbol in instruments
         }
-        marked = Portfolio(cash=initial_cash)
+        marked = opening
         cursor = 0
         rebuilt = []
         for session in calendar.sessions(start, through):
@@ -313,7 +369,7 @@ def repair(
             close_prices = {}
             for symbol in positions_of(marked):
                 frame = prices[symbol]
-                rows = frame[frame.index.date == session.day]
+                rows = frame[pd.DatetimeIndex(frame.index).date == session.day]
                 if len(rows) != 1:
                     raise ValueError("Missing exact-session close price; refusing valuation")
                 close_prices[symbol] = quantize_price(dec(str(rows.iloc[0]["close"])))
@@ -334,6 +390,7 @@ def repair(
         connection.execute("INSERT OR REPLACE INTO meta VALUES ('pending_orders','[]')")
         audit = {
             "before_fingerprint": before,
+            "interval": interval,
             "old_nav": old_nav,
             "old_pending": pending,
             "added_fills": additions,

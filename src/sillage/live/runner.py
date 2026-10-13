@@ -34,7 +34,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
@@ -350,6 +350,18 @@ def run_once(
     before = journal.counts()
     sessions: list[date] = []
     engine.strategy.reset()
+    # A restarted Blend/Tranched has no held decisions for sleeves not due today.
+    # Restore their causal monthly decisions without replaying orders or accounting.
+    # This is limited to the built-in monthly combinators, not an arbitrary
+    # serialized-state replacement for every possible strategy schedule.
+    from sillage.strategy.blend import Blend
+    from sillage.strategy.tranche import Tranched
+
+    last = journal.last_session()
+    if isinstance(engine.strategy, (Blend, Tranched)) and last is not None:
+        for previous in calendar.sessions(last - timedelta(days=90), last):
+            if engine.strategy.schedule.is_rebalance_session(previous.day, calendar):
+                engine.strategy.target_weights(as_of=previous.close, data=engine.data)
     for event in clock.events():
         engine.step(event)
         if event.is_close:

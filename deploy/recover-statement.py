@@ -33,6 +33,11 @@ def main():
     parser.add_argument("--root", type=Path, default=Path("/home/deploy/sillage"))
     parser.add_argument("--through", type=date.fromisoformat, required=True)
     parser.add_argument("--apply", action="store_true")
+    parser.add_argument(
+        "--interval",
+        action="store_true",
+        help="Append only new pending-order fills after the last mark",
+    )
     args = parser.parse_args()
     os.umask(0o077)
     logging.disable(logging.CRITICAL)
@@ -72,6 +77,7 @@ def main():
                 args.through,
                 positions,
                 expected_account=account,
+                interval=args.interval,
             )
             if args.apply and not result.get("already_imported"):
                 # Canonical audit schema is installed before logical fingerprint comparison.
@@ -98,6 +104,7 @@ def main():
                     args.through,
                     current,
                     expected_account=account,
+                    interval=args.interval,
                 )
                 if applied != result:
                     raise RuntimeError(

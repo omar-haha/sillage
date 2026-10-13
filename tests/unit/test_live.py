@@ -15,6 +15,7 @@ from pathlib import Path
 import pytest
 from tests.support import etf, sessions_from, synthetic_store
 
+from sillage.core.calendar import TradingCalendar
 from sillage.core.money import ZERO, dec
 from sillage.core.types import AssetClass, Instrument, Order
 from sillage.data.universe import Universe
@@ -96,6 +97,30 @@ def test_it_does_not_replay_sessions_it_already_recorded(store: Path, tmp_path: 
     before = SqliteJournal(journal_path).counts()
     run_once(config(store, journal_path), now=AFTER_LAST_CLOSE)
     assert SqliteJournal(journal_path).counts()["nav"] == before["nav"]
+
+
+def test_restarted_blend_keeps_sleeve_that_is_not_due_today(store: Path, tmp_path: Path):
+    from dataclasses import replace
+
+    from sillage.strategy.base import Daily, Monthly
+    from sillage.strategy.blend import Blend
+
+    def settings():
+        strategy = Blend(
+            [
+                StaticWeights({"AAA": 1}, schedule=Daily()),
+                StaticWeights({"BBB": 1}, schedule=Monthly()),
+            ]
+        )
+        return replace(config(store, tmp_path / "restart.db"), strategy=strategy)
+
+    calendar = TradingCalendar()
+    end = next(s for s in reversed(SESSIONS[600:]) if not calendar.is_month_end_session(s.day))
+    prior = SESSIONS[SESSIONS.index(end) - 1]
+    first = run_once(settings(), now=prior.close.replace(hour=23))
+    second = run_once(settings(), now=end.close.replace(hour=23))
+    assert first.positions["BBB"] > 0
+    assert second.positions["BBB"] == first.positions["BBB"]
 
 
 # ------------------------------------------------------------------ interruption
