@@ -163,12 +163,20 @@ are preserved; deploy receives no sudo access. This poll-based safeguard still
 depends on Gateway being available during that day's collection window; a full
 day outage requires broker exports or a separately validated history API.
 
-October 13 incident #3 remains unresolved until October 12 paper Activity Statement
-CSV and Trade Confirmation records supply actual execution prices, timestamps and
-fees. Both the owning client and diagnostic client returned zero executions;
-positions alone are not sufficient evidence. Do not restart/retrade to conceal
-this mismatch. Statement repair remains append-only, previewed against fresh broker
-positions, and requires the actual private reports.
+October 13 incident #3: both API clients returned zero prior-day executions.
+The user supplied the October 12 Activity Statement CSV and Trade Confirmation
+HTML, and explicitly approved their private transfer to the VPS. The interval
+preview corroborated five fills and statement cash movement against fresh broker
+holdings; the matching append-only apply imported five fills, with zero amendments
+to earlier fills. Only the October 12 NAV mark was added. Fresh verification:
+five positions reconcile, zero pending orders, 26 total fills, virtual cash $22,686.54.
+Private originals, database snapshots and preview/apply audits are retained; reports
+remain Git-ignored. No new orders or compensating trades were submitted.
+
+The incident/healthcheck deliberately remains pending a successful scheduled cycle;
+no manual success ping or premature incident closure follows a ledger-only repair.
+Recent paper performance affected by the restart-state defect should be treated as
+operational burn-in, not clean validation of the intended balanced strategy.
 
 Verification for this change: 121 targeted journal, broker, recovery, collector and
 engine tests pass; the touched typed state/core files pass mypy. The broader offline
