@@ -38,15 +38,21 @@ def main():
             execution_archive=journal,
             account=os.environ.get("SILLAGE_IB_ACCOUNT", ""),
         )
+        stage = "connection"
         try:
             client.connect()
+            stage = "paper-account validation"
             accounts = client._require().managedAccounts()
             if len(accounts) != 1 or not re.fullmatch(r"DU[T]?\d+", accounts[0]):
                 raise ValueError("capture restricted to a single paper account")
+            stage = "execution/commission capture"
             evidence = client.executions(since=now.date())
             print(
                 f"{now.isoformat()}: retained {len(evidence)} confirmed same-day executions; no orders submitted"
             )
+        except Exception as exc:
+            print(f"{now.isoformat()}: capture failed at {stage} ({type(exc).__name__})")
+            raise
         finally:
             client.disconnect()
 

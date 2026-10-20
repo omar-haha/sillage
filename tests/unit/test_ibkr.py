@@ -120,6 +120,95 @@ def test_gateway_does_not_invent_zero_commission_when_report_is_missing(monkeypa
         client.executions()
 
 
+def test_repeat_execution_request_uses_canonical_commission_by_exact_id(monkeypatch):
+    import sys
+
+    from sillage.execution.ibkr import IBGatewayClient
+
+    monkeypatch.setitem(sys.modules, "ib_async", SimpleNamespace(ExecutionFilter=lambda **kw: kw))
+    execution = SimpleNamespace(execId="exec1", orderRef="order1", shares=2, side="BOT", price=100)
+    fresh = SimpleNamespace(
+        execution=execution,
+        contract=SimpleNamespace(symbol="AAA"),
+        time=TS,
+        commissionReport=SimpleNamespace(execId="", commission=0),
+    )
+    canonical = SimpleNamespace(
+        execution=execution,
+        contract=fresh.contract,
+        time=TS,
+        commissionReport=SimpleNamespace(execId="exec1", commission=1.25),
+    )
+    extra = SimpleNamespace(execution=SimpleNamespace(execId="unrequested"))
+    filters = []
+    client = IBGatewayClient(request_timeout=0)
+    client._ib = SimpleNamespace(
+        isConnected=lambda: True,
+        reqExecutions=lambda f: filters.append(f) or [fresh],
+        fills=lambda: [canonical, extra],
+    )
+    result = client.executions(since=SESSION)
+    assert len(result) == 1 and result[0].execution_id == "exec1"
+    assert result[0].commission == dec("1.25")
+    assert filters[0]["time"] == "20260312-00:00:00"
+
+
+def test_cached_commission_must_match_requested_execution(monkeypatch):
+    import sys
+
+    from sillage.execution.ibkr import IBGatewayClient
+
+    monkeypatch.setitem(sys.modules, "ib_async", SimpleNamespace(ExecutionFilter=lambda **kw: kw))
+    raw = SimpleNamespace(
+        execution=SimpleNamespace(execId="exec1"),
+        commissionReport=SimpleNamespace(execId="", commission=0),
+    )
+    wrong = SimpleNamespace(
+        execution=SimpleNamespace(execId="exec1"),
+        commissionReport=SimpleNamespace(execId="other", commission=1.25),
+    )
+    client = IBGatewayClient(request_timeout=0)
+    client._ib = SimpleNamespace(
+        isConnected=lambda: True, reqExecutions=lambda _: [raw], fills=lambda: [wrong]
+    )
+    with pytest.raises(TimeoutError, match="commission evidence"):
+        client.executions()
+
+
+def test_delayed_cached_commission_is_rechecked_after_update(monkeypatch):
+    import sys
+
+    from sillage.execution.ibkr import IBGatewayClient
+
+    monkeypatch.setitem(sys.modules, "ib_async", SimpleNamespace(ExecutionFilter=lambda **kw: kw))
+    execution = SimpleNamespace(execId="exec1", orderRef="order1", shares=1, side="BOT", price=100)
+    fresh = SimpleNamespace(
+        execution=execution,
+        contract=SimpleNamespace(symbol="AAA"),
+        time=TS,
+        commissionReport=SimpleNamespace(execId="", commission=0),
+    )
+    canonical = SimpleNamespace(
+        execution=execution,
+        contract=fresh.contract,
+        time=TS,
+        commissionReport=SimpleNamespace(execId="", commission=0),
+    )
+
+    def update(timeout):
+        canonical.commissionReport.execId = "exec1"
+        canonical.commissionReport.commission = 0.75
+
+    client = IBGatewayClient(request_timeout=1)
+    client._ib = SimpleNamespace(
+        isConnected=lambda: True,
+        reqExecutions=lambda _: [fresh],
+        fills=lambda: [canonical],
+        waitOnUpdate=update,
+    )
+    assert client.executions()[0].commission == dec("0.75")
+
+
 @pytest.mark.parametrize(
     "fee,confirmed,expected",
     [

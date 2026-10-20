@@ -203,3 +203,21 @@ monthly targets on process restart; it does not retroactively undo real trades o
 force compensating orders. Custom stateful schedules require separate validation.
 The updated targeted suite passes 124 tests, including interval rollback/preservation
 and restart retention of an inactive sleeve.
+
+### October 19 — duplicate execution objects lost fee visibility
+
+The 06:00 Toronto cycle succeeded and submitted eight opening-auction orders;
+subsequent capture alerts were not an authentication or submission failure.
+Read-only diagnosis found eight execution-request objects with unset commission
+reports, while all eight matching canonical objects in `ib.fills()` had confirmed
+fees. `ib_async` creates fresh Fill objects on repeated execution requests but
+updates commission reports on the original objects keyed by execution ID.
+Waiting only on the request copies caused false commission timeouts and an empty
+archive, despite the broker having supplied the information.
+
+The adapter now resolves exact requested execution IDs to canonical fee-bearing
+objects and refreshes that mapping after updates, without admitting unrequested
+cached executions or relaxing matching/finite-fee checks. Explicit UTC execution
+filters also remove the deprecated ambiguous-time warning. Collector failures
+now include a sanitized processing stage and timestamp. Three regression cases
+cover cached fees, mismatched fee IDs and delayed updates; 127 relevant tests pass.

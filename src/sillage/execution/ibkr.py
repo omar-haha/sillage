@@ -532,9 +532,25 @@ class IBGatewayClient:
         from ib_async import ExecutionFilter
 
         ib = self._require()
-        raw = ib.reqExecutions(
-            ExecutionFilter(time=since.strftime("%Y%m%d 00:00:00") if since else "")
+        requested = ib.reqExecutions(
+            ExecutionFilter(time=since.strftime("%Y%m%d-00:00:00") if since else "")
         )
+
+        # ib_async creates a fresh Fill for repeat execDetails requests, but
+        # commissionReport updates the canonical Fill kept in ib.fills(). Looking
+        # only at the fresh request objects can therefore wait forever on fees
+        # that are already present. Resolve by exact execution ID and never admit
+        # cached executions outside this request's result set.
+        def resolved():
+            cached = (
+                {item.execution.execId: item for item in ib.fills()} if hasattr(ib, "fills") else {}
+            )
+            return [
+                item if _commission_ready(item) else cached.get(item.execution.execId, item)
+                for item in requested
+            ]
+
+        raw = resolved()
         # execDetailsEnd can arrive before commissionReport. A default report's zero
         # is not proof of a fee-free trade; wait for the matching execution id.
         deadline = time.monotonic() + self.request_timeout
@@ -545,6 +561,7 @@ class IBGatewayClient:
                     "IBKR commission evidence unavailable; refusing zero-fee fallback"
                 )
             ib.waitOnUpdate(timeout=min(1.0, remaining))
+            raw = resolved()
         result = [
             Execution(
                 order_ref=item.execution.orderRef,
