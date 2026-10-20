@@ -30,7 +30,7 @@ def module(tmp_path, monkeypatch, stamp):
 def test_outside_market_window_never_connects(tmp_path, monkeypatch, stamp):
     value = module(tmp_path, monkeypatch, stamp)
     monkeypatch.setattr(value, "IBGatewayClient", lambda **kw: pytest.fail("must not connect"))
-    value.main()
+    assert value.main() == 10
 
 
 def test_capture_readonly_same_client_and_no_order_path(tmp_path, monkeypatch, capsys):

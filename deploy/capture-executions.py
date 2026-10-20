@@ -17,7 +17,7 @@ def main():
     if not time(9, 30) <= now.time() <= time(16, 15) or not TradingCalendar().is_session(
         now.date()
     ):
-        return
+        return 10
     root = Path(__file__).resolve().parent.parent
     journal = root / "state/ibkr.db"
     if not journal.is_file():
@@ -27,7 +27,7 @@ def main():
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
             print("Execution capture skipped: paper lock held")
-            return
+            return 10
         logging.disable(logging.CRITICAL)
         client = IBGatewayClient(
             host="127.0.0.1",
@@ -59,7 +59,7 @@ def main():
 
 if __name__ == "__main__":
     try:
-        main()
+        raise SystemExit(main() or 0)
     except Exception as exc:
         print(f"Execution capture failed ({type(exc).__name__}); no trading attempted")
-        raise SystemExit(1) from None
+        raise SystemExit(2 if isinstance(exc, ValueError) else 1) from None

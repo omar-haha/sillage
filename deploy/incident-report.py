@@ -37,7 +37,8 @@ COMMANDS = {
     "commit": ["git", "rev-parse", "--short", "HEAD"],
     "worktree": ["git", "status", "--short", "--branch"],
 }
-LOGS = ("state/paper-cron.log", "state/gateway-restart.log", "state/weekly-report.log")
+LOGS = ("state/paper-cron.log", "state/gateway-restart.log", "state/weekly-report.log",
+        "state/execution-capture.log", "state/execution-health.json")
 REDACTIONS = (
     (re.compile(r"\b(?:DU[T]?|U)\d+\b", re.I), "[ACCOUNT]"),
     (re.compile(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}"), "[EMAIL]"),

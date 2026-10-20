@@ -380,3 +380,19 @@ volatility and max drawdown.
 ## License
 
 MIT
+## Execution collector monitoring
+
+The read-only market-hours collector retries operational failures once. Only
+three consecutive failed scheduled checks (roughly ten minutes after the first
+failure) open an incident. It never sends failure or success pings to the daily
+trading-cycle Healthchecks check. Its independent state is in
+`state/execution-health.json`; recovery after a persistent outage sends a separate
+email, without claiming trading succeeded or closing a trading incident. Failed
+recovery emails are retried on subsequent successful collection checks. Skipped
+checks outside market hours or while the paper lock is held do not reset health.
+Collector logs and health state are included in incident evidence. No monitoring
+recovery places orders, restarts Gateway, or changes the journal's holdings.
+
+Inspect with `cat state/execution-health.json` and
+`tail -n 30 state/execution-capture.log` on the VPS checkout. The daily trading
+cycle remains responsible for clearing its own heartbeat and trading incidents.
