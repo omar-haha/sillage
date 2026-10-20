@@ -221,3 +221,12 @@ cached executions or relaxing matching/finite-fee checks. Explicit UTC execution
 filters also remove the deprecated ambiguous-time warning. Collector failures
 now include a sanitized processing stage and timestamp. Three regression cases
 cover cached fees, mismatched fee IDs and delayed updates; 127 relevant tests pass.
+
+The fix was deployed and verified against the actual paper endpoint: eight October
+19 executions, including confirmed commissions, were archived before the broker's
+day rolled over. Under the shared lock, an online backup and projected-position
+check preceded recovery-only import. All eight positions then reconciled with a
+fresh broker request, pending orders became zero, and total ledger fills became 34.
+No strategy replay, new orders or cancellations occurred; prior NAV marks were not
+rewritten. The next scheduled pre-open cycle must still validate the complete run
+and clear the incident/healthcheck; no manual success heartbeat was substituted.
