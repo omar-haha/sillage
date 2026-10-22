@@ -667,6 +667,14 @@ cash interest and the frozen margin gate. The direct-product history screen has 
    a genuinely different exposure; do not treat this audit as a pristine holdout,
    the complete missing balanced validation battery, or proof of 1.1 feasibility.
 
+   **Candidate G, Bitcoin ETP:** the separately frozen 3% IBIT substitution has
+   practical whole-share sizing and read-only paper contract qualification. Its
+   actual-product 2024–2026 point Sharpe improves (0.812 to 0.853), but the
+   second-half change is negative and confidence intervals cross zero. The frozen
+   stability gate fails; do not promote or replace the primary with the 5% result.
+   Live ETP permissions, opening-auction admission and longer-cycle evidence remain
+   unverified. See `candidate-g-bitcoin-etp.md`. No leverage or paper change.
+
    **Investor-relevance controls, not an immediate discovery gate:** compare the current
    core at $25K against CAD buy-and-hold XEQT and a simple balanced all-in-one ETF
    (e.g. XBAL/XGRO, with risk levels made explicit), on the same available period,

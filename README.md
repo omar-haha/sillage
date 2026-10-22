@@ -350,6 +350,12 @@ drawdown, versus 0.639 and -24.27% for static 50/50 SPY/IEF. Sharpe-improvement
 intervals include zero; these reused-history results do not establish alpha or
 the 1.1 goal. The running paper allocation remains unchanged.
 
+The [Bitcoin ETP follow-up](docs/candidate-g-bitcoin-etp.md) tests a 3% unleveraged
+IBIT substitution using actual 2024–2026 product prices. The point improvement is
+positive, but second-half deterioration fails the frozen stability criterion;
+uncertainty remains wide. Paper contract discovery is verified, not live buying
+permission or execution. It is not enabled in production.
+
 The [trial ledger](research/TRIALS.md) records these outcomes; no candidate was added
 to paper trading. Only robust, executable sleeves may enter
 the blend; only after that does risk scaling attempt to exceed SPY's return with smaller

@@ -1157,3 +1157,30 @@ zero rejected orders, not proof of real venue execution.
 Keep the paper allocation unchanged. Separate the choice of a downside-risk
 overlay from the search for independent returns. A replacement should earn its
 complexity against simple controls rather than win a repeated historical search.
+
+## 2026-10-22 — Bitcoin ETP works mechanically, but improvement is unstable
+
+Candidate G was separately frozen at `7032207`, with input hashes recorded at
+`b1d7463` before scoring. It substitutes 3% IBIT into balanced within a $25K
+budget, with no leverage, and compares 1%/5% neighbors, a 3% SPY substitution,
+standalone IBIT and doubled-cost portfolios. Actual product history supplies
+672 sessions; scored returns run February 1, 2024–September 16, 2026 after staging.
+No spot history is backfilled and no alternative product is selected from returns.
+
+Primary CAGR rises from 11.95% to 12.67% and excess Sharpe from 0.812 to 0.853,
+while drawdown deepens slightly from -8.78% to -9.01%. It clears the full-period
+point/control, drawdown, cost and neighbor gates. But its first-half Sharpe
+improvement is +0.210 and second-half -0.174; that fails the frozen both-halves
+criterion. The paired 95% intervals cross zero under both block lengths. A
+better-looking 5% full-period number is not substituted for the primary. This
+rejects promotion of this expression, not the entire crypto strategy family.
+
+All eight simulations have nonnegative cash, gross exposure below 100% and zero
+rejections. Primary IBIT has 16 fills and drifts up to 3.70% marked weight. The
+read-only paper Gateway resolves a USD/Nasdaq contract compatible with the
+existing stock/ETP adapter. Live ETP permission, opening-auction admission and
+actual historical spreads remain unverified. No real or paper order, what-if
+request, authentication/permission change or Gateway restart was performed.
+See `candidate-g-bitcoin-etp.md` and the `bitcoin-etp-*` result/input/venue
+artifacts. The exact new private data vintage is not in the production-journal
+backup whitelist; it must be retained separately for exact reproduction.

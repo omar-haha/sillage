@@ -1,0 +1,18 @@
+{
+  "observed_date": "2026-10-22",
+  "scope": "Read-only contract details on existing paper Gateway, under production paper lock; no order or what-if request",
+  "symbol": "IBIT",
+  "sec_type": "STK",
+  "currency": "USD",
+  "primary_exchange": "NASDAQ",
+  "con_id": 677037673,
+  "min_tick": 0.01,
+  "mkt_order_type_listed": true,
+  "time_zone": "US/Eastern",
+  "orders_submitted": false,
+  "live_permission_verified": false,
+  "opening_auction_admission_verified": false,
+  "historical_quotes_verified": false,
+  "permission_requirement_source": "https://www.interactivebrokers.ca/en/trading/spot-bitcoin-etps.php",
+  "remaining_checks": ["Live account Complex or Leveraged ETP permission and suitability approval", "Specific order-type/OPG admission and opening spread/gap behavior", "Raw share/corporate-action validation and operational shadow run"]
+}

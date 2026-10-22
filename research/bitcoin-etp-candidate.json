@@ -1,0 +1,1181 @@
+{
+  "candidate": "G",
+  "specification_commit": "7032207",
+  "spec_sha256": "1ee2601e525990866d9fe1a1bfcc57d9ff2c5eb86f90998a8c56755bf8e7b827",
+  "implementation_sha256": "ee3c878b6488ab89cdacee6db23bf64b0e36bb037f001beffc7a4c3aab7e36c3",
+  "research_module_sha256": "aed7f66e9ad90595583afacf6492a4198fcc5484900bdff98af2a9cb3d016ccf",
+  "implementation_base_commit": "b1d746309d223a3fe4008a265846856ac53e060d",
+  "input_sha256": {
+    "SPY": "668b97ad8319b4d3e27cfa5309aa2051baf1ddbae73e05f376c463b53884b774",
+    "QQQ": "db1366793428598c6cef080974f0ed9a81454a727e5a01df94784de32ca4dda3",
+    "IWM": "6d1d18b7e12be8eb700961147a451660c29a5f926b3e543701f0c33431bf10b9",
+    "EFA": "5ca7d87443d76f1dae9301781a646f39d97f2420470fe41e413a2a10d9d5ba26",
+    "EEM": "7c7b2281ed7eb89d12663fb87571f6148c007a91669c99eb45485dd809fc6626",
+    "TLT": "efcdcbc40b79c101ca8b06c6ef55a54b71d2edfdb5f1bfa2e2282d9daf8463de",
+    "IEF": "e11f6efe1d73d43e22228584e5be7504ff994f8c1f5b758f86175c13903bd02d",
+    "LQD": "fb19cbfd30032d9f5de980d0a8e3263c2127259c5952b2f2ea87dc5033bdce2c",
+    "HYG": "afe73d01d4badb3e23a2915cb1d2609c7d259ea8e756f47dcce0edc735f663b1",
+    "GLD": "8939224d232e5375736af2b71c708b10fb83620d961ae5968c47954e83141d14",
+    "DBC": "880993cce1f70bbcdd0705b4ca85dc268ec0588868054e5202323744bcd2b873",
+    "VNQ": "93d1484a63ba9328ef3b1bfe82103c4fcb984131e762d3fea5d46cbe709c4493",
+    "BIL": "21127d1054a939fab52bc24bda1df67d458796b6d01b3aed298cfb6bc59b71db",
+    "IBIT": "afb043087c1b76160d2f75b7534d4da52fc57b4fd3bcfec768ed3d0f247ad3ec",
+    "rates": "9d2759e1b31f62a1d819a5a668a9cff1ce76b014e5e88410b3e4cc178c916858",
+    "spec": "1ee2601e525990866d9fe1a1bfcc57d9ff2c5eb86f90998a8c56755bf8e7b827"
+  },
+  "feasibility": {
+    "observations": 672,
+    "first_session": "2024-01-11",
+    "last_session": "2026-09-16",
+    "recent_median_volume": 51359550.0,
+    "zero_volume_fraction": 0.0,
+    "checks": {
+      "history": true,
+      "volume": true,
+      "sparse_sessions": true
+    },
+    "pass": true
+  },
+  "variants": {
+    "core": {
+      "metrics": {
+        "label": "core",
+        "start": "2024-01-31",
+        "end": "2026-09-16",
+        "years": 2.625598904859685,
+        "initial_nav": "24982.07",
+        "final_nav": "33604.29",
+        "total_return": 0.3451359278483175,
+        "cagr": 0.11954767085867335,
+        "volatility": 0.09041110606881853,
+        "raw_sharpe": 1.3013383742215563,
+        "sharpe": 0.8124771915089104,
+        "sortino": 1.1610043499734997,
+        "max_drawdown": -0.08777375666825893,
+        "calmar": 1.3619978840657805,
+        "longest_drawdown_days": 195,
+        "time_underwater": 0.8148710166919575,
+        "drawdowns": [
+          {
+            "peak": "2024-12-11",
+            "trough": "2025-04-08",
+            "recovery": "2025-06-24",
+            "depth": -0.08777375666825893,
+            "days_to_trough": 118,
+            "recovery_days": 77,
+            "total_days": 195
+          },
+          {
+            "peak": "2026-02-25",
+            "trough": "2026-03-30",
+            "recovery": "2026-04-17",
+            "depth": -0.05716242669500571,
+            "days_to_trough": 33,
+            "recovery_days": 18,
+            "total_days": 51
+          },
+          {
+            "peak": "2024-07-16",
+            "trough": "2024-08-07",
+            "recovery": "2024-08-21",
+            "depth": -0.054501045341191046,
+            "days_to_trough": 22,
+            "recovery_days": 14,
+            "total_days": 36
+          },
+          {
+            "peak": "2024-03-27",
+            "trough": "2024-04-19",
+            "recovery": "2024-05-15",
+            "depth": -0.04177869630264708,
+            "days_to_trough": 23,
+            "recovery_days": 26,
+            "total_days": 49
+          },
+          {
+            "peak": "2025-10-28",
+            "trough": "2025-11-20",
+            "recovery": "2025-12-10",
+            "depth": -0.0349063827604299,
+            "days_to_trough": 23,
+            "recovery_days": 20,
+            "total_days": 43
+          }
+        ],
+        "best_month": 0.055154483795889275,
+        "worst_month": -0.037147448473521805,
+        "positive_months": 0.6666666666666666,
+        "best_day": 0.0435317304262981,
+        "worst_day": -0.027401154371008762
+      },
+      "replay_trading": {
+        "fills": 468,
+        "rejections": 0,
+        "traded_notional": "264910.3882854500000000",
+        "commission": "468.00",
+        "slippage": "25.3349543200000000",
+        "annual_turnover": 3.3789758362583773,
+        "cost_drag": 0.006292568972541373,
+        "financing_return": 0.0,
+        "average_exposure": 0.9485371416248187
+      },
+      "rejections": 0,
+      "rejection_reasons": [],
+      "bitcoin_fills": 0,
+      "bitcoin_mean_weight": 0.0,
+      "bitcoin_max_weight": 0.0,
+      "minimum_cash": "105.39",
+      "maximum_gross_exposure": "0.9961886313884114291780278658"
+    },
+    "primary": {
+      "metrics": {
+        "label": "primary",
+        "start": "2024-01-31",
+        "end": "2026-09-16",
+        "years": 2.625598904859685,
+        "initial_nav": "24981.99",
+        "final_nav": "34171.07",
+        "total_return": 0.3678279275646399,
+        "cagr": 0.12670362219177478,
+        "volatility": 0.09401179196022989,
+        "raw_sharpe": 1.3232137347822521,
+        "sharpe": 0.853076113515991,
+        "sortino": 1.2178827562352512,
+        "max_drawdown": -0.09008581757497292,
+        "calmar": 1.4064769083804685,
+        "longest_drawdown_days": 183,
+        "time_underwater": 0.8012139605462822,
+        "drawdowns": [
+          {
+            "peak": "2024-12-11",
+            "trough": "2025-04-08",
+            "recovery": "2025-06-12",
+            "depth": -0.09008581757497292,
+            "days_to_trough": 118,
+            "recovery_days": 65,
+            "total_days": 183
+          },
+          {
+            "peak": "2024-07-16",
+            "trough": "2024-08-07",
+            "recovery": "2024-08-23",
+            "depth": -0.05702922434925117,
+            "days_to_trough": 22,
+            "recovery_days": 16,
+            "total_days": 38
+          },
+          {
+            "peak": "2026-02-25",
+            "trough": "2026-03-30",
+            "recovery": "2026-04-15",
+            "depth": -0.056702303850358016,
+            "days_to_trough": 33,
+            "recovery_days": 16,
+            "total_days": 49
+          },
+          {
+            "peak": "2024-03-28",
+            "trough": "2024-04-19",
+            "recovery": "2024-05-15",
+            "depth": -0.04283964491363401,
+            "days_to_trough": 22,
+            "recovery_days": 26,
+            "total_days": 48
+          },
+          {
+            "peak": "2025-10-28",
+            "trough": "2025-11-20",
+            "recovery": "2025-12-24",
+            "depth": -0.04124734007765085,
+            "days_to_trough": 23,
+            "recovery_days": 34,
+            "total_days": 57
+          }
+        ],
+        "best_month": 0.05731223678116648,
+        "worst_month": -0.038863005433938946,
+        "positive_months": 0.6666666666666666,
+        "best_day": 0.04237109813126638,
+        "worst_day": -0.026119465569140576
+      },
+      "replay_trading": {
+        "fills": 471,
+        "rejections": 0,
+        "traded_notional": "263075.4055943200000000",
+        "commission": "471.00",
+        "slippage": "25.3642219800000000",
+        "annual_turnover": 3.297686391814763,
+        "cost_drag": 0.0062219937911311505,
+        "financing_return": 0.0,
+        "average_exposure": 0.9497913705450756
+      },
+      "rejections": 0,
+      "rejection_reasons": [],
+      "bitcoin_fills": 16,
+      "bitcoin_mean_weight": 0.029294087806713862,
+      "bitcoin_max_weight": 0.037037682144681165,
+      "minimum_cash": "187.38",
+      "maximum_gross_exposure": "0.9934873566372864264430186621"
+    },
+    "spy_substitution": {
+      "metrics": {
+        "label": "spy_substitution",
+        "start": "2024-01-31",
+        "end": "2026-09-16",
+        "years": 2.625598904859685,
+        "initial_nav": "24981.99",
+        "final_nav": "33856.01",
+        "total_return": 0.3552165314897111,
+        "cagr": 0.12273575617359844,
+        "volatility": 0.09202844087081187,
+        "raw_sharpe": 1.311146854323256,
+        "sharpe": 0.830877061366465,
+        "sortino": 1.189867920770491,
+        "max_drawdown": -0.0894180801361878,
+        "calmar": 1.3726055847616758,
+        "longest_drawdown_days": 195,
+        "time_underwater": 0.8163884673748103,
+        "drawdowns": [
+          {
+            "peak": "2024-12-11",
+            "trough": "2025-04-08",
+            "recovery": "2025-06-24",
+            "depth": -0.0894180801361878,
+            "days_to_trough": 118,
+            "recovery_days": 77,
+            "total_days": 195
+          },
+          {
+            "peak": "2026-02-25",
+            "trough": "2026-03-30",
+            "recovery": "2026-04-16",
+            "depth": -0.05778599283761221,
+            "days_to_trough": 33,
+            "recovery_days": 17,
+            "total_days": 50
+          },
+          {
+            "peak": "2024-07-16",
+            "trough": "2024-08-07",
+            "recovery": "2024-08-23",
+            "depth": -0.055681758566670236,
+            "days_to_trough": 22,
+            "recovery_days": 16,
+            "total_days": 38
+          },
+          {
+            "peak": "2024-03-27",
+            "trough": "2024-04-19",
+            "recovery": "2024-05-15",
+            "depth": -0.042188461803899235,
+            "days_to_trough": 23,
+            "recovery_days": 26,
+            "total_days": 49
+          },
+          {
+            "peak": "2025-10-28",
+            "trough": "2025-11-20",
+            "recovery": "2025-12-10",
+            "depth": -0.03567085160244243,
+            "days_to_trough": 23,
+            "recovery_days": 20,
+            "total_days": 43
+          }
+        ],
+        "best_month": 0.05678615188139502,
+        "worst_month": -0.037243728679681065,
+        "positive_months": 0.696969696969697,
+        "best_day": 0.04511270370107545,
+        "worst_day": -0.02795216536485423
+      },
+      "replay_trading": {
+        "fills": 462,
+        "rejections": 0,
+        "traded_notional": "259719.9314873000000000",
+        "commission": "462.00",
+        "slippage": "24.7568187900000000",
+        "annual_turnover": 3.30058217640564,
+        "cost_drag": 0.006185820514975547,
+        "financing_return": 0.0,
+        "average_exposure": 0.94993324840639
+      },
+      "rejections": 0,
+      "rejection_reasons": [],
+      "bitcoin_fills": 0,
+      "bitcoin_mean_weight": 0.0,
+      "bitcoin_max_weight": 0.0,
+      "minimum_cash": "298.95",
+      "maximum_gross_exposure": "0.9892080058942282257444076400"
+    },
+    "bitcoin_1": {
+      "metrics": {
+        "label": "bitcoin_1",
+        "start": "2024-01-31",
+        "end": "2026-09-16",
+        "years": 2.625598904859685,
+        "initial_nav": "24981.99",
+        "final_nav": "33834.84",
+        "total_return": 0.3543690338496861,
+        "cagr": 0.12246829356629463,
+        "volatility": 0.09154758487674816,
+        "raw_sharpe": 1.3149367236701697,
+        "sharpe": 0.8321443015361923,
+        "sortino": 1.191161096191348,
+        "max_drawdown": -0.0876103507034276,
+        "calmar": 1.3978747098144337,
+        "longest_drawdown_days": 183,
+        "time_underwater": 0.8103186646433991,
+        "drawdowns": [
+          {
+            "peak": "2024-12-11",
+            "trough": "2025-04-08",
+            "recovery": "2025-06-12",
+            "depth": -0.0876103507034276,
+            "days_to_trough": 118,
+            "recovery_days": 65,
+            "total_days": 183
+          },
+          {
+            "peak": "2026-02-25",
+            "trough": "2026-03-30",
+            "recovery": "2026-04-16",
+            "depth": -0.05724071563258448,
+            "days_to_trough": 33,
+            "recovery_days": 17,
+            "total_days": 50
+          },
+          {
+            "peak": "2024-07-16",
+            "trough": "2024-08-07",
+            "recovery": "2024-08-23",
+            "depth": -0.055963831682988685,
+            "days_to_trough": 22,
+            "recovery_days": 16,
+            "total_days": 38
+          },
+          {
+            "peak": "2024-03-27",
+            "trough": "2024-04-19",
+            "recovery": "2024-05-15",
+            "depth": -0.04226443303574612,
+            "days_to_trough": 23,
+            "recovery_days": 26,
+            "total_days": 49
+          },
+          {
+            "peak": "2025-10-28",
+            "trough": "2025-11-20",
+            "recovery": "2025-12-11",
+            "depth": -0.037029607962726585,
+            "days_to_trough": 23,
+            "recovery_days": 21,
+            "total_days": 44
+          }
+        ],
+        "best_month": 0.05606982358974166,
+        "worst_month": -0.03667507386045199,
+        "positive_months": 0.696969696969697,
+        "best_day": 0.04396454527074334,
+        "worst_day": -0.02588102863903219
+      },
+      "replay_trading": {
+        "fills": 468,
+        "rejections": 0,
+        "traded_notional": "264450.5373613400000000",
+        "commission": "468.00",
+        "slippage": "25.3880062900000000",
+        "annual_turnover": 3.3522187875328395,
+        "cost_drag": 0.0062542680409410235,
+        "financing_return": 0.0,
+        "average_exposure": 0.9501469885470977
+      },
+      "rejections": 0,
+      "rejection_reasons": [],
+      "bitcoin_fills": 4,
+      "bitcoin_mean_weight": 0.009717041452439883,
+      "bitcoin_max_weight": 0.013875970133362746,
+      "minimum_cash": "108.84",
+      "maximum_gross_exposure": "0.9961580344766100247627550261"
+    },
+    "bitcoin_5": {
+      "metrics": {
+        "label": "bitcoin_5",
+        "start": "2024-01-31",
+        "end": "2026-09-16",
+        "years": 2.625598904859685,
+        "initial_nav": "24981.68",
+        "final_nav": "34635.59",
+        "total_return": 0.3864396880329899,
+        "cagr": 0.13251819027775324,
+        "volatility": 0.0981697724291645,
+        "raw_sharpe": 1.323984794985679,
+        "sharpe": 0.8737598515077563,
+        "sortino": 1.2494314311957588,
+        "max_drawdown": -0.09244665232475091,
+        "calmar": 1.4334558033776839,
+        "longest_drawdown_days": 181,
+        "time_underwater": 0.8072837632776935,
+        "drawdowns": [
+          {
+            "peak": "2024-12-11",
+            "trough": "2025-04-08",
+            "recovery": "2025-06-10",
+            "depth": -0.09244665232475091,
+            "days_to_trough": 118,
+            "recovery_days": 63,
+            "total_days": 181
+          },
+          {
+            "peak": "2024-07-16",
+            "trough": "2024-08-05",
+            "recovery": "2024-08-23",
+            "depth": -0.05979238989515756,
+            "days_to_trough": 20,
+            "recovery_days": 18,
+            "total_days": 38
+          },
+          {
+            "peak": "2026-01-28",
+            "trough": "2026-03-30",
+            "recovery": "2026-04-15",
+            "depth": -0.05971603078020593,
+            "days_to_trough": 61,
+            "recovery_days": 16,
+            "total_days": 77
+          },
+          {
+            "peak": "2025-10-28",
+            "trough": "2025-11-20",
+            "recovery": "2026-01-05",
+            "depth": -0.04577528970607536,
+            "days_to_trough": 23,
+            "recovery_days": 46,
+            "total_days": 69
+          },
+          {
+            "peak": "2024-03-28",
+            "trough": "2024-04-19",
+            "recovery": "2024-05-15",
+            "depth": -0.043927683214553204,
+            "days_to_trough": 22,
+            "recovery_days": 26,
+            "total_days": 48
+          }
+        ],
+        "best_month": 0.0593369208966994,
+        "worst_month": -0.041291476143600625,
+        "positive_months": 0.6666666666666666,
+        "best_day": 0.04307964983386636,
+        "worst_day": -0.026711027137353516
+      },
+      "replay_trading": {
+        "fills": 496,
+        "rejections": 0,
+        "traded_notional": "268695.4342536700000000",
+        "commission": "496.00",
+        "slippage": "26.2347246300000000",
+        "annual_turnover": 3.3237647571144104,
+        "cost_drag": 0.006460047888375441,
+        "financing_return": 0.0,
+        "average_exposure": 0.9523816825426427
+      },
+      "rejections": 0,
+      "rejection_reasons": [],
+      "bitcoin_fills": 36,
+      "bitcoin_mean_weight": 0.049557395393789415,
+      "bitcoin_max_weight": 0.0647922516600778,
+      "minimum_cash": "431.84",
+      "maximum_gross_exposure": "0.9871784962702998830978282727"
+    },
+    "bitcoin_standalone": {
+      "metrics": {
+        "label": "bitcoin_standalone",
+        "start": "2024-01-31",
+        "end": "2026-09-16",
+        "years": 2.625598904859685,
+        "initial_nav": "23020.19",
+        "final_nav": "40598.31",
+        "total_return": 0.763595874760036,
+        "cagr": 0.24120896260162983,
+        "volatility": 0.48841370425879727,
+        "raw_sharpe": 0.6884041574921529,
+        "sharpe": 0.5979102179123136,
+        "sortino": 0.8982761023328312,
+        "max_drawdown": -0.5312324019810731,
+        "calmar": 0.45405544108776646,
+        "longest_drawdown_days": 345,
+        "time_underwater": 0.9332321699544764,
+        "drawdowns": [
+          {
+            "peak": "2025-10-06",
+            "trough": "2026-06-30",
+            "recovery": null,
+            "depth": -0.5312324019810731,
+            "days_to_trough": 267,
+            "recovery_days": 78,
+            "total_days": 345
+          },
+          {
+            "peak": "2024-12-17",
+            "trough": "2025-04-08",
+            "recovery": "2025-05-20",
+            "depth": -0.28111364653323523,
+            "days_to_trough": 112,
+            "recovery_days": 42,
+            "total_days": 154
+          },
+          {
+            "peak": "2024-03-13",
+            "trough": "2024-09-06",
+            "recovery": "2024-11-06",
+            "depth": -0.27351300649456134,
+            "days_to_trough": 177,
+            "recovery_days": 61,
+            "total_days": 238
+          },
+          {
+            "peak": "2025-08-13",
+            "trough": "2025-08-29",
+            "recovery": "2025-10-06",
+            "depth": -0.11985994223727914,
+            "days_to_trough": 16,
+            "recovery_days": 38,
+            "total_days": 54
+          },
+          {
+            "peak": "2024-03-04",
+            "trough": "2024-03-05",
+            "recovery": "2024-03-08",
+            "depth": -0.08562224912659022,
+            "days_to_trough": 1,
+            "recovery_days": 3,
+            "total_days": 4
+          }
+        ],
+        "best_month": 0.45310483186061346,
+        "worst_month": -0.21578919966226406,
+        "positive_months": 0.5151515151515151,
+        "best_day": 0.1338439096252757,
+        "worst_day": -0.14308915562347724
+      },
+      "replay_trading": {
+        "fills": 1,
+        "rejections": 0,
+        "traded_notional": "24768.5230562000000000",
+        "commission": "4.69",
+        "slippage": "5.3234126400000000",
+        "annual_turnover": 0.21242893729894133,
+        "cost_drag": 8.588072050257054e-05,
+        "financing_return": 0.0,
+        "average_exposure": 0.9929777947871017
+      },
+      "rejections": 0,
+      "rejection_reasons": [],
+      "bitcoin_fills": 1,
+      "bitcoin_mean_weight": 0.9945469131712626,
+      "bitcoin_max_weight": 0.9966199585780134,
+      "minimum_cash": "226.79",
+      "maximum_gross_exposure": "0.9966199585780134785173466306"
+    },
+    "core_2x": {
+      "metrics": {
+        "label": "core_2x",
+        "start": "2024-01-31",
+        "end": "2026-09-16",
+        "years": 2.625598904859685,
+        "initial_nav": "24969.69",
+        "final_nav": "33067.1",
+        "total_return": 0.32428932024157264,
+        "cagr": 0.11290749563990188,
+        "volatility": 0.09017417829949141,
+        "raw_sharpe": 1.2381661236535857,
+        "sharpe": 0.7480204846618258,
+        "sortino": 1.063808593576936,
+        "max_drawdown": -0.08808845823210987,
+        "calmar": 1.2817512975694814,
+        "longest_drawdown_days": 197,
+        "time_underwater": 0.8254931714719271,
+        "drawdowns": [
+          {
+            "peak": "2024-12-11",
+            "trough": "2025-04-08",
+            "recovery": "2025-06-26",
+            "depth": -0.08808845823210987,
+            "days_to_trough": 118,
+            "recovery_days": 79,
+            "total_days": 197
+          },
+          {
+            "peak": "2026-02-25",
+            "trough": "2026-03-30",
+            "recovery": "2026-04-17",
+            "depth": -0.058037265873976396,
+            "days_to_trough": 33,
+            "recovery_days": 18,
+            "total_days": 51
+          },
+          {
+            "peak": "2024-07-16",
+            "trough": "2024-08-07",
+            "recovery": "2024-08-23",
+            "depth": -0.055101739831246,
+            "days_to_trough": 22,
+            "recovery_days": 16,
+            "total_days": 38
+          },
+          {
+            "peak": "2024-03-27",
+            "trough": "2024-04-19",
+            "recovery": "2024-05-15",
+            "depth": -0.04242186578939511,
+            "days_to_trough": 23,
+            "recovery_days": 26,
+            "total_days": 49
+          },
+          {
+            "peak": "2025-10-28",
+            "trough": "2025-11-20",
+            "recovery": "2025-12-10",
+            "depth": -0.035558414526809745,
+            "days_to_trough": 23,
+            "recovery_days": 20,
+            "total_days": 43
+          }
+        ],
+        "best_month": 0.05504769716027602,
+        "worst_month": -0.037812343292829675,
+        "positive_months": 0.696969696969697,
+        "best_day": 0.04153067132215216,
+        "worst_day": -0.026089054330336925
+      },
+      "replay_trading": {
+        "fills": 459,
+        "rejections": 0,
+        "traded_notional": "262160.2286028000000000",
+        "commission": "918.00",
+        "slippage": "50.2248056400000000",
+        "annual_turnover": 3.378362995692503,
+        "cost_drag": 0.012477158996690036,
+        "financing_return": 0.0,
+        "average_exposure": 0.9509228953809815
+      },
+      "rejections": 0,
+      "rejection_reasons": [],
+      "bitcoin_fills": 0,
+      "bitcoin_mean_weight": 0.0,
+      "bitcoin_max_weight": 0.0,
+      "minimum_cash": "239.44",
+      "maximum_gross_exposure": "0.9913245446315381562689738451"
+    },
+    "primary_2x": {
+      "metrics": {
+        "label": "primary_2x",
+        "start": "2024-01-31",
+        "end": "2026-09-16",
+        "years": 2.625598904859685,
+        "initial_nav": "24969.61",
+        "final_nav": "33580.07",
+        "total_return": 0.3448373329969223,
+        "cagr": 0.11945301223250171,
+        "volatility": 0.09414883691389496,
+        "raw_sharpe": 1.252439561519096,
+        "sharpe": 0.7829862820953322,
+        "sortino": 1.1144678630854017,
+        "max_drawdown": -0.09122109706351578,
+        "calmar": 1.3094888800704567,
+        "longest_drawdown_days": 195,
+        "time_underwater": 0.8072837632776935,
+        "drawdowns": [
+          {
+            "peak": "2024-12-11",
+            "trough": "2025-04-08",
+            "recovery": "2025-06-24",
+            "depth": -0.09122109706351578,
+            "days_to_trough": 118,
+            "recovery_days": 77,
+            "total_days": 195
+          },
+          {
+            "peak": "2024-07-16",
+            "trough": "2024-08-07",
+            "recovery": "2024-08-23",
+            "depth": -0.057800898878088036,
+            "days_to_trough": 22,
+            "recovery_days": 16,
+            "total_days": 38
+          },
+          {
+            "peak": "2026-02-25",
+            "trough": "2026-03-30",
+            "recovery": "2026-04-15",
+            "depth": -0.05632017150405799,
+            "days_to_trough": 33,
+            "recovery_days": 16,
+            "total_days": 49
+          },
+          {
+            "peak": "2024-03-28",
+            "trough": "2024-04-19",
+            "recovery": "2024-05-15",
+            "depth": -0.04335489890007782,
+            "days_to_trough": 22,
+            "recovery_days": 26,
+            "total_days": 48
+          },
+          {
+            "peak": "2025-10-28",
+            "trough": "2025-11-20",
+            "recovery": "2025-12-26",
+            "depth": -0.04184327529513021,
+            "days_to_trough": 23,
+            "recovery_days": 36,
+            "total_days": 59
+          }
+        ],
+        "best_month": 0.057162048639571195,
+        "worst_month": -0.03936407391417662,
+        "positive_months": 0.6666666666666666,
+        "best_day": 0.04268780272413042,
+        "worst_day": -0.02622731803780254
+      },
+      "replay_trading": {
+        "fills": 480,
+        "rejections": 0,
+        "traded_notional": "262806.5976959300000000",
+        "commission": "960.00",
+        "slippage": "50.6358476800000000",
+        "annual_turnover": 3.329068852387777,
+        "cost_drag": 0.01280209991345324,
+        "financing_return": 0.0,
+        "average_exposure": 0.9500423059441762
+      },
+      "rejections": 0,
+      "rejection_reasons": [],
+      "bitcoin_fills": 17,
+      "bitcoin_mean_weight": 0.028992037199284185,
+      "bitcoin_max_weight": 0.03537847289202656,
+      "minimum_cash": "389.21",
+      "maximum_gross_exposure": "0.9860729269355545336236759961"
+    }
+  },
+  "comparisons": {
+    "primary": {
+      "21": {
+        "excess_sharpe_improvement": 0.040598922007080596,
+        "paired_block_sharpe_improvement_interval_95": [
+          -0.13991421307038254,
+          0.23564601627438303
+        ],
+        "half_excess_sharpe_improvements": [
+          0.21015228366924005,
+          -0.17442697748917202
+        ],
+        "half_periods": [
+          {
+            "start": "2024-01-31",
+            "end": "2025-05-23"
+          },
+          {
+            "start": "2025-05-23",
+            "end": "2026-09-16"
+          }
+        ],
+        "daily_excess_return_correlation": 0.990288903066956,
+        "core_worst_daily_decile": {
+          "sessions": 66,
+          "core_mean_excess": -0.010445148812716833,
+          "candidate_mean_excess": -0.010771869069994137
+        }
+      },
+      "63": {
+        "excess_sharpe_improvement": 0.040598922007080596,
+        "paired_block_sharpe_improvement_interval_95": [
+          -0.17421434175199516,
+          0.2661580050194278
+        ],
+        "half_excess_sharpe_improvements": [
+          0.21015228366924005,
+          -0.17442697748917202
+        ],
+        "half_periods": [
+          {
+            "start": "2024-01-31",
+            "end": "2025-05-23"
+          },
+          {
+            "start": "2025-05-23",
+            "end": "2026-09-16"
+          }
+        ],
+        "daily_excess_return_correlation": 0.990288903066956,
+        "core_worst_daily_decile": {
+          "sessions": 66,
+          "core_mean_excess": -0.010445148812716833,
+          "candidate_mean_excess": -0.010771869069994137
+        }
+      }
+    },
+    "spy_substitution": {
+      "21": {
+        "excess_sharpe_improvement": 0.018399869857554596,
+        "paired_block_sharpe_improvement_interval_95": [
+          -0.004749527054887542,
+          0.04605357711378643
+        ],
+        "half_excess_sharpe_improvements": [
+          0.019070080041882265,
+          0.02038455290377983
+        ],
+        "half_periods": [
+          {
+            "start": "2024-01-31",
+            "end": "2025-05-23"
+          },
+          {
+            "start": "2025-05-23",
+            "end": "2026-09-16"
+          }
+        ],
+        "daily_excess_return_correlation": 0.9997266798694605,
+        "core_worst_daily_decile": {
+          "sessions": 66,
+          "core_mean_excess": -0.010445148812716833,
+          "candidate_mean_excess": -0.01058248135641295
+        }
+      },
+      "63": {
+        "excess_sharpe_improvement": 0.018399869857554596,
+        "paired_block_sharpe_improvement_interval_95": [
+          -0.0019733222497430535,
+          0.042567099697332134
+        ],
+        "half_excess_sharpe_improvements": [
+          0.019070080041882265,
+          0.02038455290377983
+        ],
+        "half_periods": [
+          {
+            "start": "2024-01-31",
+            "end": "2025-05-23"
+          },
+          {
+            "start": "2025-05-23",
+            "end": "2026-09-16"
+          }
+        ],
+        "daily_excess_return_correlation": 0.9997266798694605,
+        "core_worst_daily_decile": {
+          "sessions": 66,
+          "core_mean_excess": -0.010445148812716833,
+          "candidate_mean_excess": -0.01058248135641295
+        }
+      }
+    },
+    "bitcoin_1": {
+      "21": {
+        "excess_sharpe_improvement": 0.019667110027281942,
+        "paired_block_sharpe_improvement_interval_95": [
+          -0.047824698747279196,
+          0.09157327218233104
+        ],
+        "half_excess_sharpe_improvements": [
+          0.07674781476794529,
+          -0.05242057817588397
+        ],
+        "half_periods": [
+          {
+            "start": "2024-01-31",
+            "end": "2025-05-23"
+          },
+          {
+            "start": "2025-05-23",
+            "end": "2026-09-16"
+          }
+        ],
+        "daily_excess_return_correlation": 0.9987964839935572,
+        "core_worst_daily_decile": {
+          "sessions": 66,
+          "core_mean_excess": -0.010445148812716833,
+          "candidate_mean_excess": -0.010554564968967459
+        }
+      },
+      "63": {
+        "excess_sharpe_improvement": 0.019667110027281942,
+        "paired_block_sharpe_improvement_interval_95": [
+          -0.061334238776780146,
+          0.10239208160342905
+        ],
+        "half_excess_sharpe_improvements": [
+          0.07674781476794529,
+          -0.05242057817588397
+        ],
+        "half_periods": [
+          {
+            "start": "2024-01-31",
+            "end": "2025-05-23"
+          },
+          {
+            "start": "2025-05-23",
+            "end": "2026-09-16"
+          }
+        ],
+        "daily_excess_return_correlation": 0.9987964839935572,
+        "core_worst_daily_decile": {
+          "sessions": 66,
+          "core_mean_excess": -0.010445148812716833,
+          "candidate_mean_excess": -0.010554564968967459
+        }
+      }
+    },
+    "bitcoin_5": {
+      "21": {
+        "excess_sharpe_improvement": 0.061282659998845856,
+        "paired_block_sharpe_improvement_interval_95": [
+          -0.2332174276196673,
+          0.36755541778232254
+        ],
+        "half_excess_sharpe_improvements": [
+          0.3376120258762701,
+          -0.28029371065722253
+        ],
+        "half_periods": [
+          {
+            "start": "2024-01-31",
+            "end": "2025-05-23"
+          },
+          {
+            "start": "2025-05-23",
+            "end": "2026-09-16"
+          }
+        ],
+        "daily_excess_return_correlation": 0.974677301038146,
+        "core_worst_daily_decile": {
+          "sessions": 66,
+          "core_mean_excess": -0.010445148812716833,
+          "candidate_mean_excess": -0.01106057927827347
+        }
+      },
+      "63": {
+        "excess_sharpe_improvement": 0.061282659998845856,
+        "paired_block_sharpe_improvement_interval_95": [
+          -0.2846122596489426,
+          0.4253865776093657
+        ],
+        "half_excess_sharpe_improvements": [
+          0.3376120258762701,
+          -0.28029371065722253
+        ],
+        "half_periods": [
+          {
+            "start": "2024-01-31",
+            "end": "2025-05-23"
+          },
+          {
+            "start": "2025-05-23",
+            "end": "2026-09-16"
+          }
+        ],
+        "daily_excess_return_correlation": 0.974677301038146,
+        "core_worst_daily_decile": {
+          "sessions": 66,
+          "core_mean_excess": -0.010445148812716833,
+          "candidate_mean_excess": -0.01106057927827347
+        }
+      }
+    },
+    "bitcoin_standalone": {
+      "21": {
+        "excess_sharpe_improvement": -0.21456697359659682,
+        "paired_block_sharpe_improvement_interval_95": [
+          -1.6150305162623284,
+          1.1499159203693552
+        ],
+        "half_excess_sharpe_improvements": [
+          1.1002760946564176,
+          -1.8636752149507267
+        ],
+        "half_periods": [
+          {
+            "start": "2024-01-31",
+            "end": "2025-05-23"
+          },
+          {
+            "start": "2025-05-23",
+            "end": "2026-09-16"
+          }
+        ],
+        "daily_excess_return_correlation": 0.42176890182730054,
+        "core_worst_daily_decile": {
+          "sessions": 66,
+          "core_mean_excess": -0.010445148812716833,
+          "candidate_mean_excess": -0.024062865165378096
+        }
+      },
+      "63": {
+        "excess_sharpe_improvement": -0.21456697359659682,
+        "paired_block_sharpe_improvement_interval_95": [
+          -1.798136471455455,
+          1.2959668644931122
+        ],
+        "half_excess_sharpe_improvements": [
+          1.1002760946564176,
+          -1.8636752149507267
+        ],
+        "half_periods": [
+          {
+            "start": "2024-01-31",
+            "end": "2025-05-23"
+          },
+          {
+            "start": "2025-05-23",
+            "end": "2026-09-16"
+          }
+        ],
+        "daily_excess_return_correlation": 0.42176890182730054,
+        "core_worst_daily_decile": {
+          "sessions": 66,
+          "core_mean_excess": -0.010445148812716833,
+          "candidate_mean_excess": -0.024062865165378096
+        }
+      }
+    },
+    "core_2x": {
+      "21": {
+        "excess_sharpe_improvement": -0.0644567068470846,
+        "paired_block_sharpe_improvement_interval_95": [
+          -0.09439283685842366,
+          -0.033872637309774606
+        ],
+        "half_excess_sharpe_improvements": [
+          -0.07893542511746049,
+          -0.05727779301852953
+        ],
+        "half_periods": [
+          {
+            "start": "2024-01-31",
+            "end": "2025-05-23"
+          },
+          {
+            "start": "2025-05-23",
+            "end": "2026-09-16"
+          }
+        ],
+        "daily_excess_return_correlation": 0.9996770430682108,
+        "core_worst_daily_decile": {
+          "sessions": 66,
+          "core_mean_excess": -0.010445148812716833,
+          "candidate_mean_excess": -0.01047760506877225
+        }
+      },
+      "63": {
+        "excess_sharpe_improvement": -0.0644567068470846,
+        "paired_block_sharpe_improvement_interval_95": [
+          -0.09481173195396395,
+          -0.03823516564260867
+        ],
+        "half_excess_sharpe_improvements": [
+          -0.07893542511746049,
+          -0.05727779301852953
+        ],
+        "half_periods": [
+          {
+            "start": "2024-01-31",
+            "end": "2025-05-23"
+          },
+          {
+            "start": "2025-05-23",
+            "end": "2026-09-16"
+          }
+        ],
+        "daily_excess_return_correlation": 0.9996770430682108,
+        "core_worst_daily_decile": {
+          "sessions": 66,
+          "core_mean_excess": -0.010445148812716833,
+          "candidate_mean_excess": -0.01047760506877225
+        }
+      }
+    },
+    "primary_2x": {
+      "21": {
+        "excess_sharpe_improvement": 0.03496579743350636,
+        "paired_block_sharpe_improvement_interval_95": [
+          -0.1413939116490824,
+          0.22219575778869957
+        ],
+        "half_excess_sharpe_improvements": [
+          0.20890440670049737,
+          -0.1749534791464158
+        ],
+        "half_periods": [
+          {
+            "start": "2024-01-31",
+            "end": "2025-05-23"
+          },
+          {
+            "start": "2025-05-23",
+            "end": "2026-09-16"
+          }
+        ],
+        "daily_excess_return_correlation": 0.9906751804397635,
+        "core_worst_daily_decile": {
+          "sessions": 66,
+          "core_mean_excess": -0.01047760506877225,
+          "candidate_mean_excess": -0.010804896529654774
+        }
+      },
+      "63": {
+        "excess_sharpe_improvement": 0.03496579743350636,
+        "paired_block_sharpe_improvement_interval_95": [
+          -0.17250502807402812,
+          0.25826673173324677
+        ],
+        "half_excess_sharpe_improvements": [
+          0.20890440670049737,
+          -0.1749534791464158
+        ],
+        "half_periods": [
+          {
+            "start": "2024-01-31",
+            "end": "2025-05-23"
+          },
+          {
+            "start": "2025-05-23",
+            "end": "2026-09-16"
+          }
+        ],
+        "daily_excess_return_correlation": 0.9906751804397635,
+        "core_worst_daily_decile": {
+          "sessions": 66,
+          "core_mean_excess": -0.01047760506877225,
+          "candidate_mean_excess": -0.010804896529654774
+        }
+      }
+    }
+  },
+  "bitcoin_core_daily_excess_correlation": 0.42176890182730054,
+  "checks": {
+    "primary_sharpe": true,
+    "risky_asset_control": true,
+    "both_halves": false,
+    "drawdown_depth": true,
+    "drawdown_duration": true,
+    "neighbors": true,
+    "cost_stress": true,
+    "static_feasibility": true,
+    "execution_evidence_clean": true,
+    "unleveraged_cash_book": true
+  },
+  "status": "reject_frozen_expression",
+  "positive_intervals": false,
+  "paper_or_live_promotion": false,
+  "limitations": [
+    "Product and broker pages incidentally expose current performance before freeze; historical data is not an untouched holdout",
+    "Less than three years of actual product history; no 2008/2020/2022 crypto-ETP stress validation",
+    "Adjusted-price whole-share research proxy; raw corporate actions and historical executable quotes unverified",
+    "ETF market-hours closure creates weekend and overnight Bitcoin gap exposure",
+    "USD pretax, no CAD conversion or account-specific withholding/tax model",
+    "Not a test of all Bitcoin strategies, a trend-filtered crypto sleeve, ETH or a historical spot implementation",
+    "Paper contract discovery is not live-account admission; Complex or Leveraged ETP permission category does not itself imply this product uses leverage"
+  ],
+  "production_changed": false
+}

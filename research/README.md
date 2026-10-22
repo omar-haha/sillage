@@ -1,5 +1,13 @@
 # Frozen research controls
 
+The October 22 [Bitcoin ETP screen](../docs/candidate-g-bitcoin-etp.md) uses actual
+IBIT history and a frozen 3% substitution into balanced, without leverage.
+Its point improvement is positive, but negative second-half Sharpe improvement
+fails the frozen stability gate and uncertainty intervals cross zero. Paper
+contract discovery succeeds; live permissions and auction admission are not proven.
+See `bitcoin-etp-spec.json`, `bitcoin-etp-inputs.json`, `bitcoin-etp-candidate.json`
+and `bitcoin-etp-venue.json`. No production allocation changed.
+
 The October 22 [balanced baseline review](../docs/balanced-review.md) evaluates
 the deployed rule at $25K against components and simple controls. Eleven frozen
 configurations use the existing E2 input vintage; no production allocation changed.
