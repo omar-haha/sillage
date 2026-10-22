@@ -1,0 +1,19 @@
+{
+  "study": "balanced-review-2026-10-22",
+  "purpose": "Evaluate the deployed balanced rule at realistic capital before proposing another sleeve; not optimize or promote a replacement.",
+  "verified_deployment": {"strategy": "balanced", "universe": "core", "capital_usd": 25000, "commit": "a0c864b", "last_cycle_success": "2026-10-22"},
+  "start": "2005-01-03",
+  "end": "2026-09-16",
+  "data_root": "data/quality-etf-research",
+  "input_manifest": "research/quality-etf-inputs.json",
+  "capital_usd": 25000,
+  "costs": "Primary fixed-style proxy: $0.005/share, $1 minimum; existing per-symbol spread and trailing-ADV impact. Also declared tiered proxy and doubled fixed costs. Actual historical broker fees/quotes are not known.",
+  "cash": "Zero interest on positive idle cash, no margin or shorting; BIL distributions embedded in adjusted prices. DGS3MO only benchmarks excess returns.",
+  "variants": ["balanced", "momentum", "60-40", "spy", "static-50-50", "equal-weight", "balanced-tiered", "balanced-2x", "blend-momentum-25", "blend-momentum-75", "balanced-100k"],
+  "windows": {"full": ["2005-01-03", "2026-09-16"], "after-warmup": ["2006-01-03", "2026-09-16"], "post-2008": ["2010-01-04", "2026-09-16"], "earlier": ["2005-01-03", "2017-12-29"], "later": ["2018-01-02", "2026-09-16"], "2020": ["2020-01-02", "2020-12-31"], "2022": ["2022-01-03", "2022-12-30"]},
+  "window_accounting": "One continuous replay per variant from January 2005, including real startup ramp. Subwindows include preceding NAV close as return denominator; no capital reset or retroactive parameter fit.",
+  "uncertainty": {"comparators": ["momentum", "60-40", "spy", "static-50-50"], "blocks": [21, 252], "replicates": 2000, "seed": 22102026, "method": "Paired circular block bootstrap of balanced-minus-comparator excess Sharpe, total-return volatility denominator. Sensitivity to block length is diagnostic, not independent confirmation."},
+  "exposure": "Report mean marked weights, sleeve return correlation, and descriptive in-sample OLS of balanced excess returns on SPY/IEF excess returns. Regression is not a trading rule, causal explanation or proof of alpha.",
+  "interpretation": "No pristine holdout, no target-Sharpe pass/fail or selection of best neighbor. Report full configurations, failures, costs, drawdown depth/duration and uncertainty. No paper allocation change.",
+  "limitations": ["Adjusted historical prices, whole-share research proxy, not raw corporate-action accounting", "USD pretax; no CAD FX, XEQT, account-specific taxes or withholding", "No historical borrow or live execution validation", "Original data/universe selection and prior research reuse remain", "Research engine replay, not an exact replay of production outages, reconciliation or risk-limit interventions", "Zero idle cash interest is conservative, not a model of all broker account remuneration", "No balanced-wide parameter search, nested walk-forward or effective multiple-testing probability"]
+}
