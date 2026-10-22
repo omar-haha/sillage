@@ -343,6 +343,13 @@ complementary exposures. Futures-trend, ETF relative-value, sector-neutral momen
 and stress reversal failed their frozen gates. The value/quality mechanism screen is
 held, and the subsequent [long-only QUAL test](docs/candidate-e2-quality-etf.md)
 did not improve Sharpe enough or outperform its matched SPY allocation control.
+The [balanced-specific review](docs/balanced-review.md) now compares the deployed
+rule at $25K with components and simple controls using eleven frozen replays.
+Under conservative fixed fees it has 0.650 excess Sharpe and -19.78% maximum
+drawdown, versus 0.639 and -24.27% for static 50/50 SPY/IEF. Sharpe-improvement
+intervals include zero; these reused-history results do not establish alpha or
+the 1.1 goal. The running paper allocation remains unchanged.
+
 The [trial ledger](research/TRIALS.md) records these outcomes; no candidate was added
 to paper trading. Only robust, executable sleeves may enter
 the blend; only after that does risk scaling attempt to exceed SPY's return with smaller

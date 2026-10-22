@@ -1130,3 +1130,30 @@ relevant tests pass. Calendar precision and bootstrap convention corrections are
 documented, with unchanged primary criteria/portfolio conclusions. The next decision
 is a genuinely different exposure or an explicitly labeled risk overlay, not
 another allocation search within these rejected curves. Production is unchanged.
+
+## 2026-10-22 — Evaluate balanced before building another sleeve
+
+The read-only deployment check confirms balanced/core at $25K, commit `a0c864b`,
+and today's successful-cycle marker. A new eleven-configuration baseline review
+was frozen at `f705c21` before scoring; it reuses the existing E2 data vintage
+through September 16 and does not claim an untouched holdout. See
+[balanced-review.md](balanced-review.md) and `research/balanced-review.json`.
+
+At $25K with $1-minimum fixed-style costs and zero idle-cash interest, balanced
+returns 7.27% CAGR, 0.650 excess Sharpe and -19.78% drawdown. Static 50/50 SPY/IEF
+returns 7.53%, 0.639 and -24.27%; SPY returns 10.79%, 0.542 and -55.12%.
+Post-2010 static 50/50 and 60/40 lead on Sharpe/return. All four paired
+balanced-minus-control Sharpe intervals include zero at both 21- and 252-session
+block lengths. That is uncertainty about improvement, not proof of equality.
+
+Balanced correlates 0.913 with 60/40 and 0.858 with momentum; a descriptive
+SPY/IEF regression explains about 80% of daily variance. This supports exposure
+overlap, not a claim that all possible return sources are exhausted. The 25%/75%
+momentum neighbors do not beat balanced's full-sample Sharpe. Tiered-proxy costs
+raise balanced Sharpe to 0.685; doubled fixed costs lower it to 0.585. At $100K
+with the fixed-fee model it reaches 0.686, far short of 1.1. All simulations have
+zero rejected orders, not proof of real venue execution.
+
+Keep the paper allocation unchanged. Separate the choice of a downside-risk
+overlay from the search for independent returns. A replacement should earn its
+complexity against simple controls rather than win a repeated historical search.

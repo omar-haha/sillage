@@ -658,6 +658,15 @@ cash interest and the frozen margin gate. The direct-product history screen has 
    exposure, or a clearly labeled/frozen risk-management overlay. Candidate F
    (volatility management) remains deferred because it may duplicate core controls.
 
+   **2026-10-22 baseline audit complete:** the bounded eleven-run $25K balanced
+   review is frozen at `f705c21`. At conservative fixed fees, excess Sharpe is
+   0.650 versus 0.639 for static 50/50, with shallower drawdown; all paired
+   Sharpe-improvement intervals include zero. Post-2010 static controls lead on
+   Sharpe/return. See `balanced-review.md` and `research/balanced-review.json`.
+   Keep paper unchanged. Decide explicitly between a downside-risk overlay and
+   a genuinely different exposure; do not treat this audit as a pristine holdout,
+   the complete missing balanced validation battery, or proof of 1.1 feasibility.
+
    **Investor-relevance controls, not an immediate discovery gate:** compare the current
    core at $25K against CAD buy-and-hold XEQT and a simple balanced all-in-one ETF
    (e.g. XBAL/XGRO, with risk levels made explicit), on the same available period,

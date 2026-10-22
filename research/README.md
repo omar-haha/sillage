@@ -1,5 +1,13 @@
 # Frozen research controls
 
+The October 22 [balanced baseline review](../docs/balanced-review.md) evaluates
+the deployed rule at $25K against components and simple controls. Eleven frozen
+configurations use the existing E2 input vintage; no production allocation changed.
+Balanced's conservative-fee excess Sharpe is 0.650 versus 0.639 for static 50/50,
+with a smaller drawdown. Paired Sharpe-difference intervals cross zero. This is
+a reused-history diagnostic, not a pristine holdout or full validation battery.
+Reproduce with `uv run python scripts/evaluate_balanced.py`.
+
 The latest investable-expression test is [Candidate E2, QUAL](../docs/candidate-e2-quality-etf.md).
 It is mechanically feasible but rejected for the frozen Sharpe/diversification
 goal: primary Sharpe 0.672 versus core 0.658 and SPY substitution 0.688, with a
